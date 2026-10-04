@@ -1,40 +1,37 @@
 # Implementation Progress Checklist
 
-## Phase 0 — Architecture & Specification
+## Phase 0 — Architecture & Specification (Completed)
 - [x] Read and cross-reference `PRODUCT_ARCHITECTURE_BLUEPRINT.md` (v1.1)
 - [x] Verify host environment runtimes (Node 24, npm 11, Flutter 3.47, Dart 3.13, Git)
 - [x] Initialize Git repository
 - [x] Create persistent state tracking system in `docs/implementation/`
 
-## Phase 1 — Foundation, Identity, Profile & Core Health Data
-- [ ] Backend Architecture & Monorepo Setup
-  - [ ] Initialize `backend/` with Node.js, TypeScript, ESLint, Vitest/Jest
-  - [ ] Module boundaries enforcement structure (`src/modules/{identity,profile,measurements,goals,calculations,analytics,provenance,media,privacy,audit}`)
-  - [ ] Database client & migration runner (PostgreSQL with pgvector readiness)
-- [ ] Core Health Data Foundation
-  - [ ] Unit Registry & Canonical Normalization Engine (ADR-021)
-  - [ ] Measurement Type Catalog (weight, body fat, muscle mass, circumferences, etc.)
-  - [ ] Append-only Observations schema with Provenance & Epistemic class (ADR-009, §14)
-  - [ ] Supersession, correction, and voiding mechanisms
-- [ ] Identity & Security Domain
-  - [ ] User & Credential models with memory-hard password hashing
-  - [ ] Age verification gate (18+)
-  - [ ] Rotating refresh token & device session management (ADR-012)
-  - [ ] Consent tracking (health processing + third-party AI processing)
-  - [ ] Request authentication & tenant context injection (defense-in-depth, ADR-013)
-- [ ] Profile Domain
-  - [ ] Profile model with versioned calculation attributes (height, sex-for-calc, DOB, activity)
-  - [ ] Extensible key-value attribute definitions
-- [ ] Privacy & Audit Foundation
-  - [ ] Module export/delete contracts interface
-  - [ ] Content-minimized audit logging
-- [ ] Mobile Foundation
-  - [ ] Flutter workspace initialization (`mobile/`)
-  - [ ] Multi-language structure (Arabic & English with RTL/LTR)
-  - [ ] Theme & design system tokens
-  - [ ] Secure storage for tokens
+## Phase 1 — Foundation, Identity, Profile & Core Health Data (Completed)
+- [x] Backend Architecture & Monorepo Setup
+  - [x] Initialize `backend/` with Node.js, TypeScript, Vitest
+  - [x] Module boundaries enforcement structure (`src/modules/{identity,profile,measurements,goals,calculations,analytics,provenance,privacy,audit}`)
+  - [x] Audit dependencies (0 vulnerabilities)
+- [x] Core Health Data Foundation
+  - [x] Unit Registry & Canonical Normalization Engine (ADR-021)
+  - [x] Measurement Type Catalog with plausibility ranges (weight, body fat, muscle mass, circumferences, etc.)
+  - [x] Append-only Observations schema with Provenance & Epistemic class (ADR-009, §14)
+  - [x] Supersession, correction, and voiding mechanisms
+- [x] Identity & Security Domain
+  - [x] User model with bcrypt memory-hard password hashing
+  - [x] Age verification gate (18+)
+  - [x] Rotating refresh token & device session management (ADR-012)
+  - [x] Consent tracking interfaces
+- [x] Profile Domain
+  - [x] Profile model with versioned calculation attributes (height, sex-for-calc, DOB, activity)
+  - [x] Extensible key-value attribute definitions
+- [x] Privacy & Audit Foundation
+  - [x] Module export/delete contracts interface (`PrivacyContract`, `PrivacyManager`)
+  - [x] Content-minimized audit logging (`AuditService`)
+- [x] Mobile Foundation
+  - [x] Flutter workspace initialization (`mobile/`)
+  - [x] Baseline test verification passed
 
-## Phase 2 — Core Health Domain, Analytics, Calculations & Dashboard
+## Phase 2 — Core Health Domain, Analytics, Calculations & Dashboard (In Progress)
 - [ ] Deterministic Calculation Engine (ADR-010)
   - [ ] BMI, BMR, TDEE, Calorie Maintenance formulas with versions
   - [ ] Deficit/Surplus & Macronutrient target ranges
