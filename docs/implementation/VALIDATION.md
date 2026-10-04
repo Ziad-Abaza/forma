@@ -37,15 +37,22 @@ Every validation entry records executed commands, test results, and concrete ver
 - **Command:** `npm test` (vitest run)
   - **Result:** PASS (25 tests passed in 5 test suites)
   - **Evidence:**
-    - `src/modules/calculations/engine.test.ts`: 9 tests passed:
-      - BMI calculation with WHO classifications and underweight warnings.
-      - BMR via Mifflin-St Jeor (male/female/neutral fallback) and Katch-McArdle (lean mass).
-      - TDEE with activity multipliers.
-      - Calorie targets with hard safety guardrails (minimum calorie floor enforced, excessive rate clamping).
-      - Macronutrient distribution (protein, fat, carbohydrate energy partition).
-    - `src/modules/analytics/snapshot.test.ts`: 2 tests passed:
-      - End-to-end Health Snapshot compilation across Profile, Observations, Goals, and Calculations.
-      - Snapshot drift reconciliation detection (§7.8 rule 6).
-    - `src/core/units.test.ts`: 5 tests passed.
-    - `src/modules/measurements/model.test.ts`: 5 tests passed.
-    - `src/modules/identity/service.test.ts`: 4 tests passed.
+    - `src/modules/calculations/engine.test.ts`: 9 tests passed (BMI, BMR Mifflin-St Jeor & Katch-McArdle, TDEE, Calorie targets with calorie floor enforcement and rate clamping, Macronutrient splits).
+    - `src/modules/analytics/snapshot.test.ts`: 2 tests passed (Health Snapshot generation and drift reconciliation detection).
+
+---
+
+## 2026-10-05 — Phase 3, 4, 5 & 6: AI Platform, Controlled Actions, Extraction & Security Verification
+- **Command:** `npm test` (vitest run)
+  - **Result:** PASS (39 tests passed across 9 test files)
+  - **Evidence:**
+    - `src/eval/platform.test.ts`: 5 tests passed (Deterministic task routing ADR-023, BYOK envelope AES-256-GCM encryption with write-only masking, ToolRegistry identity injection, AI Context Engine tier planning & manifest, content-free AiTraceService).
+    - `src/modules/assistant/action_protocol.test.ts`: 3 tests passed (Propose -> Confirm -> Commit action workflow with single-use tokens & ActionReceipts, SafetyClassifier concern-signal redirect, OutputValidator anti-hallucination numeric grounding).
+    - `src/modules/extraction/service.test.ts`: 3 tests passed (Multimodal Extraction Draft with plausibility and confidence scoring, commit to measurement session with image provenance, unauthorized commit rejection).
+    - `src/eval/isolation.test.ts`: 3 tests passed (Cross-tenant security isolation across proposals, drafts, and observations).
+- **Command:** `npm run build` (`tsc`)
+  - **Result:** PASS
+  - **Evidence:** TypeScript compilation succeeded with 0 errors.
+- **Command:** `flutter test`
+  - **Result:** PASS
+  - **Evidence:** Mobile test suite passed.

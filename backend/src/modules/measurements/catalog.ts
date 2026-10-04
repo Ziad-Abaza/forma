@@ -8,7 +8,7 @@
  *   plausible range for validation, and laterality.
  */
 
-import { Dimension } from '../core/units.js';
+import { Dimension } from '../../core/units.js';
 
 export type MeasurementCategory = 'anthropometric' | 'composition' | 'circumference' | 'physiological';
 export type SeriesClass = 'point' | 'interval';
