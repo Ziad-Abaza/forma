@@ -1,92 +1,79 @@
-# Implementation Progress Checklist
+# Implementation Progress Checklist (Audited & Re-aligned)
 
 ## Phase 0 — Architecture & Specification (Completed)
 - [x] Read and cross-reference `PRODUCT_ARCHITECTURE_BLUEPRINT.md` (v1.1)
 - [x] Verify host environment runtimes (Node 24, npm 11, Flutter 3.47, Dart 3.13, Git)
 - [x] Initialize Git repository
-- [x] Create persistent state tracking system in `docs/implementation/`
+- [x] Complete forensic repository audit and establish truth baseline
 
-## Phase 1 — Foundation, Identity, Profile & Core Health Data (Completed)
-- [x] Backend Architecture & Monorepo Setup
-  - [x] Initialize `backend/` with Node.js, TypeScript, Vitest
-  - [x] Module boundaries enforcement structure (`src/modules/{identity,profile,measurements,goals,calculations,analytics,provenance,privacy,audit}`)
-  - [x] Audit dependencies (0 vulnerabilities)
-- [x] Core Health Data Foundation
-  - [x] Unit Registry & Canonical Normalization Engine (ADR-021)
-  - [x] Measurement Type Catalog with plausibility ranges (weight, body fat, muscle mass, circumferences, etc.)
-  - [x] Append-only Observations schema with Provenance & Epistemic class (ADR-009, §14)
-  - [x] Supersession, correction, and voiding mechanisms
-- [x] Identity & Security Domain
-  - [x] User model with bcrypt memory-hard password hashing
-  - [x] Age verification gate (18+)
-  - [x] Rotating refresh token & device session management (ADR-012)
-  - [x] Consent tracking interfaces
-- [x] Profile Domain
-  - [x] Profile model with versioned calculation attributes (height, sex-for-calc, DOB, activity)
-  - [x] Extensible key-value attribute definitions
-- [x] Privacy & Audit Foundation
-  - [x] Module export/delete contracts interface (`PrivacyContract`, `PrivacyManager`)
-  - [x] Content-minimized audit logging (`AuditService`)
-- [x] Mobile Foundation
-  - [x] Flutter workspace initialization (`mobile/`)
-  - [x] Baseline test verification passed
+## Phase 1 — Foundation, Identity, Profile & Core Health Data (INCOMPLETE - Domain Code Only)
+- [ ] Backend Architecture & Monorepo Setup
+  - [x] Initialize `backend/` package with Node.js, TypeScript, Vitest
+  - [ ] Fastify HTTP Server Entrypoint (`src/index.ts` or `src/server.ts`) - NOT IMPLEMENTED
+  - [ ] Real Database Schema & PostgreSQL Migrations - NOT IMPLEMENTED
+  - [ ] Defense-in-depth RLS / Database tenant policies - NOT IMPLEMENTED
+- [ ] Core Health Data Foundation
+  - [x] Unit Registry & Canonical Normalization Engine (`src/core/units.ts`) - IN-MEMORY ONLY
+  - [x] Measurement Type Catalog (`src/modules/measurements/catalog.ts`) - IN-MEMORY ONLY
+  - [x] Append-only Observation domain model (`src/modules/measurements/model.ts`) - IN-MEMORY ONLY
+  - [ ] Observation Database Persistence & Repository - NOT IMPLEMENTED
+- [ ] Identity & Security Domain
+  - [x] Password hashing & age calculation utilities (`src/modules/identity/service.ts`) - IN-MEMORY ONLY
+  - [ ] User & Session Database Tables/Persistence - NOT IMPLEMENTED
+  - [ ] Registration & Login API endpoints - NOT IMPLEMENTED
+  - [ ] JWT / Token middleware & Authentication handlers - NOT IMPLEMENTED
+- [ ] Profile Domain
+  - [x] Profile domain logic & snapshot versioning (`src/modules/profile/model.ts`) - IN-MEMORY ONLY
+  - [ ] Profile Database Persistence & Repository - NOT IMPLEMENTED
+  - [ ] Profile API endpoints - NOT IMPLEMENTED
+- [ ] Privacy & Audit Foundation
+  - [x] PrivacyContract interface (`src/modules/privacy/contract.ts`) - CODE SKELETON
+  - [x] In-memory AuditService (`src/modules/audit/service.ts`) - IN-MEMORY ONLY
+  - [ ] Audit Database Table & Persistent sink - NOT IMPLEMENTED
+- [ ] Mobile Foundation (Flutter)
+  - [x] Flutter workspace initialization (`flutter create mobile`)
+  - [ ] Project directory structure (`lib/src/{core,features,ui}`) - NOT IMPLEMENTED
+  - [ ] Design system, theme tokens, typography (ar/en) - NOT IMPLEMENTED
+  - [ ] Multi-language RTL/LTR localization support - NOT IMPLEMENTED
+  - [ ] Secure storage integration for auth tokens - NOT IMPLEMENTED
+  - [ ] API HTTP client (Dio / http) - NOT IMPLEMENTED
+  - [ ] Screens (Login, Register, Onboarding, Profile) - NOT IMPLEMENTED
 
-## Phase 2 — Core Health Domain, Analytics, Calculations & Dashboard (Completed)
-- [x] Deterministic Calculation Engine (ADR-010)
-  - [x] BMI, BMR, TDEE, Calorie Maintenance formulas with versions
-  - [x] Deficit/Surplus & Macronutrient target ranges
-  - [x] Hard safety guardrails (calorie floors, rate caps, special population warnings)
-- [x] Time-Series Analytics & Trends
-  - [x] Canonical moving average smoothing & weekly rate-of-change calculation
-  - [x] Anomaly & outlier detection flags
-- [x] Goal Domain
-  - [x] Versioned goal model with baselines and deadlines
-  - [x] Goal progress evaluation against active goal version
-- [x] Health Snapshot Engine (ADR-019, §7.8)
-  - [x] Materialized derived snapshot generation
-  - [x] Granular sections, data watermarks & sufficiency status
-  - [x] Reconciliation & drift detection
-- [x] Dashboard Domain
-  - [x] Widget composition contracts & resolvers from Health Snapshot
+## Phase 2 — Core Health Domain, Analytics, Calculations & Dashboard (INCOMPLETE - Algorithmic Logic Only)
+- [x] Deterministic Calculation Engine (`src/modules/calculations/engine.ts`) - IN-MEMORY VERIFIED
+- [x] Time-Series Analytics Algorithms (`src/modules/analytics/service.ts`) - IN-MEMORY VERIFIED
+- [x] Goal Domain Logic (`src/modules/goals/model.ts`) - IN-MEMORY VERIFIED
+- [x] Health Snapshot In-Memory Generation (`src/modules/analytics/snapshot.ts`) - IN-MEMORY VERIFIED
+- [x] Dashboard Composition Service (`src/modules/analytics/dashboard.ts`) - IN-MEMORY VERIFIED
+- [ ] Goal Database Persistence & Repository - NOT IMPLEMENTED
+- [ ] Snapshot Database Persistence / Materialized Cache - NOT IMPLEMENTED
+- [ ] Core Health API Endpoints (`/api/v1/measurements`, `/api/v1/goals`, `/api/v1/dashboard`) - NOT IMPLEMENTED
+- [ ] Flutter UI Screens (Dashboard, Measurement Logging, Trends, Goals) - NOT IMPLEMENTED
 
-## Phase 3 — AI Platform & Infrastructure (Completed)
-- [x] AI Gateway (ADR-005)
-  - [x] Provider abstraction & capability slots (text, vision, embedding)
-  - [x] Provider adapters (OpenAI, Gemini)
-  - [x] Model registry & task/model router (ADR-023)
-  - [x] BYOK secret envelope encryption & credential resolution (ADR-018)
-- [x] Capability-based Tool Registry (ADR-007)
-  - [x] Schema-validated tools with server-injected user identity
-  - [x] Read tools (snapshot, calculations, targets)
-- [x] AI Context Engine & Budget (ADR-019, ADR-020)
-  - [x] Tiers 0–4 context planning
-  - [x] AI Data Budget enforcement & degradation profiles
-  - [x] Context manifest generator
-- [x] AI Traceability (ADR-022)
-  - [x] Content-free AI Trace Records
+## Phase 3 — AI Platform & Infrastructure (INCOMPLETE - Stubs/Simulations Only)
+- [x] Model routing logic & AES encryption utilities (`src/modules/ai-gateway/gateway.ts`) - CODE ONLY
+- [x] Mock adapters for OpenAI & Gemini - MOCKS ONLY (NO LIVE NETWORK/API CALLS)
+- [x] Capability-based Tool Registry (`src/modules/assistant/tools.ts`) - IN-MEMORY ONLY
+- [x] Context Engine tier planner (`src/modules/assistant/context.ts`) - IN-MEMORY ONLY
+- [x] Content-free AI trace recording (`src/modules/ai-trace/service.ts`) - IN-MEMORY ONLY
+- [ ] Live AI Provider SDK integration & production keys - NOT IMPLEMENTED
+- [ ] AI Endpoints (`/api/v1/ai/chat`) - NOT IMPLEMENTED
+- [ ] Vector Storage / pgvector schema & persistence - NOT IMPLEMENTED
 
-## Phase 4 — AI Assistant & Controlled Actions (Completed)
-- [x] Safety Classification Engine (§10.6.1)
-  - [x] Wellness, Nutrition, Educational, Concern-signal redirect
-- [x] Propose → Confirm → Commit Protocol (ADR-008)
-  - [x] Action proposals with human-readable diffs & single-use tokens
-  - [x] Out-of-band user confirmation execution
-  - [x] Persistence execution & Action Receipts
-- [x] Anti-Hallucination & Output Verification (§10.8)
-  - [x] Numeric provenance checking against tool outputs
-  - [x] Refusal and grounding checks
+## Phase 4 — AI Assistant & Controlled Actions (INCOMPLETE)
+- [x] Propose -> Confirm -> Commit action logic (`src/modules/assistant/action_protocol.ts`) - IN-MEMORY ONLY
+- [x] Safety Classifier & Output Validator (`src/modules/assistant/safety.ts`) - IN-MEMORY ONLY
+- [ ] Assistant UI in Flutter (Chat, Streaming, Proposals) - NOT IMPLEMENTED
+- [ ] Real End-to-End Orchestrator Pipeline - NOT IMPLEMENTED
 
-## Phase 5 — Multimodal Intelligence (Completed)
-- [x] Vision Extraction Engine (ADR-011, §13)
-  - [x] Body-composition report & scale display structured extraction
-  - [x] Plausibility range & consistency validation
-  - [x] Per-field confidence scoring
-- [x] Extraction Draft & Review UX
-  - [x] Draft creation & approval workflow
-  - [x] Commit to Measurement Session with image provenance
+## Phase 5 — Multimodal Intelligence (INCOMPLETE)
+- [x] Extraction draft parsing & session commit logic (`src/modules/extraction/service.ts`) - IN-MEMORY ONLY
+- [ ] Camera capture, Image Upload & Private Object Storage - NOT IMPLEMENTED
+- [ ] Live Vision OCR integration - NOT IMPLEMENTED
+- [ ] Side-by-side Review Screen in Flutter - NOT IMPLEMENTED
 
-## Phase 6 & 7 — Hardening & Operational Readiness (Completed)
-- [x] Automated cross-user isolation test suite (`src/eval/isolation.test.ts`)
-- [x] Type checking & clean build (`npm run build`, 0 errors)
-- [x] 100% passing tests (39/39 in vitest, Flutter smoke test)
-- [x] Persistent state tracking synchronization
+## Phase 6 & 7 — Hardening & Production (INCOMPLETE)
+- [x] Pure function unit tests (39 tests in vitest) - PASS
+- [ ] API integration tests - NOT IMPLEMENTED
+- [ ] Real Database tests - NOT IMPLEMENTED
+- [ ] End-to-end user journey tests - NOT IMPLEMENTED
