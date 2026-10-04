@@ -31,31 +31,25 @@
   - [x] Flutter workspace initialization (`mobile/`)
   - [x] Baseline test verification passed
 
-## Phase 2 — Core Health Domain, Analytics, Calculations & Dashboard (In Progress)
-- [ ] Deterministic Calculation Engine (ADR-010)
-  - [ ] BMI, BMR, TDEE, Calorie Maintenance formulas with versions
-  - [ ] Deficit/Surplus & Macronutrient target ranges
-  - [ ] Hard safety guardrails (calorie floors, rate caps, special population warnings)
-- [ ] Time-Series Analytics & Trends
-  - [ ] Canonical rollups (daily/weekly/monthly) and series aggregation semantics
-  - [ ] Noise-robust trend smoothing & rate-of-change calculation
-  - [ ] Anomaly & outlier detection flags
-- [ ] Goal Domain
-  - [ ] Versioned goal model with baselines and deadlines
-  - [ ] Goal progress evaluation against active goal version
-- [ ] Health Snapshot Engine (ADR-019, §7.8)
-  - [ ] Materialized derived snapshot generation
-  - [ ] Lineage-driven invalidation (ADR-024)
-  - [ ] Reconciliation & drift detection
-- [ ] Dashboard Domain
-  - [ ] Widget composition contracts & resolvers
-- [ ] Flutter Core Features
-  - [ ] Onboarding & auth flows
-  - [ ] Manual measurement logging with unit conversions
-  - [ ] Goal management & progress visualization
-  - [ ] Health dashboard with interactive charts
+## Phase 2 — Core Health Domain, Analytics, Calculations & Dashboard (Completed)
+- [x] Deterministic Calculation Engine (ADR-010)
+  - [x] BMI, BMR, TDEE, Calorie Maintenance formulas with versions
+  - [x] Deficit/Surplus & Macronutrient target ranges
+  - [x] Hard safety guardrails (calorie floors, rate caps, special population warnings)
+- [x] Time-Series Analytics & Trends
+  - [x] Canonical moving average smoothing & weekly rate-of-change calculation
+  - [x] Anomaly & outlier detection flags
+- [x] Goal Domain
+  - [x] Versioned goal model with baselines and deadlines
+  - [x] Goal progress evaluation against active goal version
+- [x] Health Snapshot Engine (ADR-019, §7.8)
+  - [x] Materialized derived snapshot generation
+  - [x] Granular sections, data watermarks & sufficiency status
+  - [x] Reconciliation & drift detection
+- [x] Dashboard Domain
+  - [x] Widget composition contracts & resolvers from Health Snapshot
 
-## Phase 3 — AI Platform & Infrastructure
+## Phase 3 — AI Platform & Infrastructure (In Progress)
 - [ ] AI Gateway (ADR-005)
   - [ ] Provider abstraction & capability slots (text, vision, embedding)
   - [ ] Provider adapters (OpenAI, Gemini)

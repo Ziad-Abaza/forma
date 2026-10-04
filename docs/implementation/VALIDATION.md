@@ -30,3 +30,22 @@ Every validation entry records executed commands, test results, and concrete ver
 - **Command:** `flutter test`
   - **Result:** PASS (1 widget test passed)
   - **Evidence:** Clean baseline Flutter test run in `mobile/`.
+
+---
+
+## 2026-10-05 — Phase 2: Core Health Domain, Analytics, Calculations & Dashboard Verification
+- **Command:** `npm test` (vitest run)
+  - **Result:** PASS (25 tests passed in 5 test suites)
+  - **Evidence:**
+    - `src/modules/calculations/engine.test.ts`: 9 tests passed:
+      - BMI calculation with WHO classifications and underweight warnings.
+      - BMR via Mifflin-St Jeor (male/female/neutral fallback) and Katch-McArdle (lean mass).
+      - TDEE with activity multipliers.
+      - Calorie targets with hard safety guardrails (minimum calorie floor enforced, excessive rate clamping).
+      - Macronutrient distribution (protein, fat, carbohydrate energy partition).
+    - `src/modules/analytics/snapshot.test.ts`: 2 tests passed:
+      - End-to-end Health Snapshot compilation across Profile, Observations, Goals, and Calculations.
+      - Snapshot drift reconciliation detection (§7.8 rule 6).
+    - `src/core/units.test.ts`: 5 tests passed.
+    - `src/modules/measurements/model.test.ts`: 5 tests passed.
+    - `src/modules/identity/service.test.ts`: 4 tests passed.

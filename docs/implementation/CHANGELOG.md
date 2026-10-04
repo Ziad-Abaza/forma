@@ -18,3 +18,10 @@ All notable changes to the Forma codebase will be documented in this file.
   - Implemented `PrivacyContract` and `PrivacyManager` module interfaces for GDPR-compliant export and purge.
   - Implemented content-minimized `AuditService` (ADR-009, §20.9).
   - Initialized cross-platform Flutter project in `mobile/`.
+- **Phase 2 Core Health Domain, Analytics, Calculations & Dashboard:**
+  - Implemented `CalculationEngine` (ADR-010): versioned BMI, BMR (Mifflin-St Jeor & Katch-McArdle), TDEE, Calorie Targets, and Macronutrient splits.
+  - Implemented hard safety guardrails (minimum calorie floor: 1500 kcal male / 1200 kcal female; max safe loss rate: 1.0 kg/week; max deficit clamp: 1000 kcal).
+  - Implemented `AnalyticsService` for time-series trend smoothing (moving average), weekly rates of change, and sudden outlier/anomaly detection.
+  - Implemented versioned `GoalService` (ADR-009) supporting weight, composition, and target metrics with temporal progress tracking.
+  - Implemented `SnapshotEngine` (ADR-019, §7.8) with granular sections, watermarks, data sufficiency, and drift reconciliation.
+  - Implemented `DashboardService` (ADR-003, §18.1) for deterministic widget composition directly from Health Snapshot.

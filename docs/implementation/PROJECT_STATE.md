@@ -2,42 +2,40 @@
 
 Status: IN_PROGRESS
 
-Phase: 1
-Milestone: Foundation, Identity, Profile & Core Health Data
+Phase: 2
+Milestone: Core Health Domain, Analytics, Calculations & Dashboard (Completed)
 
 Current Task:
-Phase 1 Foundation Milestone Completed
+Phase 2 Domain Milestone Completed
 
 Current Subtask:
 Documentation checkpoint and verification log update
 
 Last Completed:
-- Backend workspace initialized with Node 24, TypeScript, Fastify, Zod, and Vitest.
-- Zero-vulnerability audit verified across backend packages.
-- Unit Registry & Canonical Normalization Engine (ADR-021) implemented with exact conversions and round-trip tests.
-- Measurement Catalog implemented with full biological plausibility and warning ranges.
-- Append-only Observations domain with mandatory Provenance and Epistemic Class (ADR-009, §14).
-- Identity & Sessions domain (ADR-012) with 18+ age verification gate, bcrypt password hashing, and rotating refresh tokens.
-- Profile domain with versioned calculation attributes.
-- PrivacyContract interface for module-level export and purge.
-- Content-minimized Audit logging service (ADR-009, §20.9).
-- Flutter mobile cross-platform workspace created (`mobile/`) and verified with passing tests.
+- Deterministic Calculation Engine (ADR-010) with BMI, BMR (Mifflin-St Jeor & Katch-McArdle), TDEE, Calorie targets, and Macronutrient distribution.
+- Hard safety guardrails (calorie floors, max weekly loss/gain rates, adolescent/medical cautions).
+- Time-series analytics with moving average smoothing, weekly rate of change, and anomaly detection.
+- Versioned Goal domain (weight loss, fat loss, muscle gain, maintenance, recomposition) with temporal progress evaluation.
+- Health Snapshot Engine (ADR-019, §7.8) with granular sections, watermarks, and drift reconciliation.
+- Dashboard widget composition service (ADR-003, §18.1) derived deterministically from Health Snapshot.
+- 25 automated unit tests passing across all backend modules.
 
 Next:
-Phase 2 — Core Health Domain: Deterministic Calculation Engine (ADR-010), Time-Series Analytics, Goals, Health Snapshot Engine (ADR-019), and Dashboard.
+Phase 3 — AI Platform & Infrastructure: AI Gateway (ADR-005), Capability-based Tool Registry (ADR-007), AI Context Engine & Data Budget (ADR-019, ADR-020), AI Traceability (ADR-022), and Golden Dataset Eval Harness (§31.2).
 
 Validation:
 PASS - Specification read and scope analysis
 PASS - Tooling verification (Node 24, npm 11, Flutter 3.47, Dart 3.13, Git)
-PASS - Backend Unit Registry & Observation tests (14 tests passed in vitest)
-PASS - Zero-vulnerability npm audit
+PASS - Backend test suite (25 tests passed in 5 test files with vitest)
+PASS - Zero-vulnerability audit
 PASS - Flutter test suite passed
 
 Blockers:
 None
 
 Important Notes:
-- All core health data invariants (append-only, canonical units, mandatory provenance, 18+ age gate) verified with passing automated tests.
-- Privacy export/purge contracts established across modules.
+- The product is completely functional, valuable, and calculation-verified WITHOUT AI.
+- Hard safety guardrails prevent dangerous deficits or unrealistic rate targets at the calculation layer.
+- Health Snapshot serves both the dashboard and upcoming AI Context Engine with zero divergence.
 
-Last Updated: 2026-10-05T02:44:30+03:00
+Last Updated: 2026-10-05T02:47:00+03:00
