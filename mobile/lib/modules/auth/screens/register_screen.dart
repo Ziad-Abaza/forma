@@ -103,6 +103,60 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         );
   }
 
+  Widget _buildDropdownSelectedValue(BuildContext context, String text, IconData icon) {
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: FormaTheme.primaryTeal),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: const TextStyle(
+                color: FormaTheme.textPrimary,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownMenuItem(BuildContext context, String text, IconData icon, bool isSelected) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: isSelected ? FormaTheme.primaryTeal : FormaTheme.textSecondary,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: TextStyle(
+              color: isSelected ? FormaTheme.primaryTeal : FormaTheme.textPrimary,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ),
+        if (isSelected)
+          const Icon(
+            Icons.check,
+            size: 18,
+            color: FormaTheme.secondaryMint,
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;

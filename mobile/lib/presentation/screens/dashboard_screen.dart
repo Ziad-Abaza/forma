@@ -991,8 +991,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: selectedKind,
+                initialValue: selectedKind,
                 isExpanded: true,
+                dropdownColor: FormaTheme.surfaceElevated,
+                borderRadius: BorderRadius.circular(10),
                 decoration: const InputDecoration(labelText: 'Report Type'),
                 items: const [
                   DropdownMenuItem(value: 'body_composition_report', child: Text('Body Composition Report (InBody)', overflow: TextOverflow.ellipsis)),
@@ -1119,8 +1121,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: goalType,
+                initialValue: goalType,
                 isExpanded: true,
+                dropdownColor: FormaTheme.surfaceElevated,
+                borderRadius: BorderRadius.circular(10),
                 decoration: const InputDecoration(labelText: 'Goal Type'),
                 items: [
                   DropdownMenuItem(value: 'weight_loss', child: Text(l10n.goalWeightLoss, overflow: TextOverflow.ellipsis)),
