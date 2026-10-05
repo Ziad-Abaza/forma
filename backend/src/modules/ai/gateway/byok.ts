@@ -70,9 +70,15 @@ export class BYOKService {
     const { encrypted, fingerprint } = this.encryptKey(plainKey);
 
     return withUserContext(userId, async (client) => {
+      // Setting newly stored key as active, deactivate other providers
+      await client.query(
+        `UPDATE user_ai_credentials SET is_active = FALSE, updated_at = NOW() WHERE user_id = $1`,
+        [userId]
+      );
+
       const res = await client.query(
-        `INSERT INTO user_ai_credentials (user_id, provider, encrypted_key, key_fingerprint)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO user_ai_credentials (user_id, provider, encrypted_key, key_fingerprint, is_active)
+         VALUES ($1, $2, $3, $4, TRUE)
          ON CONFLICT (user_id, provider)
          DO UPDATE SET encrypted_key = EXCLUDED.encrypted_key,
                        key_fingerprint = EXCLUDED.key_fingerprint,
@@ -98,12 +104,51 @@ export class BYOKService {
     return withUserContext(userId, async (client) => {
       const res = await client.query(
         `SELECT encrypted_key FROM user_ai_credentials
-         WHERE user_id = $1 AND provider = $2 AND is_active = TRUE`,
+         WHERE user_id = $1 AND provider = $2`,
         [userId, provider.toLowerCase()]
       );
 
       if (res.rows.length === 0) return undefined;
       return this.decryptKey(res.rows[0].encrypted_key);
+    });
+  }
+
+  public async getActiveProvider(userId: string): Promise<string> {
+    return withUserContext(userId, async (client) => {
+      const res = await client.query(
+        `SELECT provider FROM user_ai_credentials
+         WHERE user_id = $1 AND is_active = TRUE
+         ORDER BY updated_at DESC LIMIT 1`,
+        [userId]
+      );
+      if (res.rows.length === 0) {
+        // Fall back to first credential if exists, or default to 'google'
+        const anyCred = await client.query(
+          `SELECT provider FROM user_ai_credentials WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+          [userId]
+        );
+        return anyCred.rows.length > 0 ? anyCred.rows[0].provider : 'google';
+      }
+      return res.rows[0].provider;
+    });
+  }
+
+  public async setActiveProvider(userId: string, provider: string): Promise<boolean> {
+    const norm = provider.toLowerCase();
+    if (!this.isProviderAllowed(norm)) {
+      throw new Error(`Provider '${provider}' is not in the allowlist`);
+    }
+
+    return withUserContext(userId, async (client) => {
+      await client.query(
+        `UPDATE user_ai_credentials SET is_active = FALSE, updated_at = NOW() WHERE user_id = $1`,
+        [userId]
+      );
+      const res = await client.query(
+        `UPDATE user_ai_credentials SET is_active = TRUE, updated_at = NOW() WHERE user_id = $1 AND provider = $2`,
+        [userId, norm]
+      );
+      return (res.rowCount ?? 0) > 0;
     });
   }
 
@@ -134,7 +179,20 @@ export class BYOKService {
         `DELETE FROM user_ai_credentials WHERE user_id = $1 AND provider = $2`,
         [userId, provider.toLowerCase()]
       );
-      return (res.rowCount ?? 0) > 0;
+      const deleted = (res.rowCount ?? 0) > 0;
+
+      if (deleted) {
+        // Activate another remaining key if one exists
+        await client.query(
+          `UPDATE user_ai_credentials SET is_active = TRUE
+           WHERE id = (
+             SELECT id FROM user_ai_credentials WHERE user_id = $1 ORDER BY updated_at DESC LIMIT 1
+           )`,
+          [userId]
+        );
+      }
+
+      return deleted;
     });
   }
 }

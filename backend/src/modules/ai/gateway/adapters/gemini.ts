@@ -23,7 +23,14 @@ export class GeminiAdapter implements AIProviderAdapter {
       throw new Error('GEMINI_API_KEY is not configured and no custom key provided');
     }
 
-    const endpoint = `${this.baseUrl}/models/${modelId}:generateContent?key=${apiKey}`;
+    const resolvedModel = (modelId === 'gemini-3.8-flash' || !modelId)
+      ? (process.env.GEMINI_MODEL || 'gemini-1.5-flash')
+      : modelId;
+
+    const isBearer = apiKey.startsWith('AQ.') || apiKey.startsWith('ya29.');
+    const endpoint = isBearer
+      ? `${this.baseUrl}/models/${resolvedModel}:generateContent`
+      : `${this.baseUrl}/models/${resolvedModel}:generateContent?key=${apiKey}`;
 
     const contents: Array<Record<string, unknown>> = [];
 
@@ -99,11 +106,14 @@ export class GeminiAdapter implements AIProviderAdapter {
       ];
     }
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(isBearer ? { Authorization: `Bearer ${apiKey}` } : {})
+    };
+
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
 

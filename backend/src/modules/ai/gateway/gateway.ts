@@ -1,6 +1,7 @@
 import { AIProviderAdapter, GenerateTextOptions, GenerateTextResult, TaskClass } from './types.js';
 import { ModelRegistry } from './registry.js';
 import { GeminiAdapter } from './adapters/gemini.js';
+import { OpenAIAdapter } from './adapters/openai.js';
 import { SecondaryProviderAdapter } from './adapters/secondary.js';
 import { BYOKService } from './byok.js';
 
@@ -19,8 +20,9 @@ export class AIGateway {
   private readonly adapters: Map<string, AIProviderAdapter> = new Map();
 
   constructor(private readonly byokService?: BYOKService) {
-    // Register primary and secondary text adapters
+    // Register primary Google, OpenAI, and secondary text adapters
     this.registerAdapter(new GeminiAdapter());
+    this.registerAdapter(new OpenAIAdapter());
     this.registerAdapter(new SecondaryProviderAdapter());
   }
 
@@ -38,52 +40,71 @@ export class AIGateway {
     userId?: string | undefined
   ): Promise<GatewayExecutionResult> {
     const startTime = Date.now();
-    const primaryModelId = ModelRegistry.getDefaultModelForTask(taskClass);
 
     // Invariant: calculation tasks MUST NOT use an LLM
-    if (primaryModelId === 'deterministic') {
+    if (taskClass === 'calculation') {
       throw new Error(`TaskClass '${taskClass}' is deterministic and must not be routed to an LLM`);
     }
 
-    const primaryModel = ModelRegistry.getModel(primaryModelId);
-    if (!primaryModel) {
-      throw new Error(`Model '${primaryModelId}' not found in registry`);
-    }
-
-    let primaryApiKey: string | undefined;
+    // Determine target provider: respect user's active configured BYOK provider
+    let activeProvider = 'google';
     if (userId && this.byokService) {
-      primaryApiKey = await this.byokService.resolveUserKey(userId, primaryModel.provider);
+      activeProvider = await this.byokService.getActiveProvider(userId);
     }
 
-    const primaryAdapter = this.adapters.get(primaryModel.provider.toLowerCase());
+    let targetModelId = ModelRegistry.getDefaultModelForProvider(activeProvider, taskClass);
+    if (targetModelId === 'deterministic') {
+      throw new Error(`TaskClass '${taskClass}' is deterministic and must not be routed to an LLM`);
+    }
+
+    let targetModel = ModelRegistry.getModel(targetModelId);
+    if (!targetModel) {
+      targetModelId = ModelRegistry.getDefaultModelForTask(taskClass);
+      targetModel = ModelRegistry.getModel(targetModelId);
+    }
+    if (!targetModel) {
+      throw new Error(`Model '${targetModelId}' not found in registry`);
+    }
+
+    let targetApiKey: string | undefined;
+    if (userId && this.byokService) {
+      targetApiKey = await this.byokService.resolveUserKey(userId, targetModel.provider);
+    }
+
+    const adapter = this.adapters.get(targetModel.provider.toLowerCase());
     let fallbackUsed = false;
     let finalResult: GenerateTextResult;
-    let selectedModel = primaryModel.id;
-    let selectedProvider = primaryModel.provider;
+    let selectedModel = targetModel.id;
+    let selectedProvider = targetModel.provider;
 
-    if (primaryAdapter && (await primaryAdapter.isAvailable())) {
+    if (adapter && (await adapter.isAvailable() || Boolean(targetApiKey))) {
       try {
-        finalResult = await primaryAdapter.generateText(primaryModel.id, options, primaryApiKey);
-      } catch (err) {
-        // Fallback to secondary provider if primary fails
+        finalResult = await adapter.generateText(targetModel.id, options, targetApiKey);
+      } catch (err: any) {
+        // Fallback to secondary or default provider
         const fallbackAdapter = this.adapters.get('secondary');
-        if (!fallbackAdapter) throw err;
-
+        if (fallbackAdapter && (await fallbackAdapter.isAvailable())) {
+          fallbackUsed = true;
+          selectedModel = 'forma-secondary-text-v1';
+          selectedProvider = 'secondary';
+          finalResult = await fallbackAdapter.generateText(selectedModel, options);
+        } else {
+          throw err;
+        }
+      }
+    } else {
+      // Primary adapter not available; try secondary fallback
+      const fallbackAdapter = this.adapters.get('secondary');
+      if (fallbackAdapter && (await fallbackAdapter.isAvailable())) {
         fallbackUsed = true;
         selectedModel = 'forma-secondary-text-v1';
         selectedProvider = 'secondary';
         finalResult = await fallbackAdapter.generateText(selectedModel, options);
+      } else {
+        throw new Error(
+          `No configured AI provider adapter available for '${targetModel.provider}'. Please configure an API key in Settings.`
+        );
       }
-    } else {
-      // Primary not available, use secondary
-      const fallbackAdapter = this.adapters.get('secondary');
-      if (!fallbackAdapter) {
-        throw new Error(`No available adapter found for task ${taskClass}`);
-      }
-      fallbackUsed = true;
-      selectedModel = 'forma-secondary-text-v1';
-      selectedProvider = 'secondary';
-      finalResult = await fallbackAdapter.generateText(selectedModel, options);
     }
 
     const latencyMs = Date.now() - startTime;

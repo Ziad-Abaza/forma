@@ -125,29 +125,45 @@ export class SnapshotEngine {
         sex: identityLite.sexForCalculation as any
       });
 
+      let macroTargets = undefined;
+      const targetCal = calorieTargets.targets.standardLoss.targetCalories;
+      if (targetCal > 0 && latestWeightKg && latestWeightKg > 0) {
+        const macroResult = this.calc.calculateMacroDistribution(targetCal, latestWeightKg);
+        macroTargets = {
+          proteinGrams: macroResult.proteinGrams,
+          fatGrams: macroResult.fatGrams,
+          carbsGrams: macroResult.carbsGrams,
+          proteinPct: macroResult.proteinPct,
+          fatPct: macroResult.fatPct,
+          carbsPct: macroResult.carbsPct,
+        };
+      }
+
       const energySection = {
         bmr: bmrResult.value > 0 ? bmrResult.value : undefined,
         tdee: tdeeResult.value > 0 ? tdeeResult.value : undefined,
         activityLevel: actLevel,
         maintenanceCalories: calorieTargets.maintenance > 0 ? calorieTargets.maintenance : undefined,
-        targetCalories: calorieTargets.targets.standardLoss.targetCalories > 0 ? calorieTargets.targets.standardLoss.targetCalories : undefined,
+        targetCalories: targetCal > 0 ? targetCal : undefined,
+        macros: macroTargets,
         guardrailsTriggered: calorieTargets.guardrailsTriggered,
         isRefused: calorieTargets.isRefused,
         sufficiency: (bmrResult.sufficiency === 'complete' && tdeeResult.sufficiency === 'complete' ? 'complete' : 'insufficient') as any
       };
 
-      // --- SECTION 5: Recent Measurements ---
-      const keyTypes = ['weight', 'body_fat_percentage', 'muscle_mass', 'waist_circumference'];
+      // --- SECTION 5: Recent Measurements (Dynamic across all user-recorded types, with observation IDs) ---
+      const seenTypes = new Set<string>();
       const recentMeasurements = [];
 
-      for (const t of keyTypes) {
-        const match = activeObs.find((o) => o.type_code === t);
-        if (match) {
+      for (const obs of activeObs) {
+        if (!seenTypes.has(obs.type_code)) {
+          seenTypes.add(obs.type_code);
           recentMeasurements.push({
-            typeCode: match.type_code,
-            canonicalValue: Number(match.canonical_value),
-            canonicalUnit: match.canonical_unit,
-            observedAt: match.observed_at.toISOString(),
+            id: obs.id,
+            typeCode: obs.type_code,
+            canonicalValue: Number(obs.canonical_value),
+            canonicalUnit: obs.canonical_unit,
+            observedAt: obs.observed_at.toISOString(),
             epistemicClass: 'measured'
           });
         }

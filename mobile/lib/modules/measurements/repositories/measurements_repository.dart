@@ -56,6 +56,36 @@ class MeasurementsRepository {
       body: {'reason': reason},
     );
   }
+
+  Future<ObservationModel> supersedeObservation({
+    required String observationId,
+    required double newValue,
+    required String newUnit,
+    required String correctionReason,
+    DateTime? observedAt,
+  }) async {
+    final body = {
+      'newValue': newValue,
+      'newUnit': newUnit,
+      'correctionReason': correctionReason,
+      if (observedAt != null) 'observedAt': observedAt.toUtc().toIso8601String(),
+    };
+    final resp = await apiClient.post(
+      '/api/v1/measurements/observations/$observationId/supersede',
+      body: body,
+    );
+    final obsJson = (resp is Map && resp['observation'] != null) ? resp['observation'] : resp;
+    return ObservationModel.fromJson(obsJson as Map<String, dynamic>);
+  }
+
+  Future<Map<String, dynamic>?> getProvenance(String observationId) async {
+    try {
+      final resp = await apiClient.get('/api/v1/measurements/provenance/$observationId');
+      return resp is Map<String, dynamic> ? resp : null;
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 final measurementsRepositoryProvider = Provider<MeasurementsRepository>((ref) {

@@ -20,6 +20,9 @@ class SnapshotModel {
   final double? tdee;
   final double? maintenanceCalories;
   final double? targetCalories;
+  final int? proteinGrams;
+  final int? fatGrams;
+  final int? carbsGrams;
   final bool guardrailsTriggered;
   final List<String> triggeredGuardrails;
 
@@ -44,6 +47,9 @@ class SnapshotModel {
     this.tdee,
     this.maintenanceCalories,
     this.targetCalories,
+    this.proteinGrams,
+    this.fatGrams,
+    this.carbsGrams,
     this.guardrailsTriggered = false,
     this.triggeredGuardrails = const [],
     this.recentMeasurements = const [],
@@ -55,6 +61,7 @@ class SnapshotModel {
     final bodyStatus = sections['bodyStatus'] as Map<String, dynamic>? ?? {};
     final goal = sections['goal'] as Map<String, dynamic>? ?? {};
     final energy = sections['energy'] as Map<String, dynamic>? ?? {};
+    final macros = energy['macros'] as Map<String, dynamic>? ?? {};
     final recentList = sections['recentMeasurements'] as List<dynamic>? ?? [];
 
     final rawGuardrails = energy['guardrailsTriggered'];
@@ -85,6 +92,9 @@ class SnapshotModel {
       tdee: (energy['tdee'] as num?)?.toDouble(),
       maintenanceCalories: (energy['maintenanceCalories'] as num?)?.toDouble(),
       targetCalories: (energy['targetCalories'] as num?)?.toDouble(),
+      proteinGrams: (macros['proteinGrams'] as num?)?.toInt(),
+      fatGrams: (macros['fatGrams'] as num?)?.toInt(),
+      carbsGrams: (macros['carbsGrams'] as num?)?.toInt(),
       guardrailsTriggered: isGuardrailsTriggered,
       triggeredGuardrails: guardrailList,
       recentMeasurements: recentList

@@ -37,6 +37,12 @@ class AIConfigRepository {
     final resp = await apiClient.post('/api/v1/ai/test-connection', body: body);
     return resp is Map && resp['status'] == 'success';
   }
+
+  Future<void> updateActiveProvider(String provider) async {
+    await apiClient.patch('/api/v1/ai/preferences', body: {
+      'activeProvider': provider,
+    });
+  }
 }
 
 final aiConfigRepositoryProvider = Provider<AIConfigRepository>((ref) {

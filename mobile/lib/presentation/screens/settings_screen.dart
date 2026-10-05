@@ -293,7 +293,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       // Language Toggle
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('App Language / لغة التطبيق'),
+                        title: Text(l10n.appLanguageTitle),
                         subtitle: Text(currentLocale.languageCode == 'en' ? 'English (LTR)' : 'العربية (RTL)'),
                         trailing: ElevatedButton(
                           onPressed: () {
@@ -312,8 +312,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       // Numeral System Toggle
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Digits / الأرقام'),
-                        subtitle: Text(numeralSystem == 'western' ? 'Western (1, 2, 3)' : 'Eastern Arabic (١، ٢، ٣)'),
+                        title: Text(l10n.digitsTitle),
+                        subtitle: Text(numeralSystem == 'western' ? l10n.digitsWestern : l10n.digitsEasternArabic),
                         trailing: DropdownButton<String>(
                           value: numeralSystem,
                           underline: const SizedBox(),
@@ -366,18 +366,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         children: [
                           const Icon(Icons.psychology_outlined, color: FormaTheme.primaryTeal),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'AI Companion & Provider Configuration',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              l10n.aiProviderConfigTitle,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Configure system models or bring your own API key (BYOK) stored under client-side write-only encryption.',
-                        style: TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
+                      Text(
+                        l10n.aiProviderConfigDescription,
+                        style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
                       ),
                       const SizedBox(height: 16),
 
@@ -389,7 +389,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                         ),
                         error: (err, _) => Text(
-                          'Unable to load AI config: $err',
+                          l10n.aiConfigLoadError(err.toString()),
                           style: const TextStyle(color: FormaTheme.criticalCrimson, fontSize: 13),
                         ),
                         data: (config) {
@@ -402,14 +402,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 initialValue: config.availableProviders.contains(_selectedProvider)
                                     ? _selectedProvider
                                     : config.availableProviders.firstOrNull ?? 'google',
-                                decoration: const InputDecoration(labelText: 'Active AI Provider'),
+                                decoration: InputDecoration(labelText: l10n.activeAiProvider),
                                 items: config.availableProviders.map((p) {
                                   final hasKey = config.hasCredentialFor(p);
                                   return DropdownMenuItem(
                                     value: p,
                                     child: Row(
                                       children: [
-                                        Text(p.toUpperCase()),
+                                        Flexible(
+                                          child: Text(p.toUpperCase(), overflow: TextOverflow.ellipsis),
+                                        ),
                                         if (hasKey) ...[
                                           const SizedBox(width: 8),
                                           Container(
@@ -425,17 +427,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ),
                                   );
                                 }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) setState(() => _selectedProvider = val);
+                                onChanged: (val) async {
+                                  if (val != null) {
+                                    setState(() => _selectedProvider = val);
+                                    try {
+                                      await ref.read(aiConfigRepositoryProvider).updateActiveProvider(val);
+                                      ref.invalidate(aiConfigProvider);
+                                    } catch (_) {}
+                                  }
                                 },
                               ),
                               const SizedBox(height: 16),
 
                               // Active credentials status
                               if (config.credentials.isNotEmpty) ...[
-                                const Text(
-                                  'Stored Provider Credentials (Encrypted):',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                Text(
+                                  l10n.storedCredentialsTitle,
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 8),
                                 ...config.credentials.map((cred) => ListTile(
@@ -443,7 +451,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                       dense: true,
                                       leading: const Icon(Icons.key, color: FormaTheme.primaryTeal, size: 20),
                                       title: Text(cred.provider.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
-                                      subtitle: Text('Fingerprint: ${cred.keyFingerprint} (AES-256-GCM)'),
+                                      subtitle: Text(l10n.credentialFingerprint(cred.keyFingerprint)),
                                       trailing: IconButton(
                                         icon: const Icon(Icons.delete_outline, color: FormaTheme.alertCoral, size: 20),
                                         onPressed: () => _deleteKey(cred.provider),
@@ -458,7 +466,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 controller: _apiKeyController,
                                 obscureText: _obscureKey,
                                 decoration: InputDecoration(
-                                  labelText: 'Enter Custom API Key for ${_selectedProvider.toUpperCase()}',
+                                  labelText: l10n.enterCustomApiKey(_selectedProvider.toUpperCase()),
                                   prefixIcon: const Icon(Icons.vpn_key_outlined, color: FormaTheme.primaryTeal),
                                   suffixIcon: IconButton(
                                     icon: Icon(_obscureKey ? Icons.visibility_off : Icons.visibility),
@@ -489,7 +497,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     icon: const Icon(Icons.network_check, size: 16),
                                     label: _isTestingKey
                                         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                                        : const Text('Test Connection'),
+                                        : Text(l10n.testConnection),
                                   ),
                                   ElevatedButton.icon(
                                     key: const Key('save_ai_key_button'),
@@ -497,7 +505,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     icon: const Icon(Icons.save, size: 16),
                                     label: _isSavingKey
                                         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                                        : const Text('Save Key'),
+                                        : Text(l10n.saveKey),
                                   ),
                                 ],
                               ),
@@ -541,7 +549,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.download_outlined, color: FormaTheme.primaryTeal),
                         title: Text(l10n.exportUserData, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: const Text('Machine-readable portable JSON format'),
+                        subtitle: Text(l10n.exportSubtitle),
                       ),
                       Align(
                         alignment: AlignmentDirectional.centerEnd,
@@ -560,7 +568,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           l10n.purgeAccount,
                           style: const TextStyle(color: FormaTheme.criticalCrimson, fontWeight: FontWeight.bold),
                         ),
-                        subtitle: const Text('Irreversibly purge all personal records, models and media'),
+                        subtitle: Text(l10n.purgeAccountSubtitle),
                       ),
                       Align(
                         alignment: AlignmentDirectional.centerEnd,
@@ -594,10 +602,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Signed In As', style: TextStyle(color: FormaTheme.textSecondary, fontSize: 13)),
+                                Text(l10n.signedInAs, style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 13)),
                                 const SizedBox(height: 4),
                                 Text(
-                                  authState.user?.email ?? 'user@forma.local',
+                                  authState.user?.email ?? '',
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                                   overflow: TextOverflow.ellipsis,
                                 ),

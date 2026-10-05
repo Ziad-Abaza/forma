@@ -561,11 +561,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ],
               ),
               const SizedBox(height: 14),
-              // Deterministic macro breakdown: 30% protein, 25% fats, 45% carbs
+              // Deterministic macro breakdown from backend CalculationEngine
               Builder(builder: (context) {
-                final proteinGrams = (target * 0.30 / 4).round();
-                final fatGrams = (target * 0.25 / 9).round();
-                final carbGrams = (target * 0.45 / 4).round();
+                final proteinGrams = snapshot.proteinGrams ?? (target * 0.30 / 4).round();
+                final fatGrams = snapshot.fatGrams ?? (target * 0.25 / 9).round();
+                final carbGrams = snapshot.carbsGrams ?? (target * 0.45 / 4).round();
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -658,7 +658,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 ElevatedButton.icon(
                   key: const Key('add_measurement_button'),
-                  onPressed: () => _showAddMeasurementDialog(context, l10n),
+                  onPressed: () => _showAddMeasurementDialog(context, l10n, snapshot),
                   icon: const Icon(Icons.add, size: 16),
                   label: Text(l10n.addMeasurement),
                   style: ElevatedButton.styleFrom(
@@ -775,8 +775,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  void _showAddMeasurementDialog(BuildContext context, AppLocalizations l10n) {
-    final valueController = TextEditingController(text: '80.0');
+  void _showAddMeasurementDialog(BuildContext context, AppLocalizations l10n, [SnapshotModel? snapshot]) {
+    final defaultVal = snapshot.latestWeightKg != null ? snapshot.latestWeightKg!.toStringAsFixed(1) : '';
+    final valueController = TextEditingController(text: defaultVal);
     final unitController = TextEditingController(text: 'kg');
     String selectedType = 'weight';
 
@@ -787,9 +788,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       {'code': 'bone_mass', 'label': 'Bone Mass (كتلة العظام)', 'unit': 'kg'},
       {'code': 'body_water_percentage', 'label': 'Body Water % (الماء في الجسم)', 'unit': '%'},
       {'code': 'visceral_fat', 'label': 'Visceral Fat (الدهون الحشوية)', 'unit': 'score'},
-      {'code': 'waist_circumference', 'label': 'Waist Circumference (محيط الخصر)', 'unit': 'cm'},
-      {'code': 'hip_circumference', 'label': 'Hip Circumference (محيط الورك)', 'unit': 'cm'},
-      {'code': 'chest_circumference', 'label': 'Chest Circumference (محيط الصدر)', 'unit': 'cm'},
+      {'code': 'waist_circumference', 'label': 'Waist (محيط الخصر)', 'unit': 'cm'},
+      {'code': 'hip_circumference', 'label': 'Hips (محيط الورك)', 'unit': 'cm'},
+      {'code': 'chest_circumference', 'label': 'Chest (محيط الصدر)', 'unit': 'cm'},
+      {'code': 'shoulder_circumference', 'label': 'Shoulders (محيط الكتفين)', 'unit': 'cm'},
+      {'code': 'neck_circumference', 'label': 'Neck (محيط الرقبة)', 'unit': 'cm'},
+      {'code': 'bicep_circumference', 'label': 'Arms / Bicep (محيط الذراع)', 'unit': 'cm'},
+      {'code': 'forearm_circumference', 'label': 'Forearms (محيط الساعد)', 'unit': 'cm'},
+      {'code': 'thigh_circumference', 'label': 'Thighs (محيط الفخذ)', 'unit': 'cm'},
+      {'code': 'calf_circumference', 'label': 'Calves (محيط بطة الساق)', 'unit': 'cm'},
     ];
 
     showDialog(
@@ -902,25 +909,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: FormaTheme.surfaceCard,
         title: Text(l10n.provenanceTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Metric: ${m.typeCode}', style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Text('Canonical Value: ${formatNumeralString(m.canonicalValue.toStringAsFixed(2), numeralSystem)} ${m.canonicalUnit}'),
-            const SizedBox(height: 6),
-            Text('Epistemic Class: ${m.epistemicClass.toUpperCase()}', style: const TextStyle(color: FormaTheme.primaryTeal)),
-            const SizedBox(height: 6),
-            Text('Observed At: ${m.observedAt}'),
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 8),
-            const Text(
-              'Append-only record integrity: To correct a mistaken entry, void this observation.',
-              style: TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Metric: ${m.typeCode}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text('Canonical Value: ${formatNumeralString(m.canonicalValue.toStringAsFixed(2), numeralSystem)} ${m.canonicalUnit}'),
+              const SizedBox(height: 6),
+              Text('Epistemic Class: ${m.epistemicClass.toUpperCase()}', style: const TextStyle(color: FormaTheme.primaryTeal)),
+              const SizedBox(height: 6),
+              Text('Observed At: ${m.observedAt}'),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              const Text(
+                'Append-only record integrity: To correct a mistaken entry, void this observation.',
+                style: TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -967,11 +976,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _showImageExtractionDialog(BuildContext context, AppLocalizations l10n) {
-    // 1x1 valid minimal JPEG
-    const sampleReportBase64 =
-        '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
-
-    final textController = TextEditingController(text: sampleReportBase64);
+    final textController = TextEditingController();
     String selectedKind = 'body_composition_report';
     bool isExtracting = false;
 
@@ -981,40 +986,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: FormaTheme.surfaceCard,
           title: Text(l10n.multimodalReviewTitle),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Upload an InBody report, scale display, or measurement screenshot for automated extraction and review.',
-                style: TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: selectedKind,
-                isExpanded: true,
-                dropdownColor: FormaTheme.surfaceElevated,
-                borderRadius: BorderRadius.circular(10),
-                decoration: const InputDecoration(labelText: 'Report Type'),
-                items: const [
-                  DropdownMenuItem(value: 'body_composition_report', child: Text('Body Composition Report (InBody)', overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'scale_display', child: Text('Smart Scale Display', overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'tape_measurement_sheet', child: Text('Circumference Measurement Sheet', overflow: TextOverflow.ellipsis)),
-                ],
-                onChanged: (val) {
-                  if (val != null) setDialogState(() => selectedKind = val);
-                },
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: textController,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Image Payload (Base64 JPEG/PNG)',
-                  hintText: 'Paste base64 image data...',
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Upload an InBody report, scale display, or measurement screenshot for automated extraction and review.',
+                  style: TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedKind,
+                  isExpanded: true,
+                  dropdownColor: FormaTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(10),
+                  decoration: const InputDecoration(labelText: 'Report Type'),
+                  items: const [
+                    DropdownMenuItem(value: 'body_composition_report', child: Text('Body Composition Report (InBody)', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'scale_display', child: Text('Smart Scale Display', overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'tape_measurement_sheet', child: Text('Circumference Measurement Sheet', overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => selectedKind = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: textController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Image Payload (Base64 JPEG/PNG)',
+                    hintText: 'Paste base64 image data...',
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -1117,40 +1124,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: FormaTheme.surfaceCard,
           title: const Text('Set Primary Goal'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                initialValue: goalType,
-                isExpanded: true,
-                dropdownColor: FormaTheme.surfaceElevated,
-                borderRadius: BorderRadius.circular(10),
-                decoration: const InputDecoration(labelText: 'Goal Type'),
-                items: [
-                  DropdownMenuItem(value: 'weight_loss', child: Text(l10n.goalWeightLoss, overflow: TextOverflow.ellipsis)),
-                  DropdownMenuItem(value: 'weight_gain', child: Text(l10n.goalMuscleGain, overflow: TextOverflow.ellipsis)),
-                ],
-                onChanged: (val) {
-                  if (val != null) setDialogState(() => goalType = val);
-                },
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: baselineController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: '${l10n.startingValue} (kg)',
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: goalType,
+                  isExpanded: true,
+                  dropdownColor: FormaTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(10),
+                  decoration: const InputDecoration(labelText: 'Goal Type'),
+                  items: [
+                    DropdownMenuItem(value: 'weight_loss', child: Text(l10n.goalWeightLoss, overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'weight_gain', child: Text(l10n.goalMuscleGain, overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => goalType = val);
+                  },
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: targetController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: '${l10n.targetValue} (kg)',
+                const SizedBox(height: 12),
+                TextField(
+                  controller: baselineController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: '${l10n.startingValue} (kg)',
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: targetController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: '${l10n.targetValue} (kg)',
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
