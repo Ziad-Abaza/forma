@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:forma/core/providers.dart';
 import 'package:forma/modules/auth/repositories/auth_repository.dart';
 import 'package:forma/modules/auth/notifiers/auth_state.dart';
@@ -29,6 +30,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
   });
 
   group('PreferencesService & Language Persistence Tests', () {

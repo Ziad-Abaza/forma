@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forma/core/theme.dart';
 import 'package:forma/core/providers.dart';
@@ -135,6 +136,7 @@ class FakeAssistantRepository extends AssistantRepository {
 }
 
 void main() {
+  FlutterSecureStorage.setMockInitialValues({});
   Widget buildTestableWidget({Locale locale = const Locale('en')}) {
     return ProviderScope(
       overrides: [
@@ -186,8 +188,9 @@ void main() {
     await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
 
-    // Verify Action Receipt confirmation
-    expect(find.textContaining('Action Receipt verified'), findsOneWidget);
+    // Verify the server-issued receipt is rendered verbatim
+    expect(find.textContaining('Weight measurement of 74.0 kg recorded'), findsOneWidget);
+    expect(find.textContaining('Receipt: rcpt_123'), findsOneWidget);
   });
 
   testWidgets('Safety Category D emergency symptom redirect in Assistant UI', (WidgetTester tester) async {

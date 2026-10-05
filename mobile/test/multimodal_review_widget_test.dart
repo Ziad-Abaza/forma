@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forma/core/theme.dart';
 import 'package:forma/core/providers.dart';
@@ -7,6 +8,7 @@ import 'package:forma/l10n/app_localizations.dart';
 import 'package:forma/presentation/screens/multimodal_review_screen.dart';
 
 void main() {
+  FlutterSecureStorage.setMockInitialValues({});
   DraftReviewState createSampleDraft({bool hasAttention = true}) {
     return DraftReviewState(
       draftId: 'draft-uuid-1234-5678',

@@ -39,6 +39,15 @@ dependencies:
   http: ^1.6.0
   image_picker: ^1.2.3
   flutter_markdown_plus: ^1.0.12
+  fl_chart: ^1.2.0
+  flutter_secure_storage: 9.2.4
+
+dependency_overrides:
+  # flutter_secure_storage_windows 3.x pulls in path_provider → objective_c
+  # code-asset hooks, which cannot run on Flutter SDKs installed under a path
+  # containing spaces (e.g. 'C:\Program Files\flutter'). Pin the 2.x Windows
+  # implementation which uses only ffi/win32.
+  flutter_secure_storage_windows: 2.1.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

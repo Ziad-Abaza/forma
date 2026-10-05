@@ -1,8 +1,19 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Storage service for persistent authentication credentials.
-/// Uses SharedPreferences for token and session persistence.
+/// Storage service for authentication credentials.
+///
+/// Tokens are secrets and must never live in plaintext SharedPreferences.
+/// Uses platform keychains: iOS Keychain, Android Keystore-backed
+/// EncryptedSharedPreferences (explicit — not the default in v9).
 class TokenStorage {
+  TokenStorage({FlutterSecureStorage? storage})
+      : _storage = storage ??
+            const FlutterSecureStorage(
+              aOptions: AndroidOptions(encryptedSharedPreferences: true),
+            );
+
+  final FlutterSecureStorage _storage;
+
   static const _keyAccessToken = 'forma_access_token';
   static const _keyRefreshToken = 'forma_refresh_token';
   static const _keyUserId = 'forma_user_id';
@@ -14,38 +25,24 @@ class TokenStorage {
     String? userId,
     String? email,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyAccessToken, accessToken);
-    await prefs.setString(_keyRefreshToken, refreshToken);
-    if (userId != null) await prefs.setString(_keyUserId, userId);
-    if (email != null) await prefs.setString(_keyUserEmail, email);
+    await _storage.write(key: _keyAccessToken, value: accessToken);
+    await _storage.write(key: _keyRefreshToken, value: refreshToken);
+    if (userId != null) await _storage.write(key: _keyUserId, value: userId);
+    if (email != null) await _storage.write(key: _keyUserEmail, value: email);
   }
 
-  Future<String?> getAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyAccessToken);
-  }
+  Future<String?> getAccessToken() => _storage.read(key: _keyAccessToken);
 
-  Future<String?> getRefreshToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyRefreshToken);
-  }
+  Future<String?> getRefreshToken() => _storage.read(key: _keyRefreshToken);
 
-  Future<String?> getUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyUserId);
-  }
+  Future<String?> getUserId() => _storage.read(key: _keyUserId);
 
-  Future<String?> getUserEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyUserEmail);
-  }
+  Future<String?> getUserEmail() => _storage.read(key: _keyUserEmail);
 
   Future<void> clearAll() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyAccessToken);
-    await prefs.remove(_keyRefreshToken);
-    await prefs.remove(_keyUserId);
-    await prefs.remove(_keyUserEmail);
+    await _storage.delete(key: _keyAccessToken);
+    await _storage.delete(key: _keyRefreshToken);
+    await _storage.delete(key: _keyUserId);
+    await _storage.delete(key: _keyUserEmail);
   }
 }

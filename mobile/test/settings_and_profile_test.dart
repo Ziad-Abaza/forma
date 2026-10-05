@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:forma/core/providers.dart';
 import 'package:forma/core/theme.dart';
 import 'package:forma/l10n/app_localizations.dart';
@@ -116,6 +117,7 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
   });
 
   group('SettingsScreen Widget & Feature Integration Tests', () {
@@ -246,6 +248,7 @@ void main() {
 
       // Change height
       await tester.enterText(find.byKey(const Key('profile_height_field')), '182');
+      await tester.ensureVisible(find.byKey(const Key('profile_save_button')));
       await tester.tap(find.byKey(const Key('profile_save_button')));
       await tester.pumpAndSettle();
 

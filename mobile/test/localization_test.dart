@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forma/main.dart';
 import 'package:forma/core/providers.dart';
@@ -13,6 +14,7 @@ import 'package:forma/modules/analytics/models/snapshot_model.dart';
 import 'package:forma/modules/analytics/repositories/analytics_repository.dart';
 
 void main() {
+  FlutterSecureStorage.setMockInitialValues({});
   testWidgets('Bilingual Localization & RTL/LTR dynamic parity test (Phase 1 & Phase 2)', (WidgetTester tester) async {
     // 1. Pump FormaApp wrapped in Riverpod ProviderScope with authenticated state
     await tester.pumpWidget(

@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forma/core/theme.dart';
 import 'package:forma/core/providers.dart';
@@ -9,6 +10,7 @@ import 'package:forma/modules/auth/notifiers/auth_state.dart';
 import 'package:forma/modules/auth/repositories/auth_repository.dart';
 
 void main() {
+  FlutterSecureStorage.setMockInitialValues({});
   Widget buildRegisterScreen({Locale locale = const Locale('en')}) {
     return ProviderScope(
       overrides: [
