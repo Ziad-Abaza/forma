@@ -36,6 +36,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 'assets/logo.png',
                 width: 28,
                 height: 28,
+                cacheWidth: 84,
+                cacheHeight: 84,
                 errorBuilder: (context, error, stackTrace) =>
                     const Icon(Icons.fitness_center, color: FormaTheme.primaryTeal),
               ),
