@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getEffectiveHost, getLocalIpAddress, syncMobileEnv } from './index.js';
+import { getEffectiveHost, getLocalIpAddress, parseConfig, syncMobileEnv } from './index.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -43,5 +43,44 @@ describe('Backend Configuration & Local Server Networking Tests', () => {
       expect(content).toContain('LOCAL_SERVER=true');
       expect(content).toContain(`LOCAL_IP=${testLocalIp}`);
     }
+  });
+});
+
+describe('Secret material fails closed (HC-001, HC-002, HC-003)', () => {
+  const baseEnv = {
+    NODE_ENV: 'production',
+    DATABASE_URL: 'postgresql://app:pw@db.example.com:5432/forma',
+    JWT_ACCESS_SECRET: 'a'.repeat(48),
+    JWT_REFRESH_SECRET: 'b'.repeat(48),
+    ENCRYPTION_MASTER_KEY: 'c'.repeat(64)
+  } as NodeJS.ProcessEnv;
+
+  it('refuses to boot outside test when required secrets are missing', () => {
+    expect(() => parseConfig({ NODE_ENV: 'production' })).toThrow(
+      /Missing required environment variables: DATABASE_URL, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, ENCRYPTION_MASTER_KEY/
+    );
+    expect(() => parseConfig({ NODE_ENV: 'development' })).toThrow(/Missing required environment variables/);
+    expect(() => parseConfig({ ...baseEnv })).not.toThrow();
+  });
+
+  it('rejects weak or malformed secret values', () => {
+    expect(() => parseConfig({ ...baseEnv, JWT_ACCESS_SECRET: 'short' })).toThrow(
+      'Invalid environment configuration'
+    );
+    expect(() => parseConfig({ ...baseEnv, ENCRYPTION_MASTER_KEY: 'not-hex' })).toThrow(
+      'Invalid environment configuration'
+    );
+    expect(() => parseConfig({ ...baseEnv, ENCRYPTION_MASTER_KEY: 'zz'.repeat(32) })).toThrow(
+      'Invalid environment configuration'
+    );
+  });
+
+  it('generates ephemeral random secrets in test env instead of committed literals', () => {
+    const a = parseConfig({ NODE_ENV: 'test' });
+    const b = parseConfig({ NODE_ENV: 'test' });
+    expect(a.JWT_ACCESS_SECRET).toMatch(/^[0-9a-f]{64}$/);
+    expect(a.ENCRYPTION_MASTER_KEY).toMatch(/^[0-9a-f]{64}$/);
+    expect(a.JWT_ACCESS_SECRET).not.toBe(b.JWT_ACCESS_SECRET);
+    expect(a.ENCRYPTION_MASTER_KEY).not.toBe(b.ENCRYPTION_MASTER_KEY);
   });
 });

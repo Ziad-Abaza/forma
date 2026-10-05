@@ -1,4 +1,4 @@
-# Forma Backend Service
+﻿# Forma Backend Service
 
 Forma's modular monolith backend built with TypeScript, Node.js 22, Fastify, and PostgreSQL 18.
 
@@ -29,8 +29,8 @@ cp .env.example .env
 
 Ensure the values in `.env` match your environment. In development:
 - `PORT=3000`
-- `DATABASE_URL=postgresql://forma_app:forma_secure_app_role_pw@localhost:5432/forma_dev`
-- `DATABASE_URL_MIGRATIONS=postgresql://postgres:postgrespassword@localhost:5432/forma_dev`
+- `DATABASE_URL=postgresql://forma_app:<APP_ROLE_PASSWORD>@localhost:5432/forma_dev`
+- `DATABASE_URL_MIGRATIONS=postgresql://postgres:<SUPERUSER_PASSWORD>@localhost:5432/forma_dev`
 - `GEMINI_API_KEY`: Add your Google Gemini API key if testing live AI inference.
 
 ### 2. Install Dependencies

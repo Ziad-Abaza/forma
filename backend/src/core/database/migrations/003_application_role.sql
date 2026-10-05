@@ -3,7 +3,7 @@
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'forma_app') THEN
-    CREATE ROLE forma_app WITH LOGIN PASSWORD 'forma_secure_app_role_pw';
+    CREATE ROLE forma_app WITH LOGIN PASSWORD '__FORMA_APP_DB_PASSWORD__';
   END IF;
 END
 $$;

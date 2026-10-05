@@ -30,7 +30,7 @@ describe('Phase 3: AI Context & Provider Infrastructure Integration Tests', () =
     await runMigrations();
 
     const pool = getPool();
-    byokService = new BYOKService(pool);
+    byokService = new BYOKService();
     snapshotEngine = new SnapshotEngine();
     analyticsService = new AnalyticsService();
     goalsService = new GoalsService();

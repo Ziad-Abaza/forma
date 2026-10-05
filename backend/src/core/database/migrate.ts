@@ -3,12 +3,33 @@ import path from 'path';
 import { Pool } from 'pg';
 import { closePool } from './index.js';
 
+const APP_ROLE_PASSWORD_PLACEHOLDER = '__FORMA_APP_DB_PASSWORD__';
+
 function getMigrationPool(): Pool {
-  const adminUrl = process.env['DATABASE_URL_MIGRATIONS'] ||
-    (process.env['NODE_ENV'] === 'test'
-      ? 'postgresql://postgres:postgres@localhost:5432/forma_test'
-      : 'postgresql://postgres:postgres@localhost:5432/forma_dev');
+  const adminUrl = process.env['DATABASE_URL_MIGRATIONS'];
+  if (!adminUrl || adminUrl.trim().length === 0) {
+    throw new Error(
+      'DATABASE_URL_MIGRATIONS is required to run migrations (schema-owner/superuser connection string). No fallback exists.'
+    );
+  }
   return new Pool({ connectionString: adminUrl });
+}
+
+/**
+ * Resolves env-parameterized placeholders in migration SQL.
+ * Migrations must never embed credential literals; secrets are injected at apply time.
+ */
+function resolveMigrationSql(fileName: string, rawSql: string): string {
+  if (!rawSql.includes(APP_ROLE_PASSWORD_PLACEHOLDER)) {
+    return rawSql;
+  }
+  const appRolePassword = process.env['FORMA_APP_DB_PASSWORD'];
+  if (!appRolePassword) {
+    throw new Error(
+      `Migration ${fileName} requires FORMA_APP_DB_PASSWORD to provision the application role. Refusing to apply with a missing password.`
+    );
+  }
+  return rawSql.split(APP_ROLE_PASSWORD_PLACEHOLDER).join(appRolePassword.replaceAll("'", "''"));
 }
 
 export async function runMigrations(): Promise<void> {
@@ -47,7 +68,7 @@ export async function runMigrations(): Promise<void> {
       }
 
       console.log(`Applying migration: ${file}...`);
-      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+      const sql = resolveMigrationSql(file, fs.readFileSync(path.join(migrationsDir, file), 'utf8'));
 
       await client.query('BEGIN');
       await client.query(sql);

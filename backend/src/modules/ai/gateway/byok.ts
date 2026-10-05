@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { withUserContext } from '../../../core/database/index.js';
+import { config } from '../../../config/index.js';
 
 export interface UserAICredential {
   id: string;
@@ -15,12 +16,11 @@ export class BYOKService {
   private readonly masterKey: Buffer;
   private readonly allowedProviders = new Set(['google', 'openai', 'anthropic', 'secondary']);
 
-  constructor(_pool?: any, masterKeyHex?: string) {
-    const secret =
-      masterKeyHex ||
-      process.env.ENCRYPTION_MASTER_KEY ||
-      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-    this.masterKey = Buffer.from(secret, 'hex');
+  constructor(masterKeyHex: string = config.ENCRYPTION_MASTER_KEY) {
+    if (!/^[0-9a-fA-F]{64}$/.test(masterKeyHex)) {
+      throw new Error('BYOK master key must be a 64-character hex string (32 bytes for AES-256-GCM)');
+    }
+    this.masterKey = Buffer.from(masterKeyHex, 'hex');
   }
 
   public isProviderAllowed(provider: string): boolean {

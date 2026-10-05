@@ -3,39 +3,92 @@ import dotenv from 'dotenv';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import crypto from 'crypto';
 
 // Load .env from backend directory first, then fallback to cwd or parent
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
+const ENCRYPTION_KEY_HEX_PATTERN = /^[0-9a-fA-F]{64}$/;
+
 const configSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(3000),
   HOST: z.string().optional(),
   LOCAL_SERVER: z.preprocess((val) => val === 'true' || val === true || val === '1', z.boolean()).default(false),
-  DATABASE_URL: z.string().default('postgresql://forma_app:forma_secure_app_role_pw@localhost:5432/forma_dev'),
-  DATABASE_URL_TEST: z.string().default('postgresql://forma_app:forma_secure_app_role_pw@localhost:5432/forma_test'),
-  JWT_ACCESS_SECRET: z.string().min(16).default('forma_dev_access_token_secret_minimum_32_characters!'),
-  JWT_REFRESH_SECRET: z.string().min(16).default('forma_dev_refresh_token_secret_minimum_32_characters!'),
+  DATABASE_URL: z.string().min(1).optional(),
+  DATABASE_URL_TEST: z.string().min(1).optional(),
+  DATABASE_URL_MIGRATIONS: z.string().min(1).optional(),
+  JWT_ACCESS_SECRET: z.string().min(32).optional(),
+  JWT_REFRESH_SECRET: z.string().min(32).optional(),
+  ENCRYPTION_MASTER_KEY: z
+    .string()
+    .regex(ENCRYPTION_KEY_HEX_PATTERN, 'ENCRYPTION_MASTER_KEY must be a 64-character hex string (32 bytes)')
+    .optional(),
   GEMINI_API_KEY: z.string().optional(),
-  AI_PRIMARY_MODEL: z.string().default('gemini-3.8-flash'),
+  AI_PRIMARY_MODEL: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info')
 });
 
-const parsed = configSchema.safeParse(process.env);
-if (!parsed.success) {
-  console.error('Configuration validation failed:', parsed.error.format());
-  throw new Error('Invalid environment configuration');
+type ParsedConfig = z.infer<typeof configSchema>;
+
+export interface AppConfig extends Omit<ParsedConfig, 'JWT_ACCESS_SECRET' | 'JWT_REFRESH_SECRET' | 'ENCRYPTION_MASTER_KEY'> {
+  JWT_ACCESS_SECRET: string;
+  JWT_REFRESH_SECRET: string;
+  ENCRYPTION_MASTER_KEY: string;
 }
 
-export const config = parsed.data;
+/**
+ * Parses and validates environment configuration. Secret material has NO defaults:
+ * outside test runs the process refuses to boot when required secrets are absent.
+ * In NODE_ENV=test, missing secrets are replaced with ephemeral random values —
+ * never with literals committed to source.
+ */
+export function parseConfig(env: NodeJS.ProcessEnv): AppConfig {
+  const parsed = configSchema.safeParse(env);
+  if (!parsed.success) {
+    console.error('Configuration validation failed:', parsed.error.format());
+    throw new Error('Invalid environment configuration');
+  }
+
+  const data = parsed.data;
+  const isTest = data.NODE_ENV === 'test' || env.VITEST === 'true';
+
+  const missingRequired: string[] = [];
+  if (!isTest) {
+    if (!data.DATABASE_URL) missingRequired.push('DATABASE_URL');
+    if (!data.JWT_ACCESS_SECRET) missingRequired.push('JWT_ACCESS_SECRET');
+    if (!data.JWT_REFRESH_SECRET) missingRequired.push('JWT_REFRESH_SECRET');
+    if (!data.ENCRYPTION_MASTER_KEY) missingRequired.push('ENCRYPTION_MASTER_KEY');
+  }
+  if (missingRequired.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missingRequired.join(', ')}. ` +
+        `Provide them via the environment or .env (see .env.example).`
+    );
+  }
+
+  return {
+    ...data,
+    JWT_ACCESS_SECRET: data.JWT_ACCESS_SECRET ?? crypto.randomBytes(32).toString('hex'),
+    JWT_REFRESH_SECRET: data.JWT_REFRESH_SECRET ?? crypto.randomBytes(32).toString('hex'),
+    ENCRYPTION_MASTER_KEY: data.ENCRYPTION_MASTER_KEY ?? crypto.randomBytes(32).toString('hex')
+  };
+}
+
+export const config = parseConfig(process.env);
 
 export function getDatabaseUrl(): string {
-  if (config.NODE_ENV === 'test') {
-    return process.env['DATABASE_URL_TEST'] || config.DATABASE_URL_TEST;
+  const url = config.NODE_ENV === 'test' ? config.DATABASE_URL_TEST : config.DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      config.NODE_ENV === 'test'
+        ? 'DATABASE_URL_TEST is required in test environment'
+        : 'DATABASE_URL is required'
+    );
   }
-  return process.env['DATABASE_URL'] || config.DATABASE_URL;
+  return url;
 }
 
 /**
