@@ -13,3 +13,4 @@ build/
 backend/storage/
 /storage/
 /scripts/
+/docs/
