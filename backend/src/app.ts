@@ -366,7 +366,19 @@ export function buildApp(deps: AppDependencies = {}): FastifyInstance {
 
   app.post('/api/v1/measurements/observations', { preHandler: [requireAuth] }, async (req, reply) => {
     const parsed = CreateObservationRequestSchema.parse(req.body);
-    const result = await MeasurementsService.recordObservation(req.user!.userId, parsed, req.correlationId);
+    // Provenance is stamped by the server — this route IS a manual user entry.
+    const result = await MeasurementsService.recordObservation(
+      req.user!.userId,
+      {
+        ...parsed,
+        originType: 'manual_entry',
+        epistemicClass: 'measured',
+        actor: 'user',
+        confidenceScore: 1.0,
+        reviewState: 'user_reviewed'
+      },
+      req.correlationId
+    );
     return reply.status(201).send(result);
   });
 

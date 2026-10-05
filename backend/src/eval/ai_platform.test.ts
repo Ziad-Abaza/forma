@@ -330,7 +330,10 @@ describe('Phase 3: AI Context & Provider Infrastructure Integration Tests', () =
           originType: 'manual_entry',
           epistemicClass: 'measured',
           actor: 'user',
-        },
+                  confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
         'corr-ai-obs'
       );
 

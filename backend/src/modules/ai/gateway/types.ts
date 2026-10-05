@@ -58,10 +58,14 @@ export interface GenerateTextOptions {
   inlineData?: Array<{ mimeType: string; data: string }> | undefined;
 }
 
+/**
+ * Token usage reported BY THE PROVIDER. Fields are null when the provider
+ * omits them — adapters must never substitute estimates for real usage.
+ */
 export interface TokenUsage {
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
 }
 
 export interface GenerateTextResult {

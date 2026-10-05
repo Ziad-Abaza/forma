@@ -59,8 +59,11 @@ describe('Phase 6: End-to-End Privacy Verification (Blueprint §31.1 Gate 7, §3
         observedAt: new Date().toISOString(),
         originType: 'manual_entry',
         epistemicClass: 'measured',
-        actor: 'user'
-      },
+        actor: 'user',
+                confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
       'corr-privacy-obs'
     );
 

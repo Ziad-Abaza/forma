@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+﻿import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { runMigrations } from '../../core/database/migrate.js';
 import { closePool } from '../../core/database/index.js';
 import { AnalyticsService } from './service.js';
@@ -95,8 +95,12 @@ describe('Health Snapshot Engine & Trend Analytics Integration Tests (Real Postg
         unit: 'kg',
         originType: 'manual_entry',
         epistemicClass: 'measured',
-        observedAt: day1
-      },
+        observedAt: day1,
+                actor: 'user',
+          confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
       'corr-snap-1'
     );
 
@@ -118,8 +122,12 @@ describe('Health Snapshot Engine & Trend Analytics Integration Tests (Real Postg
         unit: 'kg',
         originType: 'manual_entry',
         epistemicClass: 'measured',
-        observedAt: day2
-      },
+        observedAt: day2,
+                actor: 'user',
+          confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
       'corr-snap-2'
     );
 
@@ -149,12 +157,24 @@ describe('Health Snapshot Engine & Trend Analytics Integration Tests (Real Postg
 
     await MeasurementsService.recordObservation(
       userA,
-      { typeCode: 'weight', value: 84.0, unit: 'kg', observedAt: day3 },
+      { typeCode: 'weight', value: 84.0, unit: 'kg', observedAt: day3, originType: 'manual_entry',
+          epistemicClass: 'measured',
+          actor: 'user',
+          confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
       'corr-snap-3'
     );
     await MeasurementsService.recordObservation(
       userA,
-      { typeCode: 'weight', value: 83.5, unit: 'kg', observedAt: day4 },
+      { typeCode: 'weight', value: 83.5, unit: 'kg', observedAt: day4, originType: 'manual_entry',
+          epistemicClass: 'measured',
+          actor: 'user',
+          confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
       'corr-snap-4'
     );
 
@@ -176,7 +196,13 @@ describe('Health Snapshot Engine & Trend Analytics Integration Tests (Real Postg
     const anomalyTime = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString();
     await MeasurementsService.recordObservation(
       userA,
-      { typeCode: 'weight', value: 90.0, unit: 'kg', observedAt: anomalyTime },
+      { typeCode: 'weight', value: 90.0, unit: 'kg', observedAt: anomalyTime, originType: 'manual_entry',
+          epistemicClass: 'measured',
+          actor: 'user',
+          confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
       'corr-snap-5'
     );
 

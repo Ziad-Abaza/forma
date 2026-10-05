@@ -67,8 +67,12 @@ describe('Goals Module Integration Tests (Real PostgreSQL 18)', () => {
         unit: 'kg',
         originType: 'manual_entry',
         epistemicClass: 'measured',
-        observedAt: new Date().toISOString()
-      },
+        observedAt: new Date().toISOString(),
+                actor: 'user',
+          confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
       'corr-goals-1'
     );
 

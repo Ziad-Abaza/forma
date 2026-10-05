@@ -37,6 +37,16 @@ class MeasurementsRepository {
     return [];
   }
 
+  /// Device-local timezone as 'UTC±HH:MM' — the only truthful timezone
+  /// Dart can provide without an IANA lookup package.
+  static String _deviceTimeZone() {
+    final off = DateTime.now().timeZoneOffset;
+    final sign = off.isNegative ? '-' : '+';
+    final hh = off.inHours.abs().toString().padLeft(2, '0');
+    final mm = (off.inMinutes.abs() % 60).toString().padLeft(2, '0');
+    return 'UTC$sign$hh:$mm';
+  }
+
   Future<ObservationModel> recordObservation({
     required String typeCode,
     required double value,
@@ -44,12 +54,14 @@ class MeasurementsRepository {
     DateTime? observedAt,
     String originType = 'manual_entry',
   }) async {
+    // Note: provenance fields are stamped by the server; `originType` is no
+    // longer sent — the public route cannot be used to claim provenance.
     final body = {
       'typeCode': typeCode,
       'value': value,
       'unit': unit,
       'observedAt': (observedAt ?? DateTime.now()).toUtc().toIso8601String(),
-      'originType': originType,
+      'timeZone': _deviceTimeZone(),
     };
 
     final resp = await apiClient.post('/api/v1/measurements/observations', body: body);

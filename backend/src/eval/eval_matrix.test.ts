@@ -52,8 +52,11 @@ describe('Phase 6: AI Evaluation Matrix & Numeric Grounding Gate (Blueprint §31
         observedAt: new Date().toISOString(),
         originType: 'manual_entry',
         epistemicClass: 'measured',
-        actor: 'user'
-      },
+        actor: 'user',
+                confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
       'corr-eval-weight-en'
     );
 
@@ -82,8 +85,11 @@ describe('Phase 6: AI Evaluation Matrix & Numeric Grounding Gate (Blueprint §31
         observedAt: new Date().toISOString(),
         originType: 'manual_entry',
         epistemicClass: 'measured',
-        actor: 'user'
-      },
+        actor: 'user',
+                confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
       'corr-eval-weight-ar'
     );
 

@@ -64,8 +64,14 @@ describe('Phase 4: Assistant, Controlled Actions & Multi-Turn Memory Tests', { t
         typeCode: 'weight',
         value: 75.0,
         unit: 'kg',
-        observedAt: new Date().toISOString()
-      },
+        observedAt: new Date().toISOString(),
+                originType: 'manual_entry',
+          epistemicClass: 'measured',
+          actor: 'user',
+          confidenceScore: 1.0,
+          reviewState: 'user_reviewed',
+},
+      
       'corr-seed-a'
     );
   });

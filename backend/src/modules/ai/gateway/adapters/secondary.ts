@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { AIProviderAdapter, GenerateTextOptions, GenerateTextResult, ToolCallRequest } from '../types.js';
 import { config } from '../../../../config/index.js';
 
@@ -86,7 +87,7 @@ export class SecondaryProviderAdapter implements AIProviderAdapter {
       if (message?.tool_calls && Array.isArray(message.tool_calls)) {
         for (const tc of message.tool_calls) {
           toolCalls.push({
-            id: tc.id || `call_${Date.now()}`,
+            id: tc.id || `call_${crypto.randomUUID()}`,
             name: tc.function?.name,
             arguments: tc.function?.arguments
               ? (typeof tc.function.arguments === 'string'
@@ -101,9 +102,9 @@ export class SecondaryProviderAdapter implements AIProviderAdapter {
         text: message?.content || '',
         toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
         usage: {
-          promptTokens: data.usage?.prompt_tokens ?? Math.ceil(options.prompt.length / 4),
-          completionTokens: data.usage?.completion_tokens ?? Math.ceil((message?.content || '').length / 4),
-          totalTokens: data.usage?.total_tokens ?? 0,
+          promptTokens: data.usage?.prompt_tokens ?? null,
+          completionTokens: data.usage?.completion_tokens ?? null,
+          totalTokens: data.usage?.total_tokens ?? null,
         },
         finishReason: choice?.finish_reason || 'stop',
         provider: this.providerName,

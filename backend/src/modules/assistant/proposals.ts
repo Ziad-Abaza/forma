@@ -160,10 +160,13 @@ export class ActionProposalEngine {
             value: Number(params.value),
             unit: params.unit,
             observedAt,
-            timeZone: params.timeZone || 'UTC',
+            // Null-safe: service derives the user's real timezone from history
+            // when the proposal does not carry one — never fabricate 'UTC'.
+            timeZone: params.timeZone,
             originType: 'manual_entry',
             epistemicClass: 'measured',
             actor: 'user',
+            confidenceScore: 1.0,
             reviewState: 'user_reviewed'
           },
           correlationId

@@ -1,4 +1,4 @@
-import { withUserContext } from '../../core/database/index.js';
+﻿import { withUserContext } from '../../core/database/index.js';
 import { AIGateway } from '../ai/gateway/gateway.js';
 import { BYOKService } from '../ai/gateway/byok.js';
 import { AIContextEngine } from '../ai/context/engine.js';
@@ -166,7 +166,7 @@ export class AssistantOrchestrator {
       content: userPrompt,
       evidenceClaims: [],
       proposals: [],
-      tokenCount: Math.ceil(userPrompt.length / 4),
+      tokenCount: 0,
       safetyCategory: safety.category
     });
 
@@ -181,7 +181,7 @@ export class AssistantOrchestrator {
         content: redirectText,
         evidenceClaims: [],
         proposals: [],
-        tokenCount: Math.ceil(redirectText.length / 4),
+        tokenCount: 0,
         safetyCategory: 'D'
       });
 
@@ -225,11 +225,12 @@ export class AssistantOrchestrator {
     }
 
     // 6. G-S3 Second-pass LLM safety check in parallel with context assembly
-    const [llmSafety, contextBundle, durableMemories, profile] = await Promise.all([
+    const [llmSafety, contextBundle, durableMemories, profile, latestObs] = await Promise.all([
       LLMSafetyClassifier.classify(userPrompt, this.gateway),
       this.contextEngine.assembleContext(userId, userPrompt),
       AssistantMemoryService.formatMemoriesForContext(userId),
-      ProfileService.getProfile(userId)
+      ProfileService.getProfile(userId),
+      MeasurementsService.queryObservations(userId, { status: 'active', limit: 1 })
     ]);
 
     // If second-pass classified as Category D, intercept
@@ -243,7 +244,7 @@ export class AssistantOrchestrator {
         content: redirectText,
         evidenceClaims: [],
         proposals: [],
-        tokenCount: Math.ceil(redirectText.length / 4),
+        tokenCount: 0,
         safetyCategory: 'D'
       });
 
@@ -269,14 +270,23 @@ export class AssistantOrchestrator {
     const tierConfig = TierSelector.selectTier(userPrompt, contextBundle.intentClass);
 
     // 9. Build versioned system prompt v2
-    const preferredUnits = (profile?.preferences as any)?.units || 'metric';
+    // Timezone and freshness reflect the user's real data, never literals:
+    // timezone from their latest observation (or 'unknown'); freshness from
+    // the actual age of their newest observation.
+    const userTimezone = latestObs[0]?.time_zone ?? 'unknown';
+    const latestObservedAt = latestObs[0]?.observed_at;
+    const STALE_AFTER_DAYS = 7;
+    const dataFreshness = latestObservedAt
+      ? (Date.now() - latestObservedAt.getTime() <= STALE_AFTER_DAYS * 86_400_000 ? 'fresh' : 'stale')
+      : 'no_data';
+    const preferredUnits = (profile?.preferences as any)?.units ?? 'unspecified';
     const systemInstruction = renderSystemPrompt({
       unit_system: preferredUnits,
       now_iso: new Date().toISOString(),
-      user_timezone: 'UTC',
+      user_timezone: userTimezone,
       response_tier: tierConfig.tier,
       durable_memories: durableMemories,
-      data_freshness: 'fresh',
+      data_freshness: dataFreshness,
       context_tier: contextBundle.tier,
       system_context_text: contextBundle.systemContextText,
       proposals_context_text: proposalsContextText
@@ -322,7 +332,7 @@ export class AssistantOrchestrator {
         content: safeErrorText,
         evidenceClaims: [],
         proposals: [],
-        tokenCount: Math.ceil(safeErrorText.length / 4),
+        tokenCount: 0,
         safetyCategory: 'A'
       });
 
@@ -423,7 +433,7 @@ export class AssistantOrchestrator {
       content: finalContent,
       evidenceClaims,
       proposals: extractedProposals,
-      tokenCount: gatewayResult.result.usage.completionTokens || Math.ceil(finalContent.length / 4),
+      tokenCount: gatewayResult.result.usage.completionTokens ?? 0,
       safetyCategory: safety.category
     });
 
@@ -497,7 +507,7 @@ export class AssistantOrchestrator {
       content: userPrompt,
       evidenceClaims: [],
       proposals: [],
-      tokenCount: Math.ceil(userPrompt.length / 4),
+      tokenCount: 0,
       safetyCategory: safety.category
     });
 
@@ -525,7 +535,7 @@ export class AssistantOrchestrator {
         content: redirectText,
         evidenceClaims: [],
         proposals: [],
-        tokenCount: Math.ceil(redirectText.length / 4),
+        tokenCount: 0,
         safetyCategory: 'D'
       });
 

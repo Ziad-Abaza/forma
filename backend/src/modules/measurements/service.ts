@@ -8,8 +8,8 @@ import {
   type MeasurementTypeRecord
 } from './repository.js';
 import {
-  CreateObservationRequestSchema,
-  type CreateObservationInput,
+  RecordObservationInputSchema,
+  type RecordObservationInput,
   type SupersedeObservationRequest,
   type VoidObservationRequest,
   type QueryObservationsFilter
@@ -27,11 +27,22 @@ export class MeasurementsService {
    */
   static async recordObservation(
     userId: string,
-    rawReq: CreateObservationInput,
+    rawReq: RecordObservationInput,
     correlationId: string
   ): Promise<ObservationWithProvenance> {
-    const req = CreateObservationRequestSchema.parse(rawReq);
+    const req = RecordObservationInputSchema.parse(rawReq);
     return await withUserContext(userId, async (client) => {
+      // Timezone: caller-supplied wins; otherwise derive from the user's own
+      // observation history. 'UTC' only when there is genuinely no better data.
+      let timeZone = req.timeZone;
+      if (!timeZone) {
+        const latest = await MeasurementsRepository.queryObservations(client, userId, {
+          status: 'active',
+          limit: 1
+        });
+        timeZone = latest[0]?.time_zone ?? 'UTC';
+      }
+
       const type = await MeasurementsRepository.getMeasurementType(client, req.typeCode);
       if (!type) {
         throw new Error(`Unknown measurement type code: ${req.typeCode}`);
@@ -82,7 +93,7 @@ export class MeasurementsService {
         originalUnit: normalized.originalUnit,
         inputPrecision: normalized.inputPrecision,
         observedAt: req.observedAt,
-        timeZone: req.timeZone,
+        timeZone,
         provenanceId: provenance.id,
         qualityFlags
       });

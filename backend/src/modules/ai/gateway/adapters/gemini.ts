@@ -1,3 +1,4 @@
+﻿import crypto from 'crypto';
 import { AIProviderAdapter, GenerateTextOptions, GenerateTextResult, ToolCallRequest } from '../types.js';
 import { config } from '../../../../config/index.js';
 
@@ -164,7 +165,8 @@ export class GeminiAdapter implements AIProviderAdapter {
         }
         if (part.functionCall) {
           toolCalls.push({
-            id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            // Gemini does not return tool-call ids; mint a real UUID for correlation.
+            id: `call_${crypto.randomUUID()}`,
             name: part.functionCall.name,
             arguments: part.functionCall.args || {},
           });
@@ -173,9 +175,9 @@ export class GeminiAdapter implements AIProviderAdapter {
     }
 
     const usage = {
-      promptTokens: data.usageMetadata?.promptTokenCount || 0,
-      completionTokens: data.usageMetadata?.candidatesTokenCount || 0,
-      totalTokens: data.usageMetadata?.totalTokenCount || 0,
+      promptTokens: data.usageMetadata?.promptTokenCount ?? null,
+      completionTokens: data.usageMetadata?.candidatesTokenCount ?? null,
+      totalTokens: data.usageMetadata?.totalTokenCount ?? null,
     };
 
     const finishReason =
