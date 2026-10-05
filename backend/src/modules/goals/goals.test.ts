@@ -54,7 +54,10 @@ describe('Goals Module Integration Tests (Real PostgreSQL 18)', () => {
     expect(goal.currentVersion?.version).toBe(1);
     expect(goal.currentVersion?.startingValue).toBe(90.0);
     expect(goal.currentVersion?.targetValue).toBe(80.0);
-    expect(goal.progressPct).toBe(0);
+    // No measurement of the goal's metric exists yet — progress is UNKNOWN,
+    // not a fabricated 0% at a fake "starting value" current reading.
+    expect(goal.progressPct).toBeUndefined();
+    expect(goal.currentValue).toBeUndefined();
   });
 
   it('updates progress when a new measurement observation is logged', async () => {

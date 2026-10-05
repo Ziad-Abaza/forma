@@ -6,6 +6,7 @@ import { AnomalyDetector } from './anomalies.js';
 import { MeasurementsRepository } from '../measurements/repository.js';
 import { ProfileRepository } from '../profile/repository.js';
 import { GoalsRepository } from '../goals/repository.js';
+import { computeGoalProgressPct } from '../goals/contracts.js';
 
 export class SnapshotEngine {
   private readonly calc = new CalculationEngine();
@@ -77,19 +78,24 @@ export class SnapshotEngine {
       } as any;
 
       if (primaryGoal && primaryGoal.currentVersion) {
-        let progressPct = 0;
-        const currentVal = latestWeightKg || primaryGoal.currentVersion.startingValue;
         const startVal = primaryGoal.currentVersion.startingValue;
         const targetVal = primaryGoal.currentVersion.targetValue;
-        const dist = Math.abs(targetVal - startVal);
 
-        if (dist === 0) {
-          progressPct = 100;
-        } else if (primaryGoal.goalType === 'weight_loss' || targetVal < startVal) {
-          progressPct = Math.round(((startVal - currentVal) / dist) * 1000) / 10;
-        } else {
-          progressPct = Math.round(((currentVal - startVal) / dist) * 1000) / 10;
-        }
+        // Progress must come from a real measurement of the goal's OWN target
+        // metric — not weight by assumption, and never "startingValue" as a
+        // stand-in for a measurement that doesn't exist.
+        const goalMetricObs =
+          primaryGoal.targetMetricTypeCode === 'weight'
+            ? latestWeight
+            : await MeasurementsRepository.queryObservations(client, userId, {
+                typeCode: primaryGoal.targetMetricTypeCode,
+                status: 'active',
+                limit: 1
+              }).then((r) => r[0]);
+        const currentVal = goalMetricObs ? Number(goalMetricObs.canonical_value) : undefined;
+        const progressPct = currentVal !== undefined
+          ? computeGoalProgressPct(primaryGoal.goalType, startVal, targetVal, currentVal)
+          : undefined;
 
         // Never fabricate a weekly rate: without a real goal rate the projection
         // is insufficient and no projectedTargetDate is emitted.

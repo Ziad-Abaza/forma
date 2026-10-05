@@ -69,3 +69,22 @@ export interface Goal {
   progressPct?: number | undefined;
   currentValue?: number | undefined;
 }
+
+/**
+ * Single source of truth for goal progress. Callers must pass a REAL measured
+ * current value — with no measurement there is no progress to report.
+ */
+export function computeGoalProgressPct(
+  goalType: GoalType | string,
+  startValue: number,
+  targetValue: number,
+  currentValue: number
+): number {
+  const totalDistance = Math.abs(targetValue - startValue);
+  if (totalDistance === 0) return 100;
+  const covered =
+    goalType === 'weight_loss' || targetValue < startValue
+      ? startValue - currentValue
+      : currentValue - startValue;
+  return Math.round((covered / totalDistance) * 1000) / 10;
+}

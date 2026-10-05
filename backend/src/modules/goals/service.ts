@@ -1,5 +1,5 @@
 import { GoalsRepository } from './repository.js';
-import type { CreateGoalRequest, UpdateGoalVersionRequest, Goal, GoalVersion } from './contracts.js';
+import { computeGoalProgressPct, type CreateGoalRequest, type UpdateGoalVersionRequest, type Goal, type GoalVersion } from './contracts.js';
 import type { ExportableModule, DeletableModule } from '../privacy/index.js';
 import { MeasurementsService } from '../measurements/service.js';
 
@@ -63,37 +63,18 @@ export class GoalsService implements ExportableModule, DeletableModule {
       goal.targetMetricTypeCode
     );
 
-    if (!latestObs) {
-      return {
-        ...goal,
-        currentValue: goal.currentVersion.startingValue,
-        progressPct: 0
-      };
-    }
+    // No real measurement of the goal's metric → progress is unknown, not 0
+    // at a fabricated "starting value" reading.
+    if (!latestObs) return goal;
 
     const currentVal = Number(latestObs.canonical_value);
     const startVal = goal.currentVersion.startingValue;
     const targetVal = goal.currentVersion.targetValue;
 
-    let progressPct = 0;
-    const totalDistance = Math.abs(targetVal - startVal);
-
-    if (totalDistance === 0) {
-      progressPct = 100;
-    } else if (goal.goalType === 'weight_loss' || targetVal < startVal) {
-      // Moving down
-      const distanceCovered = startVal - currentVal;
-      progressPct = Math.round((distanceCovered / totalDistance) * 1000) / 10;
-    } else {
-      // Moving up
-      const distanceCovered = currentVal - startVal;
-      progressPct = Math.round((distanceCovered / totalDistance) * 1000) / 10;
-    }
-
     return {
       ...goal,
       currentValue: currentVal,
-      progressPct
+      progressPct: computeGoalProgressPct(goal.goalType, startVal, targetVal, currentVal)
     };
   }
 }
