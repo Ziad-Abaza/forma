@@ -6,7 +6,12 @@ import { verifyJwt } from './core/security/index.js';
 import { checkDatabaseHealth } from './core/database/index.js';
 import { appLogger } from './core/logging/index.js';
 import { IdentityService } from './modules/identity/service.js';
-import { RegisterRequestSchema, LoginRequestSchema, RefreshTokenRequestSchema } from './modules/identity/contracts.js';
+import {
+  RegisterRequestSchema,
+  LoginRequestSchema,
+  RefreshTokenRequestSchema,
+  UpdatePreferencesRequestSchema
+} from './modules/identity/contracts.js';
 import { MeasurementsService } from './modules/measurements/service.js';
 import {
   CreateObservationRequestSchema,
@@ -192,6 +197,34 @@ export function buildApp(): FastifyInstance {
     const parsed = RefreshTokenRequestSchema.parse(req.body);
     await IdentityService.logout(parsed.refreshToken, req.correlationId);
     return reply.status(200).send({ message: 'Successfully logged out' });
+  });
+
+  app.get('/api/v1/auth/me', { preHandler: [requireAuth] }, async (req, reply) => {
+    const user = await IdentityService.getCurrentUser(req.user!.userId);
+    if (!user) {
+      return reply.status(404).send({ error: 'User not found' });
+    }
+    return reply.send({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      locale: user.locale,
+      numeralSystem: user.numeral_system,
+      emailVerified: user.email_verified
+    });
+  });
+
+  app.patch('/api/v1/auth/preferences', { preHandler: [requireAuth] }, async (req, reply) => {
+    const parsed = UpdatePreferencesRequestSchema.parse(req.body);
+    const updated = await IdentityService.updateUserPreferences(req.user!.userId, parsed, req.correlationId);
+    return reply.send({
+      id: updated.id,
+      email: updated.email,
+      role: updated.role,
+      locale: updated.locale,
+      numeralSystem: updated.numeral_system,
+      emailVerified: updated.email_verified
+    });
   });
 
   // --- Profile Routes ---

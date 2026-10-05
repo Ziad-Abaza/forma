@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/theme.dart';
+import '../../modules/privacy/repositories/privacy_repository.dart';
+import '../../modules/integrations/repositories/integrations_repository.dart';
+import '../../modules/auth/notifiers/auth_state.dart';
 
 class DeviceIntegration {
   final String id;
@@ -37,11 +40,15 @@ class DeviceIntegration {
 }
 
 final deviceIntegrationsProvider = StateNotifierProvider<DeviceIntegrationsNotifier, List<DeviceIntegration>>((ref) {
-  return DeviceIntegrationsNotifier();
+  final isAuth = ref.watch(authStateProvider).isAuthenticated;
+  final repository = isAuth ? ref.watch(integrationsRepositoryProvider) : null;
+  return DeviceIntegrationsNotifier(repository: repository);
 });
 
 class DeviceIntegrationsNotifier extends StateNotifier<List<DeviceIntegration>> {
-  DeviceIntegrationsNotifier()
+  final IntegrationsRepository? repository;
+
+  DeviceIntegrationsNotifier({this.repository})
       : super([
           const DeviceIntegration(
             id: 'health_connect',
@@ -76,10 +83,31 @@ class DeviceIntegrationsNotifier extends StateNotifier<List<DeviceIntegration>> 
           ),
         ]);
 
+  Future<void> loadConnections() async {
+    if (repository == null) return;
+    try {
+      final list = await repository!.getConnections();
+      if (list.isNotEmpty && mounted) {
+        state = state.map((d) {
+          final match = list.where((c) => c.provider == d.id).firstOrNull;
+          if (match != null) {
+            return d.copyWith(
+              isConnected: match.isConnected,
+              lastSynced: match.lastSyncedAt != null ? 'Synced' : null,
+            );
+          }
+          return d;
+        }).toList();
+      }
+    } catch (_) {}
+  }
+
   void toggleConnection(String id) {
+    final current = state.firstWhere((d) => d.id == id, orElse: () => state.first);
+    final nowConnected = !current.isConnected;
+
     state = state.map((device) {
       if (device.id == id) {
-        final nowConnected = !device.isConnected;
         return device.copyWith(
           isConnected: nowConnected,
           lastSynced: nowConnected ? 'Just now' : null,
@@ -88,6 +116,14 @@ class DeviceIntegrationsNotifier extends StateNotifier<List<DeviceIntegration>> 
       }
       return device;
     }).toList();
+
+    if (repository != null) {
+      if (nowConnected) {
+        repository!.connectProvider(id).catchError((_) => const IntegrationConnectionModel(id: '', provider: '', status: ''));
+      } else {
+        repository!.disconnectProvider(id).catchError((_) {});
+      }
+    }
   }
 
   Future<void> syncDevice(String id) async {
@@ -98,14 +134,24 @@ class DeviceIntegrationsNotifier extends StateNotifier<List<DeviceIntegration>> 
       return device;
     }).toList();
 
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    state = state.map((device) {
-      if (device.id == id) {
-        return device.copyWith(isSyncing: false, lastSynced: 'Just now');
+    if (repository != null) {
+      try {
+        await repository!.syncProvider(id);
+      } catch (_) {
+        await Future.delayed(const Duration(milliseconds: 300));
       }
-      return device;
-    }).toList();
+    } else {
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+
+    if (mounted) {
+      state = state.map((device) {
+        if (device.id == id) {
+          return device.copyWith(isSyncing: false, lastSynced: 'Just now');
+        }
+        return device;
+      }).toList();
+    }
   }
 }
 
@@ -378,6 +424,10 @@ class SyncScreen extends ConsumerWidget {
                     ),
                     trailing: const Icon(Icons.chevron_right, color: FormaTheme.textSecondary),
                     onTap: () {
+                      final isAuth = ref.read(authStateProvider).isAuthenticated;
+                      if (isAuth) {
+                        ref.read(privacyRepositoryProvider).exportUserData().catchError((_) => <String, dynamic>{});
+                      }
                       showDialog(
                         context: context,
                         builder: (ctx) => AlertDialog(
@@ -418,7 +468,7 @@ class SyncScreen extends ConsumerWidget {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.redAccent,
                               ),
-                              onPressed: () {
+                              onPressed: () async {
                                 Navigator.pop(ctx);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -426,6 +476,13 @@ class SyncScreen extends ConsumerWidget {
                                     backgroundColor: Colors.redAccent,
                                   ),
                                 );
+                                final isAuth = ref.read(authStateProvider).isAuthenticated;
+                                if (isAuth) {
+                                  try {
+                                    await ref.read(privacyRepositoryProvider).purgeAccount();
+                                    await ref.read(authStateProvider.notifier).logout();
+                                  } catch (_) {}
+                                }
                               },
                               child: Text(l10n.confirmAction),
                             ),

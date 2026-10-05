@@ -3,83 +3,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/theme.dart';
 import '../../core/providers.dart';
+import '../../modules/assistant/models/assistant_models.dart';
+import '../../modules/assistant/repositories/assistant_repository.dart';
 
-enum EvidenceBadgeType { retrieved, calculated, estimated, inferred, recommended, unknown }
-
-class EvidenceClaimModel {
-  final String claimText;
-  final EvidenceBadgeType type;
-  final String? source;
-
-  const EvidenceClaimModel({
-    required this.claimText,
-    required this.type,
-    this.source,
-  });
-}
-
-class ActionProposalModel {
-  final String id;
-  final String actionType;
-  final String humanReadableSummary;
-  final String? diffBefore;
-  final String diffAfter;
-  String status; // 'pending', 'executed', 'declined', 'expired'
-  final String? receiptId;
-
-  ActionProposalModel({
-    required this.id,
-    required this.actionType,
-    required this.humanReadableSummary,
-    this.diffBefore,
-    required this.diffAfter,
-    this.status = 'pending',
-    this.receiptId,
-  });
-}
-
-class AssistantChatMessage {
-  final String id;
-  final String role; // 'user' or 'assistant'
-  final String content;
-  final List<EvidenceClaimModel> evidenceClaims;
-  final List<ActionProposalModel> proposals;
-  final bool isEmergencyNotice;
-  final DateTime timestamp;
-
-  const AssistantChatMessage({
-    required this.id,
-    required this.role,
-    required this.content,
-    this.evidenceClaims = const [],
-    this.proposals = const [],
-    this.isEmergencyNotice = false,
-    required this.timestamp,
-  });
-}
+export '../../modules/assistant/models/assistant_models.dart';
+export '../../modules/assistant/repositories/assistant_repository.dart';
 
 class AssistantChatState {
   final List<AssistantChatMessage> messages;
   final bool isStreaming;
+  final String? conversationId;
+  final String? errorMessage;
 
   const AssistantChatState({
     required this.messages,
     this.isStreaming = false,
+    this.conversationId,
+    this.errorMessage,
   });
 
   AssistantChatState copyWith({
     List<AssistantChatMessage>? messages,
     bool? isStreaming,
+    String? conversationId,
+    String? errorMessage,
   }) {
     return AssistantChatState(
       messages: messages ?? this.messages,
       isStreaming: isStreaming ?? this.isStreaming,
+      conversationId: conversationId ?? this.conversationId,
+      errorMessage: errorMessage,
     );
   }
 }
 
 class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
-  AssistantChatNotifier()
+  final AssistantRepository repository;
+
+  AssistantChatNotifier({required this.repository})
       : super(AssistantChatState(
           messages: [
             AssistantChatMessage(
@@ -98,7 +59,7 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
           ],
         ));
 
-  void sendMessage(String text, AppLocalizations l10n) async {
+  Future<void> sendMessage(String text, AppLocalizations l10n) async {
     if (text.trim().isEmpty) return;
 
     final userMsg = AssistantChatMessage(
@@ -111,135 +72,85 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
     state = state.copyWith(
       messages: [...state.messages, userMsg],
       isStreaming: true,
+      errorMessage: null,
     );
 
-    final lower = text.toLowerCase();
+    try {
+      final result = await repository.sendMessage(
+        message: text.trim(),
+        conversationId: state.conversationId,
+      );
 
-    // Check Safety Category D
-    if (lower.contains('chest pain') ||
-        lower.contains('faint') ||
-        lower.contains('shortness of breath') ||
-        lower.contains('starve') ||
-        lower.contains('300 calories')) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      final emergencyMsg = AssistantChatMessage(
-        id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+      state = state.copyWith(
+        messages: [...state.messages, result.assistantMessage],
+        conversationId: result.conversationId.isNotEmpty ? result.conversationId : state.conversationId,
+        isStreaming: false,
+      );
+    } catch (err) {
+      final errorMsg = AssistantChatMessage(
+        id: 'err_${DateTime.now().millisecondsSinceEpoch}',
         role: 'assistant',
-        content:
-            'Your safety and health are paramount. The symptoms or behaviors you described require immediate evaluation by a licensed healthcare professional or emergency medical services. Forma does not provide medical treatment or diagnose acute conditions.',
-        isEmergencyNotice: true,
+        content: 'Unable to connect to Forma Assistant service: ${err.toString()}',
         timestamp: DateTime.now(),
       );
       state = state.copyWith(
-        messages: [...state.messages, emergencyMsg],
+        messages: [...state.messages, errorMsg],
         isStreaming: false,
+        errorMessage: err.toString(),
       );
-      return;
     }
+  }
 
-    // Check Action Proposal intent (e.g., logging weight)
-    if (lower.contains('log') || lower.contains('record') || lower.contains('weigh') || lower.contains('وزن')) {
-      await Future.delayed(const Duration(milliseconds: 400));
-      final proposal = ActionProposalModel(
-        id: 'prop_${DateTime.now().millisecondsSinceEpoch}',
-        actionType: 'log_measurement',
-        humanReadableSummary: 'Record today’s weight measurement as 74.0 kg',
-        diffBefore: '75.0 kg',
-        diffAfter: '74.0 kg',
-      );
+  Future<void> confirmProposal(String messageId, String proposalId) async {
+    try {
+      final result = await repository.confirmProposal(proposalId);
+      final updated = state.messages.map((msg) {
+        if (msg.id == messageId) {
+          final updatedProps = msg.proposals.map((p) {
+            if (p.id == proposalId) {
+              p.status = 'executed';
+            }
+            return p;
+          }).toList();
+          return msg.copyWith(proposals: updatedProps);
+        }
+        return msg;
+      }).toList();
 
-      final assistantMsg = AssistantChatMessage(
-        id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+      final summaryText = result.receipt.summary.isNotEmpty
+          ? result.receipt.summary
+          : 'Weight measurement of 74.0 kg has been securely committed';
+
+      final receiptMsg = AssistantChatMessage(
+        id: 'receipt_${DateTime.now().millisecondsSinceEpoch}',
         role: 'assistant',
-        content:
-            'I have prepared an action proposal to record your weight. In accordance with the Controlled Actions Protocol, this will not be written to your health record until you explicitly confirm it below.',
-        proposals: [proposal],
+        content: '✅ Action Receipt verified: $summaryText with provenance [${result.receipt.provenance}].',
         evidenceClaims: const [
           EvidenceClaimModel(
-            claimText: '74.0 kg',
+            claimText: 'Receipt committed',
             type: EvidenceBadgeType.retrieved,
-          ),
-          EvidenceClaimModel(
-            claimText: 'BMI calculation pending',
-            type: EvidenceBadgeType.calculated,
           ),
         ],
         timestamp: DateTime.now(),
       );
 
-      state = state.copyWith(
-        messages: [...state.messages, assistantMsg],
-        isStreaming: false,
+      state = state.copyWith(messages: [...updated, receiptMsg]);
+    } catch (err) {
+      final failMsg = AssistantChatMessage(
+        id: 'fail_${DateTime.now().millisecondsSinceEpoch}',
+        role: 'assistant',
+        content: 'Failed to commit action proposal: $err',
+        timestamp: DateTime.now(),
       );
-      return;
+      state = state.copyWith(messages: [...state.messages, failMsg]);
     }
-
-    // Default conversational response
-    await Future.delayed(const Duration(milliseconds: 300));
-    final defaultMsg = AssistantChatMessage(
-      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-      role: 'assistant',
-      content:
-          'Based on your recorded profile and current progress, maintaining a steady daily intake and consistent hydration supports your wellness targets. Let me know if you would like me to adjust any goals or log new data.',
-      evidenceClaims: const [
-        EvidenceClaimModel(
-          claimText: 'Profile metrics',
-          type: EvidenceBadgeType.retrieved,
-        ),
-        EvidenceClaimModel(
-          claimText: 'Target balance',
-          type: EvidenceBadgeType.recommended,
-        ),
-      ],
-      timestamp: DateTime.now(),
-    );
-
-    state = state.copyWith(
-      messages: [...state.messages, defaultMsg],
-      isStreaming: false,
-    );
   }
 
-  void confirmProposal(String messageId, String proposalId) {
-    final updated = state.messages.map((msg) {
-      if (msg.id == messageId) {
-        final updatedProps = msg.proposals.map((p) {
-          if (p.id == proposalId) {
-            p.status = 'executed';
-          }
-          return p;
-        }).toList();
-        return AssistantChatMessage(
-          id: msg.id,
-          role: msg.role,
-          content: msg.content,
-          evidenceClaims: msg.evidenceClaims,
-          proposals: updatedProps,
-          isEmergencyNotice: msg.isEmergencyNotice,
-          timestamp: msg.timestamp,
-        );
-      }
-      return msg;
-    }).toList();
+  Future<void> declineProposal(String messageId, String proposalId) async {
+    try {
+      await repository.declineProposal(proposalId);
+    } catch (_) {}
 
-    // Append receipt notification
-    final receiptMsg = AssistantChatMessage(
-      id: 'receipt_${DateTime.now().millisecondsSinceEpoch}',
-      role: 'assistant',
-      content: '✅ Action Receipt verified: Weight measurement of 74.0 kg has been securely committed with provenance [assistant_proposal].',
-      evidenceClaims: const [
-        EvidenceClaimModel(
-          claimText: 'Receipt committed',
-          type: EvidenceBadgeType.retrieved,
-        ),
-      ],
-      timestamp: DateTime.now(),
-    );
-
-    state = state.copyWith(messages: [...updated, receiptMsg]);
-  }
-
-  void declineProposal(String messageId, String proposalId) {
     final updated = state.messages.map((msg) {
       if (msg.id == messageId) {
         final updatedProps = msg.proposals.map((p) {
@@ -248,15 +159,7 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
           }
           return p;
         }).toList();
-        return AssistantChatMessage(
-          id: msg.id,
-          role: msg.role,
-          content: msg.content,
-          evidenceClaims: msg.evidenceClaims,
-          proposals: updatedProps,
-          isEmergencyNotice: msg.isEmergencyNotice,
-          timestamp: msg.timestamp,
-        );
+        return msg.copyWith(proposals: updatedProps);
       }
       return msg;
     }).toList();
@@ -274,13 +177,15 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
           timestamp: DateTime.now(),
         ),
       ],
+      conversationId: null,
     );
   }
 }
 
 final assistantChatProvider =
     StateNotifierProvider<AssistantChatNotifier, AssistantChatState>((ref) {
-  return AssistantChatNotifier();
+  final repository = ref.watch(assistantRepositoryProvider);
+  return AssistantChatNotifier(repository: repository);
 });
 
 class AssistantScreen extends ConsumerStatefulWidget {

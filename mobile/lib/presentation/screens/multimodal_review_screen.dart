@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/theme.dart';
 import '../../core/providers.dart';
+import '../../modules/multimodal/repositories/multimodal_repository.dart';
 
 class ExtractedFieldItem {
   final String typeCode;
@@ -135,7 +136,10 @@ class DraftReviewNotifier extends StateNotifier<DraftReviewState> {
     state = state.copyWith(deleteSourceImage: value);
   }
 
-  Future<void> commitDraft({Future<String> Function(DraftReviewState)? onCommit}) async {
+  Future<void> commitDraft({
+    Future<String> Function(DraftReviewState)? onCommit,
+    MultimodalRepository? repository,
+  }) async {
     if (state.approvedCount == 0) return;
     state = state.copyWith(isSubmitting: true);
     try {
@@ -145,6 +149,18 @@ class DraftReviewNotifier extends StateNotifier<DraftReviewState> {
           isSubmitting: false,
           status: 'committed',
           committedReceipt: receipt,
+        );
+      } else if (repository != null) {
+        final res = await repository.commitDraft(
+          draftId: state.draftId,
+          deleteSourceImage: state.deleteSourceImage,
+        );
+        final receiptMap = res['receipt'] as Map<String, dynamic>?;
+        final receiptId = receiptMap?['receiptId'] as String? ?? 'rcpt_multimodal_${state.draftId.substring(0, 8)}';
+        state = state.copyWith(
+          isSubmitting: false,
+          status: 'committed',
+          committedReceipt: receiptId,
         );
       } else {
         state = state.copyWith(
@@ -400,7 +416,10 @@ class MultimodalReviewScreen extends ConsumerWidget {
               ),
               onPressed: state.isSubmitting || state.approvedCount == 0
                   ? null
-                  : () => notifier.commitDraft(onCommit: onCommit),
+                  : () => notifier.commitDraft(
+                        onCommit: onCommit,
+                        repository: ref.read(multimodalRepositoryProvider),
+                      ),
               icon: state.isSubmitting
                   ? const SizedBox(
                       width: 20,

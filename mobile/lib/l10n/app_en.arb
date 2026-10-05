@@ -134,5 +134,19 @@
   "exportUserData": "Export Health Data (GDPR)",
   "purgeAccount": "Delete Account & Purge Data",
   "exportSuccess": "Data export generated successfully.",
-  "purgeConfirmation": "Are you sure? This permanently deletes all your health data across all services."
+  "purgeConfirmation": "Are you sure? This permanently deletes all your health data across all services.",
+  "signInSubtitle": "Sign in to access your health data and AI companion",
+  "dontHaveAccount": "Don't have an account? Sign Up",
+  "alreadyHaveAccount": "Already have an account? Log In",
+  "fillAllFields": "Please complete all required fields.",
+  "invalidEmail": "Please enter a valid email address.",
+  "passwordTooShort": "Password must be at least 8 characters.",
+  "logout": "Log Out",
+  "sexMale": "Male",
+  "sexFemale": "Female",
+  "sexUnspecified": "Unspecified",
+  "loading": "Loading...",
+  "retry": "Retry",
+  "errorOccurred": "An error occurred",
+  "sexForCalculation": "Sex (for calculations)"
 }

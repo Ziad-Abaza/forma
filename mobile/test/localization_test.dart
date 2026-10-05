@@ -5,12 +5,56 @@ import 'package:forma/main.dart';
 import 'package:forma/core/providers.dart';
 import 'package:forma/presentation/screens/dashboard_screen.dart';
 
+import 'package:forma/modules/auth/notifiers/auth_state.dart';
+import 'package:forma/modules/auth/models/user_model.dart';
+import 'package:forma/modules/auth/repositories/auth_repository.dart';
+
+import 'package:forma/modules/analytics/models/snapshot_model.dart';
+import 'package:forma/modules/analytics/repositories/analytics_repository.dart';
+
 void main() {
   testWidgets('Bilingual Localization & RTL/LTR dynamic parity test (Phase 1 & Phase 2)', (WidgetTester tester) async {
-    // 1. Pump FormaApp wrapped in Riverpod ProviderScope
+    // 1. Pump FormaApp wrapped in Riverpod ProviderScope with authenticated state
     await tester.pumpWidget(
-      const ProviderScope(
-        child: FormaApp(),
+      ProviderScope(
+        overrides: [
+          authStateProvider.overrideWith((ref) => AuthNotifier(ref, ref.watch(authRepositoryProvider))
+            ..state = const AuthState(
+              status: AuthStatus.authenticated,
+              user: UserModel(
+                id: 'test-user',
+                email: 'test@forma.local',
+                role: 'user',
+                locale: 'en',
+                numeralSystem: 'western',
+                emailVerified: true,
+              ),
+            )),
+          dashboardSnapshotProvider.overrideWith((ref) => Future.value(
+                const SnapshotModel(
+                  latestWeightKg: 84.5,
+                  trend7dKg: 84.2,
+                  weeklyRateKg: -0.48,
+                  hasActiveGoal: true,
+                  startingValue: 90.0,
+                  currentValue: 84.5,
+                  targetValue: 78.0,
+                  progressPct: 45.8,
+                  maintenanceCalories: 2450,
+                  targetCalories: 1950,
+                  recentMeasurements: [
+                    SnapshotMeasurementItem(
+                      typeCode: 'weight',
+                      canonicalValue: 84.5,
+                      canonicalUnit: 'kg',
+                      observedAt: '2026-10-05',
+                      epistemicClass: 'measured',
+                    ),
+                  ],
+                ),
+              )),
+        ],
+        child: const FormaApp(),
       ),
     );
     await tester.pumpAndSettle();

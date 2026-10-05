@@ -350,4 +350,41 @@ export class IdentityService {
       }
     });
   }
+
+  /**
+   * Retrieves current user summary.
+   */
+  static async getCurrentUser(userId: string): Promise<UserRecord | null> {
+    return await withSystemContext(async (client) => {
+      return await IdentityRepository.findUserById(client, userId);
+    });
+  }
+
+  /**
+   * Updates user preferences (locale, numeral_system).
+   */
+  static async updateUserPreferences(
+    userId: string,
+    preferences: { locale?: string; numeralSystem?: string },
+    correlationId: string
+  ): Promise<UserRecord> {
+    return await withSystemContext(async (client) => {
+      const updated = await IdentityRepository.updateUserPreferences(client, userId, preferences);
+      await AuditService.recordEvent(
+        {
+          userId,
+          actorType: 'user',
+          action: 'user_preferences_updated',
+          entityType: 'user',
+          entityId: userId,
+          correlationId,
+          status: 'success',
+          metadata: preferences
+        },
+        client
+      );
+      return updated;
+    });
+  }
 }
+

@@ -6,6 +6,30 @@ import 'package:forma/core/providers.dart';
 import 'package:forma/l10n/app_localizations.dart';
 import 'package:forma/presentation/screens/dashboard_screen.dart';
 import 'package:forma/presentation/screens/sync_screen.dart';
+import 'package:forma/modules/analytics/models/snapshot_model.dart';
+import 'package:forma/modules/analytics/repositories/analytics_repository.dart';
+
+const testSnapshot = SnapshotModel(
+  latestWeightKg: 84.5,
+  trend7dKg: 84.2,
+  weeklyRateKg: -0.48,
+  hasActiveGoal: true,
+  startingValue: 90.0,
+  currentValue: 84.5,
+  targetValue: 78.0,
+  progressPct: 45.8,
+  maintenanceCalories: 2450,
+  targetCalories: 1950,
+  recentMeasurements: [
+    SnapshotMeasurementItem(
+      typeCode: 'weight',
+      canonicalValue: 84.5,
+      canonicalUnit: 'kg',
+      observedAt: '2026-10-05',
+      epistemicClass: 'measured',
+    ),
+  ],
+);
 
 void main() {
   Widget buildDashboard({Locale locale = const Locale('en')}) {
@@ -13,6 +37,7 @@ void main() {
       overrides: [
         localeProvider.overrideWith((ref) => locale),
         numeralSystemProvider.overrideWith((ref) => locale.languageCode == 'ar' ? 'eastern_arabic' : 'western'),
+        dashboardSnapshotProvider.overrideWith((ref) => Future.value(testSnapshot)),
       ],
       child: MaterialApp(
         locale: locale,

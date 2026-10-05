@@ -119,4 +119,45 @@ describe('Identity Service Integration Tests (Real PostgreSQL)', () => {
       IdentityService.refreshTokens({ refreshToken: refresh2.tokens.refreshToken }, 'corr-family-revoked')
     ).rejects.toThrow();
   });
+
+  it('updates and persists user preferences in PostgreSQL', async () => {
+    const email = `pref_user_${Date.now()}@forma.local`;
+    const reg = await IdentityService.register(
+      {
+        email,
+        password: 'Password123!',
+        dateOfBirth: '1992-04-10',
+        heightCm: 175,
+        sexForCalculation: 'male',
+        locale: 'en',
+        numeralSystem: 'western',
+        consents: {
+          termsOfService: true,
+          healthDataProcessing: true,
+          aiThirdPartyProcessing: true
+        }
+      },
+      'corr-pref-test'
+    );
+
+    // Initial check
+    const current = await IdentityService.getCurrentUser(reg.user.id);
+    expect(current).not.toBeNull();
+    expect(current?.locale).toBe('en');
+    expect(current?.numeral_system).toBe('western');
+
+    // Update preferences to Arabic and Eastern Arabic numerals
+    const updated = await IdentityService.updateUserPreferences(
+      reg.user.id,
+      { locale: 'ar', numeralSystem: 'eastern_arabic' },
+      'corr-update-pref'
+    );
+    expect(updated.locale).toBe('ar');
+    expect(updated.numeral_system).toBe('eastern_arabic');
+
+    // Verify it is persisted in PostgreSQL
+    const reloaded = await IdentityService.getCurrentUser(reg.user.id);
+    expect(reloaded?.locale).toBe('ar');
+    expect(reloaded?.numeral_system).toBe('eastern_arabic');
+  });
 });

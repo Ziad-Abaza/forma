@@ -11,6 +11,7 @@ class FormaTheme {
   static const Color secondaryMint = Color(0xFF2EC4B6);
   static const Color accentCyan = Color(0xFF00B4D8);
   static const Color alertCoral = Color(0xFFFF6B6B);
+  static const Color criticalCrimson = alertCoral;
   static const Color warningAmber = Color(0xFFFF9F1C);
   static const Color successGreen = Color(0xFF2EA043);
 

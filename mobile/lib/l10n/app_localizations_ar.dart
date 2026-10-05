@@ -382,4 +382,48 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get purgeConfirmation =>
       'هل أنت متأكد؟ سيؤدي هذا إلى حذف كافة بياناتك الصحية نهائياً من جميع الخدمات.';
+
+  @override
+  String get signInSubtitle =>
+      'سجل الدخول للوصول إلى بياناتك الصحية ومساعدك الذكي';
+
+  @override
+  String get dontHaveAccount => 'ليس لديك حساب؟ إنشاء حساب جديد';
+
+  @override
+  String get alreadyHaveAccount => 'لديك حساب بالفعل؟ تسجيل الدخول';
+
+  @override
+  String get fillAllFields => 'يرجى ملء جميع الحقول المطلوبة.';
+
+  @override
+  String get invalidEmail => 'يرجى إدخال بريد إلكتروني صالح.';
+
+  @override
+  String get passwordTooShort =>
+      'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.';
+
+  @override
+  String get logout => 'تسجيل الخروج';
+
+  @override
+  String get sexMale => 'ذكر';
+
+  @override
+  String get sexFemale => 'أنثى';
+
+  @override
+  String get sexUnspecified => 'غير محدد';
+
+  @override
+  String get loading => 'جاري التحميل...';
+
+  @override
+  String get retry => 'إعادة المحاولة';
+
+  @override
+  String get errorOccurred => 'حدث خطأ';
+
+  @override
+  String get sexForCalculation => 'الجنس (للحسابات الحيوية)';
 }

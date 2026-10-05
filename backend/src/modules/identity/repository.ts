@@ -48,6 +48,31 @@ export class IdentityRepository {
     return (res.rows[0] as UserRecord) || null;
   }
 
+  static async updateUserPreferences(
+    client: PoolClient,
+    userId: string,
+    preferences: { locale?: string; numeralSystem?: string }
+  ): Promise<UserRecord> {
+    const fields: string[] = ['updated_at = NOW()'];
+    const params: unknown[] = [userId];
+    let idx = 2;
+
+    if (preferences.locale) {
+      fields.push(`locale = $${idx++}`);
+      params.push(preferences.locale);
+    }
+    if (preferences.numeralSystem) {
+      fields.push(`numeral_system = $${idx++}`);
+      params.push(preferences.numeralSystem);
+    }
+
+    const res = await client.query(
+      `UPDATE users SET ${fields.join(', ')} WHERE id = $1 RETURNING *`,
+      params
+    );
+    return res.rows[0] as UserRecord;
+  }
+
   static async createCredentials(
     client: PoolClient,
     userId: string,

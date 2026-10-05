@@ -31,15 +31,26 @@ export const RefreshTokenRequestSchema = z.object({
 
 export type RefreshTokenRequest = z.infer<typeof RefreshTokenRequestSchema>;
 
+export const UpdatePreferencesRequestSchema = z.object({
+  locale: z.enum(['en', 'ar']).optional(),
+  numeralSystem: z.enum(['western', 'eastern_arabic']).optional()
+});
+
+export type UpdatePreferencesRequest = z.infer<typeof UpdatePreferencesRequestSchema>;
+
+export const UserSummarySchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  role: z.string(),
+  locale: z.string(),
+  numeralSystem: z.string(),
+  emailVerified: z.boolean()
+});
+
+export type UserSummary = z.infer<typeof UserSummarySchema>;
+
 export const AuthResponseSchema = z.object({
-  user: z.object({
-    id: z.string().uuid(),
-    email: z.string().email(),
-    role: z.string(),
-    locale: z.string(),
-    numeralSystem: z.string(),
-    emailVerified: z.boolean()
-  }),
+  user: UserSummarySchema,
   tokens: z.object({
     accessToken: z.string(),
     refreshToken: z.string(),
@@ -48,3 +59,4 @@ export const AuthResponseSchema = z.object({
 });
 
 export type AuthResponse = z.infer<typeof AuthResponseSchema>;
+

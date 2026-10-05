@@ -382,4 +382,47 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get purgeConfirmation =>
       'Are you sure? This permanently deletes all your health data across all services.';
+
+  @override
+  String get signInSubtitle =>
+      'Sign in to access your health data and AI companion';
+
+  @override
+  String get dontHaveAccount => 'Don\'t have an account? Sign Up';
+
+  @override
+  String get alreadyHaveAccount => 'Already have an account? Log In';
+
+  @override
+  String get fillAllFields => 'Please complete all required fields.';
+
+  @override
+  String get invalidEmail => 'Please enter a valid email address.';
+
+  @override
+  String get passwordTooShort => 'Password must be at least 8 characters.';
+
+  @override
+  String get logout => 'Log Out';
+
+  @override
+  String get sexMale => 'Male';
+
+  @override
+  String get sexFemale => 'Female';
+
+  @override
+  String get sexUnspecified => 'Unspecified';
+
+  @override
+  String get loading => 'Loading...';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get errorOccurred => 'An error occurred';
+
+  @override
+  String get sexForCalculation => 'Sex (for calculations)';
 }
