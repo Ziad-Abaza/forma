@@ -15,6 +15,8 @@ class EnvConfig {
   final bool enableAnalyticsLogs;
   final bool isLocalServer;
   final String? localIp;
+  final int imageMaxDimensionPx;
+  final int imageJpegQuality;
 
   const EnvConfig({
     required this.apiBaseUrl,
@@ -23,6 +25,8 @@ class EnvConfig {
     required this.enableAnalyticsLogs,
     this.isLocalServer = false,
     this.localIp,
+    required this.imageMaxDimensionPx,
+    required this.imageJpegQuality,
   });
 
   /// Loads configuration from compile-time environment flags and defaults.
@@ -33,6 +37,8 @@ class EnvConfig {
     bool? enableAnalyticsLogs,
     bool? isLocalServer,
     String? localIp,
+    int? imageMaxDimensionPx,
+    int? imageJpegQuality,
   }) {
     const rawUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     const rawEnv = String.fromEnvironment('ENVIRONMENT', defaultValue: 'development');
@@ -41,6 +47,8 @@ class EnvConfig {
     const rawLocalServer = String.fromEnvironment('LOCAL_SERVER', defaultValue: '');
     const boolLocalServer = bool.fromEnvironment('LOCAL_SERVER', defaultValue: false);
     const rawLocalIp = String.fromEnvironment('LOCAL_IP', defaultValue: '');
+    const rawImageMaxDimension = int.fromEnvironment('IMAGE_MAX_DIMENSION_PX', defaultValue: 1600);
+    const rawImageJpegQuality = int.fromEnvironment('IMAGE_JPEG_QUALITY', defaultValue: 85);
 
     final effectiveLocalServer = isLocalServer ?? (boolLocalServer || rawLocalServer.toLowerCase() == 'true');
     final effectiveLocalIp = localIp ?? (rawLocalIp.isNotEmpty ? rawLocalIp : null);
@@ -80,6 +88,8 @@ class EnvConfig {
       enableAnalyticsLogs: enableAnalyticsLogs ?? rawAnalyticsLogs,
       isLocalServer: effectiveLocalServer,
       localIp: effectiveLocalIp,
+      imageMaxDimensionPx: imageMaxDimensionPx ?? rawImageMaxDimension,
+      imageJpegQuality: imageJpegQuality ?? rawImageJpegQuality,
     );
   }
 
@@ -112,6 +122,8 @@ class EnvConfig {
     bool? enableAnalyticsLogs,
     bool? isLocalServer,
     String? localIp,
+    int? imageMaxDimensionPx,
+    int? imageJpegQuality,
   }) {
     return EnvConfig(
       apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
@@ -120,6 +132,8 @@ class EnvConfig {
       enableAnalyticsLogs: enableAnalyticsLogs ?? this.enableAnalyticsLogs,
       isLocalServer: isLocalServer ?? this.isLocalServer,
       localIp: localIp ?? this.localIp,
+      imageMaxDimensionPx: imageMaxDimensionPx ?? this.imageMaxDimensionPx,
+      imageJpegQuality: imageJpegQuality ?? this.imageJpegQuality,
     );
   }
 

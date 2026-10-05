@@ -75,5 +75,9 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Forma connects to your local backend server during development.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Forma uses the camera to capture photos of health reports for AI-powered data extraction.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Forma accesses your photo library so you can choose report images for AI-powered data extraction.</string>
 </dict>
 </plist>

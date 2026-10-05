@@ -45,9 +45,8 @@ void main() {
       expect(find.text('Withings Health Mate'), findsOneWidget);
       expect(find.text('Oura Ring'), findsOneWidget);
 
-      // Default Health Connect is connected
-      expect(find.text('Connected'), findsOneWidget);
-      expect(find.text('Disconnected'), findsNWidgets(4));
+      // All devices disconnected initially
+      expect(find.text('Disconnected'), findsNWidgets(5));
 
       // Privacy Section
       expect(find.text('Data Privacy & Management'), findsOneWidget);

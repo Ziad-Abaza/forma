@@ -447,6 +447,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get extractReport => 'Extract Report';
 
   @override
+  String get extractionDialogHint =>
+      'Capture or select a photo of your report for automated extraction and review.';
+
+  @override
+  String get reportType => 'Report Type';
+
+  @override
+  String get capturePhoto => 'Capture Photo';
+
+  @override
+  String get retakePhoto => 'Retake Photo';
+
+  @override
+  String get chooseFromGallery => 'Choose from Gallery';
+
+  @override
+  String get imageReady => 'Photo ready — tap Extract to analyze';
+
+  @override
+  String get imageCaptureFailed =>
+      'Could not open the camera or gallery. Check permissions and try again.';
+
+  @override
   String get provenanceTitle => 'Data Provenance';
 
   @override

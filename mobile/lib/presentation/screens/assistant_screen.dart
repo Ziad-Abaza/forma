@@ -119,7 +119,7 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
 
       final summaryText = result.receipt.summary.isNotEmpty
           ? result.receipt.summary
-          : 'Weight measurement of 74.0 kg has been securely committed';
+          : 'Action has been securely committed';
 
       final receiptMsg = AssistantChatMessage(
         id: 'receipt_${DateTime.now().millisecondsSinceEpoch}',

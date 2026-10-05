@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
@@ -13,6 +16,7 @@ import 'assistant_screen.dart';
 import 'sync_screen.dart';
 import 'settings_screen.dart';
 import 'multimodal_review_screen.dart';
+import '../../modules/measurements/screens/measurement_history_sheet.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -285,7 +289,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 key: const Key('set_goal_button'),
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Set Primary Goal'),
-                onPressed: () => _showSetGoalDialog(context, l10n),
+                onPressed: () => _showSetGoalDialog(context, l10n, snapshot),
               ),
             ],
           ),
@@ -321,6 +325,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: 'Update Goal',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(Icons.edit_outlined, size: 18, color: FormaTheme.primaryTeal),
+                  onPressed: () => _showUpdateGoalDialog(context, l10n, snapshot),
                 ),
                 const SizedBox(width: 8),
                 _buildBadge(l10n.calculated, FormaTheme.badgeCalculated),
@@ -776,7 +789,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _showAddMeasurementDialog(BuildContext context, AppLocalizations l10n, [SnapshotModel? snapshot]) {
-    final defaultVal = snapshot.latestWeightKg != null ? snapshot.latestWeightKg!.toStringAsFixed(1) : '';
+    final latestWeightKg = snapshot?.latestWeightKg;
+    final defaultVal = latestWeightKg != null ? latestWeightKg.toStringAsFixed(1) : '';
     final valueController = TextEditingController(text: defaultVal);
     final unitController = TextEditingController(text: 'kg');
     String selectedType = 'weight';
@@ -932,6 +946,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ),
         actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.history, size: 16),
+            label: Text(l10n.history),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => MeasurementHistorySheet(initialTypeCode: m.typeCode),
+              );
+            },
+          ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(l10n.cancel),
@@ -941,10 +968,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             onPressed: () async {
               Navigator.of(ctx).pop();
               try {
-                final obsList = await ref.read(measurementsRepositoryProvider).getObservations(typeCode: m.typeCode, limit: 1);
-                if (obsList.isNotEmpty) {
+                final targetId = m.id ?? (await ref.read(measurementsRepositoryProvider).getObservations(typeCode: m.typeCode, limit: 1)).firstOrNull?.id;
+                if (targetId != null) {
                   await ref.read(measurementsRepositoryProvider).voidObservation(
-                        obsList.first.id,
+                        targetId,
                         'Voided by user from dashboard',
                       );
                   ref.invalidate(dashboardSnapshotProvider);
@@ -976,54 +1003,120 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _showImageExtractionDialog(BuildContext context, AppLocalizations l10n) {
-    final textController = TextEditingController();
+    final imagePicker = ImagePicker();
+    final config = ref.read(envConfigProvider);
     String selectedKind = 'body_composition_report';
+    Uint8List? pickedBytes;
+    String? pickedBase64;
+    String? pickError;
     bool isExtracting = false;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: FormaTheme.surfaceCard,
-          title: Text(l10n.multimodalReviewTitle),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Upload an InBody report, scale display, or measurement screenshot for automated extraction and review.',
-                  style: TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedKind,
-                  isExpanded: true,
-                  dropdownColor: FormaTheme.surfaceElevated,
-                  borderRadius: BorderRadius.circular(10),
-                  decoration: const InputDecoration(labelText: 'Report Type'),
-                  items: const [
-                    DropdownMenuItem(value: 'body_composition_report', child: Text('Body Composition Report (InBody)', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'scale_display', child: Text('Smart Scale Display', overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'tape_measurement_sheet', child: Text('Circumference Measurement Sheet', overflow: TextOverflow.ellipsis)),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setDialogState(() => selectedKind = val);
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: textController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Image Payload (Base64 JPEG/PNG)',
-                    hintText: 'Paste base64 image data...',
+        builder: (ctx, setDialogState) {
+          Future<void> pickImage(ImageSource source) async {
+            setDialogState(() => pickError = null);
+            try {
+              final picked = await imagePicker.pickImage(
+                source: source,
+                maxWidth: config.imageMaxDimensionPx.toDouble(),
+                maxHeight: config.imageMaxDimensionPx.toDouble(),
+                imageQuality: config.imageJpegQuality,
+              );
+              if (picked == null) return;
+              final bytes = await picked.readAsBytes();
+              setDialogState(() {
+                pickedBytes = bytes;
+                pickedBase64 = base64Encode(bytes);
+              });
+            } catch (_) {
+              setDialogState(() {
+                pickedBytes = null;
+                pickedBase64 = null;
+                pickError = l10n.imageCaptureFailed;
+              });
+            }
+          }
+
+          return AlertDialog(
+            backgroundColor: FormaTheme.surfaceCard,
+            title: Text(l10n.multimodalReviewTitle),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.extractionDialogHint,
+                    style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedKind,
+                    isExpanded: true,
+                    dropdownColor: FormaTheme.surfaceElevated,
+                    borderRadius: BorderRadius.circular(10),
+                    decoration: InputDecoration(labelText: l10n.reportType),
+                    items: const [
+                      DropdownMenuItem(value: 'body_composition_report', child: Text('Body Composition Report (InBody)', overflow: TextOverflow.ellipsis)),
+                      DropdownMenuItem(value: 'scale_display', child: Text('Smart Scale Display', overflow: TextOverflow.ellipsis)),
+                      DropdownMenuItem(value: 'tape_measurement_sheet', child: Text('Circumference Measurement Sheet', overflow: TextOverflow.ellipsis)),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setDialogState(() => selectedKind = val);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  if (pickedBytes != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(
+                        pickedBytes!,
+                        height: 160,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline, color: FormaTheme.successGreen, size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            l10n.imageReady,
+                            style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  OutlinedButton.icon(
+                    key: const Key('capture_photo_button'),
+                    icon: const Icon(Icons.photo_camera_outlined, color: FormaTheme.primaryTeal),
+                    label: Text(pickedBytes == null ? l10n.capturePhoto : l10n.retakePhoto),
+                    onPressed: isExtracting ? null : () => pickImage(ImageSource.camera),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const Key('choose_gallery_button'),
+                    icon: const Icon(Icons.photo_library_outlined, color: FormaTheme.primaryTeal),
+                    label: Text(l10n.chooseFromGallery),
+                    onPressed: isExtracting ? null : () => pickImage(ImageSource.gallery),
+                  ),
+                  if (pickError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      pickError!,
+                      style: const TextStyle(color: FormaTheme.criticalCrimson, fontSize: 12),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-          actions: [
+            actions: [
             TextButton(
               onPressed: isExtracting ? null : () => Navigator.of(ctx).pop(),
               child: Text(l10n.cancel),
@@ -1032,12 +1125,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               icon: isExtracting
                   ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
                   : const Icon(Icons.analytics_outlined, size: 16),
-              label: const Text('Extract'),
-              onPressed: isExtracting
+              label: Text(l10n.extractReport),
+              onPressed: (isExtracting || pickedBase64 == null)
                   ? null
                   : () async {
-                      final b64 = textController.text.trim();
-                      if (b64.isEmpty) return;
+                      final b64 = pickedBase64!;
 
                       setDialogState(() => isExtracting = true);
                       try {
@@ -1108,14 +1200,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     },
             ),
           ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  void _showSetGoalDialog(BuildContext context, AppLocalizations l10n) {
-    final targetController = TextEditingController(text: '75.0');
-    final baselineController = TextEditingController(text: '85.0');
+  void _showSetGoalDialog(BuildContext context, AppLocalizations l10n, [SnapshotModel? snapshot]) {
+    final currentWeight = snapshot?.latestWeightKg ?? 80.0;
+    final defaultBaseline = currentWeight.toStringAsFixed(1);
+    final defaultTarget = (currentWeight > 10 ? currentWeight - 5.0 : 70.0).toStringAsFixed(1);
+    final targetController = TextEditingController(text: defaultTarget);
+    final baselineController = TextEditingController(text: defaultBaseline);
     String goalType = 'weight_loss';
 
     showDialog(
@@ -1193,6 +1289,133 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(e.toString()),
+                        backgroundColor: FormaTheme.criticalCrimson,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showUpdateGoalDialog(BuildContext context, AppLocalizations l10n, SnapshotModel snapshot) {
+    final goalId = snapshot.goalId;
+    if (goalId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Active goal ID not found'),
+          backgroundColor: FormaTheme.warningAmber,
+        ),
+      );
+      return;
+    }
+
+    final currentTarget = snapshot.targetValue?.toStringAsFixed(1) ?? '75.0';
+    final targetController = TextEditingController(text: currentTarget);
+    final rateController = TextEditingController(text: '0.5');
+    final rationaleController = TextEditingController(text: 'Progressive target adjustment');
+    String selectedAction = 'new_version';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: FormaTheme.surfaceCard,
+          title: const Text('Manage Primary Goal'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: selectedAction,
+                  isExpanded: true,
+                  dropdownColor: FormaTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(10),
+                  decoration: const InputDecoration(labelText: 'Action'),
+                  items: const [
+                    DropdownMenuItem(value: 'new_version', child: Text('Adjust Target / New Version')),
+                    DropdownMenuItem(value: 'status_complete', child: Text('Mark as Completed')),
+                    DropdownMenuItem(value: 'status_archive', child: Text('Archive Goal')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => selectedAction = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                if (selectedAction == 'new_version') ...[
+                  TextField(
+                    controller: targetController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: '${l10n.targetValue} (kg)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: rateController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Weekly Target Rate (kg/wk)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                TextField(
+                  controller: rationaleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Rationale / Reason',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final rationale = rationaleController.text.trim();
+                Navigator.of(ctx).pop();
+                try {
+                  final goalsRepo = ref.read(goalsRepositoryProvider);
+                  if (selectedAction == 'new_version') {
+                    final target = double.tryParse(targetController.text);
+                    final rate = double.tryParse(rateController.text) ?? 0.5;
+                    if (target == null) return;
+                    await goalsRepo.addGoalVersion(
+                      goalId: goalId,
+                      targetValue: target,
+                      startingValue: snapshot.currentValue ?? snapshot.latestWeightKg,
+                      weeklyRate: rate,
+                      rationale: rationale.isNotEmpty ? rationale : 'Target adjustment',
+                    );
+                  } else if (selectedAction == 'status_complete') {
+                    await goalsRepo.updateGoalStatus(goalId, 'completed');
+                  } else if (selectedAction == 'status_archive') {
+                    await goalsRepo.updateGoalStatus(goalId, 'archived');
+                  }
+                  ref.invalidate(dashboardSnapshotProvider);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Goal updated successfully'),
+                        backgroundColor: FormaTheme.successGreen,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to update goal: $e'),
                         backgroundColor: FormaTheme.criticalCrimson,
                       ),
                     );

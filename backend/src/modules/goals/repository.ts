@@ -232,6 +232,16 @@ export class GoalsRepository {
     });
   }
 
+  public async updateGoalStatus(userId: string, goalId: string, status: string): Promise<boolean> {
+    return withUserContext(userId, async (client) => {
+      const res = await client.query(
+        `UPDATE goals SET status = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3`,
+        [status, goalId, userId]
+      );
+      return (res.rowCount ?? 0) > 0;
+    });
+  }
+
   public async purgeUserData(userId: string): Promise<void> {
     return withUserContext(userId, async (client) => {
       await client.query(`DELETE FROM goal_versions WHERE user_id = $1`, [userId]);

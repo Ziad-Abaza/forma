@@ -99,6 +99,7 @@ export class SnapshotEngine {
 
         goalSection = {
           hasActiveGoal: true,
+          id: primaryGoal.id,
           goalType: primaryGoal.goalType,
           targetMetricCode: primaryGoal.targetMetricTypeCode,
           targetValue: targetVal,

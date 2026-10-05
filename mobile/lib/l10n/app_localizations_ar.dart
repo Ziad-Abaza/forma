@@ -448,6 +448,29 @@ class AppLocalizationsAr extends AppLocalizations {
   String get extractReport => 'استخراج التقرير';
 
   @override
+  String get extractionDialogHint =>
+      'التقط أو اختر صورة للتقرير لاستخراج البيانات ومراجعتها تلقائياً.';
+
+  @override
+  String get reportType => 'نوع التقرير';
+
+  @override
+  String get capturePhoto => 'التقط صورة';
+
+  @override
+  String get retakePhoto => 'إعادة الالتقاط';
+
+  @override
+  String get chooseFromGallery => 'اختر من المعرض';
+
+  @override
+  String get imageReady => 'الصورة جاهزة — اضغط استخراج للتحليل';
+
+  @override
+  String get imageCaptureFailed =>
+      'تعذر فتح الكاميرا أو المعرض. تحقق من الأذونات وحاول مجدداً.';
+
+  @override
   String get provenanceTitle => 'مصدر وموثوقية البيانات';
 
   @override

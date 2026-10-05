@@ -142,8 +142,7 @@ void main() {
 
         // Verify device list items
         expect(find.text('Health Connect'), findsOneWidget);
-        expect(find.text('Connected'), findsOneWidget);
-        expect(find.text('Last synced: 10 mins ago'), findsOneWidget);
+        expect(find.text('Disconnected'), findsWidgets);
 
         // Scroll list if needed to tap toggle button
         final appleHealthToggle = find.byKey(const Key('toggle_button_apple_health'));
@@ -166,7 +165,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('هيلث كونيكت'), findsOneWidget);
-        expect(find.text('متصل'), findsOneWidget);
+        expect(find.text('غير متصل'), findsWidgets);
       });
     }
   });

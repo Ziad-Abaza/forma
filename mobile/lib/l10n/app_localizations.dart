@@ -932,6 +932,48 @@ abstract class AppLocalizations {
   /// **'Extract Report'**
   String get extractReport;
 
+  /// No description provided for @extractionDialogHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture or select a photo of your report for automated extraction and review.'**
+  String get extractionDialogHint;
+
+  /// No description provided for @reportType.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Type'**
+  String get reportType;
+
+  /// No description provided for @capturePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture Photo'**
+  String get capturePhoto;
+
+  /// No description provided for @retakePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Retake Photo'**
+  String get retakePhoto;
+
+  /// No description provided for @chooseFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from Gallery'**
+  String get chooseFromGallery;
+
+  /// No description provided for @imageReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo ready — tap Extract to analyze'**
+  String get imageReady;
+
+  /// No description provided for @imageCaptureFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the camera or gallery. Check permissions and try again.'**
+  String get imageCaptureFailed;
+
   /// No description provided for @provenanceTitle.
   ///
   /// In en, this message translates to:

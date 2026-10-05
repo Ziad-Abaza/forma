@@ -46,6 +46,10 @@ export class GoalsService implements ExportableModule, DeletableModule {
     return this.repo.purgeUserData(userId);
   }
 
+  public async updateGoalStatus(userId: string, goalId: string, status: string): Promise<boolean> {
+    return this.repo.updateGoalStatus(userId, goalId, status);
+  }
+
   private async enrichGoalWithProgress(userId: string, goal: Goal): Promise<Goal> {
     if (!goal.currentVersion) return goal;
 

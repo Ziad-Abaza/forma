@@ -8,6 +8,7 @@ class SnapshotModel {
 
   // Goal
   final bool hasActiveGoal;
+  final String? goalId;
   final String? goalType;
   final double? targetValue;
   final double? startingValue;
@@ -37,6 +38,7 @@ class SnapshotModel {
     this.bmi,
     this.bmiCategory,
     this.hasActiveGoal = false,
+    this.goalId,
     this.goalType,
     this.targetValue,
     this.startingValue,
@@ -82,6 +84,7 @@ class SnapshotModel {
       bmi: (bodyStatus['bmi'] as num?)?.toDouble(),
       bmiCategory: bodyStatus['bmiCategory'] as String?,
       hasActiveGoal: goal['hasActiveGoal'] as bool? ?? false,
+      goalId: goal['id'] as String?,
       goalType: goal['goalType'] as String?,
       targetValue: (goal['targetValue'] as num?)?.toDouble(),
       startingValue: (goal['startingValue'] as num?)?.toDouble(),

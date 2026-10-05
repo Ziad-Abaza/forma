@@ -53,6 +53,7 @@ import {
 import { z } from 'zod';
 import { BYOKService } from './modules/ai/gateway/byok.js';
 import { ModelRegistry } from './modules/ai/gateway/registry.js';
+import { AIGateway } from './modules/ai/gateway/gateway.js';
 import { AuditService } from './modules/audit/index.js';
 
 export interface AuthenticatedUser {
@@ -338,6 +339,16 @@ export function buildApp(): FastifyInstance {
   app.get('/api/v1/goals', { preHandler: [requireAuth] }, async (req, reply) => {
     const goals = await goalsService.listGoals(req.user!.userId);
     return reply.send({ goals });
+  });
+
+  app.patch('/api/v1/goals/:id/status', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { status } = req.body as { status: string };
+    if (!status || !['active', 'completed', 'archived'].includes(status)) {
+      return reply.status(400).send({ error: "Status must be 'active', 'completed', or 'archived'" });
+    }
+    const success = await goalsService.updateGoalStatus(req.user!.userId, id, status);
+    return reply.send({ success, status });
   });
 
   // --- Calculations Routes (Pure, Deterministic) ---

@@ -54,8 +54,7 @@ class DeviceIntegrationsNotifier extends StateNotifier<List<DeviceIntegration>> 
             id: 'health_connect',
             nameKey: 'healthConnect',
             icon: Icons.favorite_border,
-            isConnected: true,
-            lastSynced: '10 mins ago',
+            isConnected: false,
           ),
           const DeviceIntegration(
             id: 'apple_health',

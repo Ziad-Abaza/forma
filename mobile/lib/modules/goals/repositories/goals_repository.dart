@@ -55,6 +55,29 @@ class GoalsRepository {
     final resp = await apiClient.post('/api/v1/goals', body: body);
     return GoalModel.fromJson(resp as Map<String, dynamic>);
   }
+
+  Future<GoalModel> addGoalVersion({
+    required String goalId,
+    required double targetValue,
+    double? startingValue,
+    double? weeklyRate,
+    String? rationale,
+    String? targetDate,
+  }) async {
+    final body = <String, dynamic>{
+      'targetValue': targetValue,
+      'startingValue': ?startingValue,
+      'weeklyRate': ?weeklyRate,
+      'rationale': ?rationale,
+      'targetDate': ?targetDate,
+    };
+    final resp = await apiClient.post('/api/v1/goals/$goalId/versions', body: body);
+    return GoalModel.fromJson(resp as Map<String, dynamic>);
+  }
+
+  Future<void> updateGoalStatus(String goalId, String status) async {
+    await apiClient.patch('/api/v1/goals/$goalId/status', body: {'status': status});
+  }
 }
 
 final goalsRepositoryProvider = Provider<GoalsRepository>((ref) {
