@@ -1,7 +1,18 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Release signing requires key.properties at the project root with
+// storeFile/storePassword/keyAlias/keyPassword. If it is absent the
+// release variant stays UNSIGNED — never fall back to the debug keys.
+val keyPropertiesFile = rootProject.file("key.properties")
+val hasReleaseKeystore = keyPropertiesFile.exists()
+val keyProperties = Properties().apply {
+    if (hasReleaseKeystore) keyPropertiesFile.inputStream().use { load(it) }
 }
 
 android {
@@ -26,15 +37,6 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-    }
-
-    // Release signing requires key.properties at the project root with
-    // storeFile/storePassword/keyAlias/keyPassword. If it is absent the
-    // release variant stays UNSIGNED — never fall back to the debug keys.
-    val keyPropertiesFile = rootProject.file("key.properties")
-    val hasReleaseKeystore = keyPropertiesFile.exists()
-    val keyProperties = java.util.Properties().apply {
-        if (hasReleaseKeystore) keyPropertiesFile.inputStream().use { load(it) }
     }
 
     signingConfigs {
