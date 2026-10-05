@@ -89,6 +89,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 24.0),
+                        child: Image.asset(
+                          'assets/logo.png',
+                          width: 72,
+                          height: 72,
+                          cacheWidth: 216,
+                          cacheHeight: 216,
+                          errorBuilder: (_, _, _) => const Icon(Icons.fitness_center, color: FormaTheme.primaryTeal, size: 72),
+                        ),
+                      ),
+                    ),
                     Text(
                       l10n.login,
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(

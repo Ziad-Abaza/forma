@@ -17,9 +17,10 @@ class LocalServerDiscovery {
     Duration timeout = const Duration(milliseconds: 800),
   }) async {
     if (kIsWeb) return false;
+    HttpClient? client;
     try {
       final uri = Uri.parse('$baseUrl/health');
-      final client = HttpClient()..connectionTimeout = timeout;
+      client = HttpClient()..connectionTimeout = timeout;
       final request = await client.getUrl(uri).timeout(timeout);
       final response = await request.close().timeout(timeout);
 
@@ -30,6 +31,8 @@ class LocalServerDiscovery {
       return false;
     } catch (_) {
       return false;
+    } finally {
+      client?.close(force: true);
     }
   }
 

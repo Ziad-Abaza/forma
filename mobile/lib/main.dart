@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'l10n/app_localizations.dart';
 import 'core/theme.dart';
 import 'core/providers.dart';
+import 'core/config/local_server_discovery.dart';
 import 'modules/auth/notifiers/auth_state.dart';
 import 'modules/auth/screens/login_screen.dart';
 import 'presentation/screens/dashboard_screen.dart';
@@ -23,12 +25,19 @@ void main() async {
   final savedLocale = await PreferencesService.getSavedLocale();
   final savedNumeralSystem = await PreferencesService.getSavedNumeralSystem();
 
+  final container = ProviderContainer(
+    overrides: [
+      localeProvider.overrideWith((ref) => savedLocale),
+      numeralSystemProvider.overrideWith((ref) => savedNumeralSystem),
+    ],
+  );
+
+  // Proactively verify / auto-discover local backend IP for physical device development
+  unawaited(LocalServerDiscovery.autoDiscoverAndApply(container));
+
   runApp(
-    ProviderScope(
-      overrides: [
-        localeProvider.overrideWith((ref) => savedLocale),
-        numeralSystemProvider.overrideWith((ref) => savedNumeralSystem),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: const FormaApp(),
     ),
   );

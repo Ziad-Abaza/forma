@@ -228,16 +228,34 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              l10n.assistantTitle,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Image.asset(
+              'assets/logo.png',
+              width: 28,
+              height: 28,
+              cacheWidth: 84,
+              cacheHeight: 84,
+              errorBuilder: (_, _, _) => const Icon(Icons.smart_toy_outlined, color: FormaTheme.primaryTeal),
             ),
-            Text(
-              l10n.assistantSubtitle,
-              style: const TextStyle(fontSize: 12, color: FormaTheme.textSecondary),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.assistantTitle,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    l10n.assistantSubtitle,
+                    style: const TextStyle(fontSize: 12, color: FormaTheme.textSecondary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -316,14 +334,30 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
                       width: 1,
                     ),
                   ),
-                  child: Icon(
-                    msg.isEmergencyNotice
-                        ? Icons.warning_amber_rounded
-                        : Icons.smart_toy_outlined,
-                    size: 18,
-                    color: msg.isEmergencyNotice
-                        ? FormaTheme.alertCoral
-                        : FormaTheme.primaryTeal,
+                  child: Center(
+                    child: msg.isEmergencyNotice
+                        ? const Icon(
+                            Icons.warning_amber_rounded,
+                            size: 18,
+                            color: FormaTheme.alertCoral,
+                          )
+                        : ClipOval(
+                            child: Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: Image.asset(
+                                'assets/logo.png',
+                                width: 22,
+                                height: 22,
+                                cacheWidth: 66,
+                                cacheHeight: 66,
+                                errorBuilder: (_, _, _) => const Icon(
+                                  Icons.smart_toy_outlined,
+                                  size: 18,
+                                  color: FormaTheme.primaryTeal,
+                                ),
+                              ),
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 8),

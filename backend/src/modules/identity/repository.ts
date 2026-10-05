@@ -51,7 +51,7 @@ export class IdentityRepository {
   static async updateUserPreferences(
     client: PoolClient,
     userId: string,
-    preferences: { locale?: string; numeralSystem?: string }
+    preferences: { locale?: string | undefined; numeralSystem?: string | undefined }
   ): Promise<UserRecord> {
     const fields: string[] = ['updated_at = NOW()'];
     const params: unknown[] = [userId];

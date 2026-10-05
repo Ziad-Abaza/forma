@@ -9,7 +9,7 @@ void main() {
       expect(config.environment, equals('development'));
       expect(config.isDevelopment, isTrue);
       expect(config.isProduction, isFalse);
-      expect(config.apiTimeoutMs, equals(15000));
+      expect(config.apiTimeoutMs, equals(30000));
       expect(config.enableAnalyticsLogs, isFalse);
       expect(config.apiBaseUrl, isNotEmpty);
     });
@@ -24,7 +24,7 @@ void main() {
       expect(config.apiBaseUrl, equals(baseUrl));
     });
 
-    test('replaceHostWithLocalIp replaces localhost, 127.0.0.1, and 10.0.2.2 with local IPv4', () {
+    test('replaceHostWithLocalIp replaces localhost, 127.0.0.1, 10.0.2.2, and existing IPv4 with local IPv4', () {
       expect(
         EnvConfig.replaceHostWithLocalIp('http://localhost:3000', '192.168.1.50'),
         equals('http://192.168.1.50:3000'),
@@ -36,6 +36,10 @@ void main() {
       expect(
         EnvConfig.replaceHostWithLocalIp('http://10.0.2.2:3000', '192.168.1.50'),
         equals('http://192.168.1.50:3000'),
+      );
+      expect(
+        EnvConfig.replaceHostWithLocalIp('http://192.168.100.99:3000', '192.168.100.5'),
+        equals('http://192.168.100.5:3000'),
       );
       expect(
         EnvConfig.replaceHostWithLocalIp('http://localhost:8080/api/v1', '192.168.100.5'),

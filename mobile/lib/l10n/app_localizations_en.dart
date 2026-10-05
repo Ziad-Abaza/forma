@@ -425,4 +425,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sexForCalculation => 'Sex (for calculations)';
+
+  @override
+  String get exportData => 'Export Data';
+
+  @override
+  String get deleteAccount => 'Delete Account';
+
+  @override
+  String get deleteAccountConfirm =>
+      'Are you sure you want to permanently delete your account? All your health observations, goals, AI memory and profile data will be irreversibly purged.';
+
+  @override
+  String get privacyControls => 'Privacy & Data Ownership';
+
+  @override
+  String get privacyControlsDescription =>
+      'Manage your health data, export machine-readable copies, or purge your account.';
+
+  @override
+  String get extractReport => 'Extract Report';
+
+  @override
+  String get provenanceTitle => 'Data Provenance';
 }

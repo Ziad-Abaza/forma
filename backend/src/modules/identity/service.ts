@@ -7,8 +7,8 @@ import {
   generateTokenPair
 } from '../../core/security/index.js';
 import { AuditService } from '../audit/index.js';
-import { IdentityRepository } from './repository.js';
-import type { RegisterRequest, LoginRequest, RefreshTokenRequest, AuthResponse } from './contracts.js';
+import { IdentityRepository, type UserRecord } from './repository.js';
+import type { RegisterRequest, LoginRequest, RefreshTokenRequest, AuthResponse, UpdatePreferencesRequest } from './contracts.js';
 
 export function calculateAge(dateOfBirth: string): number {
   const dob = new Date(dateOfBirth);
@@ -365,7 +365,7 @@ export class IdentityService {
    */
   static async updateUserPreferences(
     userId: string,
-    preferences: { locale?: string; numeralSystem?: string },
+    preferences: UpdatePreferencesRequest,
     correlationId: string
   ): Promise<UserRecord> {
     return await withSystemContext(async (client) => {

@@ -36,7 +36,7 @@ class EnvConfig {
   }) {
     const rawUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     const rawEnv = String.fromEnvironment('ENVIRONMENT', defaultValue: 'development');
-    const rawTimeout = int.fromEnvironment('API_TIMEOUT_MS', defaultValue: 15000);
+    const rawTimeout = int.fromEnvironment('API_TIMEOUT_MS', defaultValue: 30000);
     const rawAnalyticsLogs = bool.fromEnvironment('ENABLE_ANALYTICS_LOGS', defaultValue: false);
     const rawLocalServer = String.fromEnvironment('LOCAL_SERVER', defaultValue: '');
     const boolLocalServer = bool.fromEnvironment('LOCAL_SERVER', defaultValue: false);
@@ -83,11 +83,17 @@ class EnvConfig {
     );
   }
 
-  /// Replaces loopback host names (localhost, 127.0.0.1, 10.0.2.2) with the computer's local network IP.
+  /// Replaces loopback host names (localhost, 127.0.0.1, 10.0.2.2) or outdated IPv4 addresses with the computer's local network IP.
   static String replaceHostWithLocalIp(String url, String localIp) {
     try {
       final uri = Uri.parse(url);
-      if (uri.host == 'localhost' || uri.host == '127.0.0.1' || uri.host == '10.0.2.2' || uri.host.isEmpty) {
+      final host = uri.host;
+      final isLocalOrIp = host == 'localhost' ||
+          host == '127.0.0.1' ||
+          host == '10.0.2.2' ||
+          host.isEmpty ||
+          RegExp(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$').hasMatch(host);
+      if (isLocalOrIp) {
         return uri.replace(host: localIp).toString();
       }
       return url;

@@ -895,6 +895,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sex (for calculations)'**
   String get sexForCalculation;
+
+  /// No description provided for @exportData.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Data'**
+  String get exportData;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to permanently delete your account? All your health observations, goals, AI memory and profile data will be irreversibly purged.'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @privacyControls.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy & Data Ownership'**
+  String get privacyControls;
+
+  /// No description provided for @privacyControlsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your health data, export machine-readable copies, or purge your account.'**
+  String get privacyControlsDescription;
+
+  /// No description provided for @extractReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Extract Report'**
+  String get extractReport;
+
+  /// No description provided for @provenanceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Provenance'**
+  String get provenanceTitle;
 }
 
 class _AppLocalizationsDelegate

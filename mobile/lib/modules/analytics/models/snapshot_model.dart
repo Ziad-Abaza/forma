@@ -21,6 +21,7 @@ class SnapshotModel {
   final double? maintenanceCalories;
   final double? targetCalories;
   final bool guardrailsTriggered;
+  final List<String> triggeredGuardrails;
 
   // Recent Measurements
   final List<SnapshotMeasurementItem> recentMeasurements;
@@ -44,6 +45,7 @@ class SnapshotModel {
     this.maintenanceCalories,
     this.targetCalories,
     this.guardrailsTriggered = false,
+    this.triggeredGuardrails = const [],
     this.recentMeasurements = const [],
   });
 
@@ -54,6 +56,16 @@ class SnapshotModel {
     final goal = sections['goal'] as Map<String, dynamic>? ?? {};
     final energy = sections['energy'] as Map<String, dynamic>? ?? {};
     final recentList = sections['recentMeasurements'] as List<dynamic>? ?? [];
+
+    final rawGuardrails = energy['guardrailsTriggered'];
+    bool isGuardrailsTriggered = false;
+    List<String> guardrailList = [];
+    if (rawGuardrails is bool) {
+      isGuardrailsTriggered = rawGuardrails;
+    } else if (rawGuardrails is List) {
+      isGuardrailsTriggered = rawGuardrails.isNotEmpty;
+      guardrailList = rawGuardrails.map((e) => e.toString()).toList();
+    }
 
     return SnapshotModel(
       latestWeightKg: (bodyStatus['latestWeightKg'] as num?)?.toDouble(),
@@ -73,7 +85,8 @@ class SnapshotModel {
       tdee: (energy['tdee'] as num?)?.toDouble(),
       maintenanceCalories: (energy['maintenanceCalories'] as num?)?.toDouble(),
       targetCalories: (energy['targetCalories'] as num?)?.toDouble(),
-      guardrailsTriggered: energy['guardrailsTriggered'] as bool? ?? false,
+      guardrailsTriggered: isGuardrailsTriggered,
+      triggeredGuardrails: guardrailList,
       recentMeasurements: recentList
           .map((item) => SnapshotMeasurementItem.fromJson(item as Map<String, dynamic>))
           .toList(),
@@ -82,6 +95,7 @@ class SnapshotModel {
 }
 
 class SnapshotMeasurementItem {
+  final String? id;
   final String typeCode;
   final double canonicalValue;
   final String canonicalUnit;
@@ -89,6 +103,7 @@ class SnapshotMeasurementItem {
   final String epistemicClass;
 
   const SnapshotMeasurementItem({
+    this.id,
     required this.typeCode,
     required this.canonicalValue,
     required this.canonicalUnit,
@@ -98,6 +113,7 @@ class SnapshotMeasurementItem {
 
   factory SnapshotMeasurementItem.fromJson(Map<String, dynamic> json) {
     return SnapshotMeasurementItem(
+      id: json['id'] as String?,
       typeCode: json['typeCode'] as String? ?? 'weight',
       canonicalValue: (json['canonicalValue'] as num?)?.toDouble() ?? 0.0,
       canonicalUnit: json['canonicalUnit'] as String? ?? 'kg',

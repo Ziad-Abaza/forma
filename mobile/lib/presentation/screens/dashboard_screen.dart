@@ -8,8 +8,11 @@ import '../../modules/analytics/repositories/analytics_repository.dart';
 import '../../modules/measurements/repositories/measurements_repository.dart';
 import '../../modules/goals/repositories/goals_repository.dart';
 import '../../modules/auth/notifiers/auth_state.dart';
+import '../../modules/multimodal/repositories/multimodal_repository.dart';
 import 'assistant_screen.dart';
 import 'sync_screen.dart';
+import 'settings_screen.dart';
+import 'multimodal_review_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -81,6 +84,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const AssistantScreen()),
+                    );
+                  },
+                ),
+                IconButton(
+                  key: const Key('settings_button'),
+                  tooltip: l10n.settings,
+                  icon: const Icon(Icons.settings_outlined, color: FormaTheme.primaryTeal),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
                     );
                   },
                 ),
@@ -175,7 +190,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            err.toString().replaceAll('ApiException(0): ', ''),
+                            formatApiErrorMessage(err),
                             style: const TextStyle(color: FormaTheme.criticalCrimson),
                           ),
                         ),
@@ -624,29 +639,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Expanded(
-                  child: Text(
-                    l10n.healthRecords,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Text(
+                  l10n.healthRecords,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: ElevatedButton.icon(
-                    key: const Key('add_measurement_button'),
-                    onPressed: () => _showAddMeasurementDialog(context, l10n),
-                    icon: const Icon(Icons.add, size: 16),
-                    label: Text(
-                      l10n.addMeasurement,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
+                IconButton(
+                  key: const Key('extract_report_button'),
+                  tooltip: l10n.extractReport,
+                  onPressed: () => _showImageExtractionDialog(context, l10n),
+                  icon: const Icon(Icons.photo_camera_outlined, color: FormaTheme.primaryTeal, size: 20),
+                  visualDensity: VisualDensity.compact,
+                ),
+                ElevatedButton.icon(
+                  key: const Key('add_measurement_button'),
+                  onPressed: () => _showAddMeasurementDialog(context, l10n),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: Text(l10n.addMeasurement),
+                  style: ElevatedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   ),
                 ),
               ],
@@ -667,6 +684,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           : m.typeCode;
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
+                    onTap: () => _showObservationProvenanceDialog(context, m, l10n, numeralSystem),
                     leading: CircleAvatar(
                       backgroundColor: FormaTheme.surfaceElevated,
                       child: Icon(
@@ -762,50 +780,64 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final unitController = TextEditingController(text: 'kg');
     String selectedType = 'weight';
 
+    final catalogTypes = const [
+      {'code': 'weight', 'label': 'Weight (الوزن)', 'unit': 'kg'},
+      {'code': 'body_fat_percentage', 'label': 'Body Fat % (نسبة الدهون)', 'unit': '%'},
+      {'code': 'muscle_mass', 'label': 'Muscle Mass (الكتلة العضلية)', 'unit': 'kg'},
+      {'code': 'bone_mass', 'label': 'Bone Mass (كتلة العظام)', 'unit': 'kg'},
+      {'code': 'body_water_percentage', 'label': 'Body Water % (الماء في الجسم)', 'unit': '%'},
+      {'code': 'visceral_fat', 'label': 'Visceral Fat (الدهون الحشوية)', 'unit': 'score'},
+      {'code': 'waist_circumference', 'label': 'Waist Circumference (محيط الخصر)', 'unit': 'cm'},
+      {'code': 'hip_circumference', 'label': 'Hip Circumference (محيط الورك)', 'unit': 'cm'},
+      {'code': 'chest_circumference', 'label': 'Chest Circumference (محيط الصدر)', 'unit': 'cm'},
+    ];
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: FormaTheme.surfaceCard,
           title: Text(l10n.addMeasurement),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                key: const Key('measurement_type_dropdown'),
-                initialValue: selectedType,
-                decoration: const InputDecoration(labelText: 'Type'),
-                items: [
-                  DropdownMenuItem(value: 'weight', child: Text(l10n.weight)),
-                  DropdownMenuItem(value: 'body_fat_percentage', child: Text(l10n.bodyFat)),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setDialogState(() {
-                      selectedType = val;
-                      unitController.text = val == 'weight' ? 'kg' : '%';
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                key: const Key('measurement_value_field'),
-                controller: valueController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: l10n.value,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  key: const Key('measurement_type_dropdown'),
+                  initialValue: selectedType,
+                  decoration: const InputDecoration(labelText: 'Type'),
+                  items: catalogTypes.map((t) {
+                    return DropdownMenuItem(value: t['code']!, child: Text(t['label']!));
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() {
+                        selectedType = val;
+                        final matched = catalogTypes.firstWhere((t) => t['code'] == val);
+                        unitController.text = matched['unit']!;
+                      });
+                    }
+                  },
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                key: const Key('measurement_unit_field'),
-                controller: unitController,
-                decoration: InputDecoration(
-                  labelText: l10n.unit,
+                const SizedBox(height: 12),
+                TextField(
+                  key: const Key('measurement_value_field'),
+                  controller: valueController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: l10n.value,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  key: const Key('measurement_unit_field'),
+                  controller: unitController,
+                  decoration: InputDecoration(
+                    labelText: l10n.unit,
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -846,6 +878,218 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 }
               },
               child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showObservationProvenanceDialog(
+    BuildContext context,
+    SnapshotMeasurementItem m,
+    AppLocalizations l10n,
+    String numeralSystem,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: FormaTheme.surfaceCard,
+        title: Text(l10n.provenanceTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Metric: ${m.typeCode}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            Text('Canonical Value: ${formatNumeralString(m.canonicalValue.toStringAsFixed(2), numeralSystem)} ${m.canonicalUnit}'),
+            const SizedBox(height: 6),
+            Text('Epistemic Class: ${m.epistemicClass.toUpperCase()}', style: const TextStyle(color: FormaTheme.primaryTeal)),
+            const SizedBox(height: 6),
+            Text('Observed At: ${m.observedAt}'),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            const Text(
+              'Append-only record integrity: To correct a mistaken entry, void this observation.',
+              style: TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: FormaTheme.criticalCrimson),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              try {
+                final obsList = await ref.read(measurementsRepositoryProvider).getObservations(typeCode: m.typeCode, limit: 1);
+                if (obsList.isNotEmpty) {
+                  await ref.read(measurementsRepositoryProvider).voidObservation(
+                        obsList.first.id,
+                        'Voided by user from dashboard',
+                      );
+                  ref.invalidate(dashboardSnapshotProvider);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Observation voided successfully'),
+                        backgroundColor: FormaTheme.successGreen,
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to void: $e'),
+                      backgroundColor: FormaTheme.criticalCrimson,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(l10n.voidRecord),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImageExtractionDialog(BuildContext context, AppLocalizations l10n) {
+    // 1x1 valid minimal JPEG
+    const sampleReportBase64 =
+        '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
+
+    final textController = TextEditingController(text: sampleReportBase64);
+    String selectedKind = 'body_composition_report';
+    bool isExtracting = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: FormaTheme.surfaceCard,
+          title: Text(l10n.multimodalReviewTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Upload an InBody report, scale display, or measurement screenshot for automated extraction and review.',
+                style: TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: selectedKind,
+                decoration: const InputDecoration(labelText: 'Report Type'),
+                items: const [
+                  DropdownMenuItem(value: 'body_composition_report', child: Text('Body Composition Report (InBody)')),
+                  DropdownMenuItem(value: 'scale_display', child: Text('Smart Scale Display')),
+                  DropdownMenuItem(value: 'tape_measurement_sheet', child: Text('Circumference Measurement Sheet')),
+                ],
+                onChanged: (val) {
+                  if (val != null) setDialogState(() => selectedKind = val);
+                },
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: textController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Image Payload (Base64 JPEG/PNG)',
+                  hintText: 'Paste base64 image data...',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isExtracting ? null : () => Navigator.of(ctx).pop(),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton.icon(
+              icon: isExtracting
+                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  : const Icon(Icons.analytics_outlined, size: 16),
+              label: const Text('Extract'),
+              onPressed: isExtracting
+                  ? null
+                  : () async {
+                      final b64 = textController.text.trim();
+                      if (b64.isEmpty) return;
+
+                      setDialogState(() => isExtracting = true);
+                      try {
+                        final res = await ref.read(multimodalRepositoryProvider).uploadAndExtract(
+                              imageBase64: b64,
+                              imageKindHint: selectedKind,
+                            );
+
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+
+                        final draftMap = res['draft'] as Map<String, dynamic>;
+                        final rawFields = (draftMap['extractedFields'] as List<dynamic>?) ?? [];
+
+                        final fieldItems = rawFields.map((f) {
+                          final fMap = f as Map<String, dynamic>;
+                          return ExtractedFieldItem(
+                            typeCode: fMap['typeCode'] as String? ?? 'weight',
+                            rawLabel: fMap['rawLabel'] as String? ?? 'Weight',
+                            extractedValue: (fMap['extractedValue'] as num?)?.toDouble() ?? 0.0,
+                            userEditedValue: (fMap['userEditedValue'] as num?)?.toDouble(),
+                            unit: fMap['unit'] as String? ?? 'kg',
+                            canonicalValue: (fMap['canonicalValue'] as num?)?.toDouble() ?? 0.0,
+                            canonicalUnit: fMap['canonicalUnit'] as String? ?? 'kg',
+                            confidenceScore: (fMap['confidenceScore'] as num?)?.toDouble() ?? 0.9,
+                            qualityFlags: (fMap['qualityFlags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+                            epistemicClass: fMap['epistemicClass'] as String? ?? 'measured',
+                            isApproved: fMap['isApproved'] as bool? ?? true,
+                          );
+                        }).toList();
+
+                        final initialDraft = DraftReviewState(
+                          draftId: draftMap['id'] as String? ?? 'draft_1',
+                          imageKind: selectedKind,
+                          status: draftMap['status'] as String? ?? 'draft',
+                          overallConfidence: (draftMap['overallConfidence'] as num?)?.toDouble() ?? 0.9,
+                          fields: fieldItems,
+                        );
+
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MultimodalReviewScreen(
+                                initialDraft: initialDraft,
+                                onCommit: (state) async {
+                                  final commitRes = await ref.read(multimodalRepositoryProvider).commitDraft(
+                                        draftId: state.draftId,
+                                        deleteSourceImage: state.deleteSourceImage,
+                                      );
+                                  ref.invalidate(dashboardSnapshotProvider);
+                                  return (commitRes['receipt']?['receiptId'] as String?) ?? 'rec_${DateTime.now().millisecondsSinceEpoch}';
+                                },
+                              ),
+                            ),
+                          );
+                        }
+                      } catch (err) {
+                        setDialogState(() => isExtracting = false);
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(
+                              content: Text('Extraction failed: $err'),
+                              backgroundColor: FormaTheme.criticalCrimson,
+                            ),
+                          );
+                        }
+                      }
+                    },
             ),
           ],
         ),

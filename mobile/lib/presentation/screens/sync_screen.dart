@@ -183,7 +183,26 @@ class SyncScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.syncScreenTitle),
+        titleSpacing: 12,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: AlignmentDirectional.centerStart,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/logo.png',
+                width: 24,
+                height: 24,
+                cacheWidth: 72,
+                cacheHeight: 72,
+                errorBuilder: (_, _, _) => const Icon(Icons.sync, color: FormaTheme.primaryTeal),
+              ),
+              const SizedBox(width: 8),
+              Text(l10n.syncScreenTitle),
+            ],
+          ),
+        ),
         actions: [
           IconButton(
             key: const Key('sync_all_button'),

@@ -4,52 +4,105 @@ export class SecondaryProviderAdapter implements AIProviderAdapter {
   public readonly providerName = 'secondary';
   public readonly baseUrl: string;
   public readonly apiKey: string;
+  private readonly customFetch?: (typeof fetch) | undefined;
 
-  constructor(baseUrl = 'http://localhost:11434/v1', apiKey = 'secondary-key') {
+  constructor(
+    baseUrl = 'http://localhost:11434/v1',
+    apiKey = 'secondary-key',
+    customFetch?: (typeof fetch) | undefined
+  ) {
     this.baseUrl = process.env.SECONDARY_AI_BASE_URL || baseUrl;
     this.apiKey = process.env.SECONDARY_AI_API_KEY || apiKey;
+    this.customFetch = customFetch;
   }
 
   public async isAvailable(): Promise<boolean> {
-    // Secondary adapter is available as an independent fallback provider
-    return true;
+    return Boolean(this.baseUrl && this.baseUrl.trim().length > 0);
   }
 
   public async generateText(
     modelId: string,
     options: GenerateTextOptions,
-    _customApiKey?: string | undefined
+    customApiKey?: string | undefined
   ): Promise<GenerateTextResult> {
-    // If tools are provided and the prompt asks for metrics, simulate tool call or fallback response
-    const toolCalls: ToolCallRequest[] = [];
+    const key = customApiKey || this.apiKey;
+    const cleanBase = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
+    const endpoint = `${cleanBase}/chat/completions`;
 
-    if (options.tools && options.tools.length > 0 && options.prompt.toLowerCase().includes('snapshot')) {
-      const snapshotTool = options.tools.find((t) => t.name === 'get_health_snapshot');
-      if (snapshotTool) {
-        toolCalls.push({
-          id: `sec_call_${Date.now()}`,
-          name: 'get_health_snapshot',
-          arguments: {},
-        });
-      }
+    const messages: Array<{ role: string; content: string }> = [];
+    if (options.systemInstruction) {
+      messages.push({ role: 'system', content: options.systemInstruction });
+    }
+    messages.push({ role: 'user', content: options.prompt });
+
+    const body: Record<string, unknown> = {
+      model: modelId,
+      messages,
+      temperature: options.temperature ?? 0.3,
+      max_tokens: options.maxTokens ?? 1024,
+    };
+
+    if (options.tools && options.tools.length > 0) {
+      body.tools = options.tools.map((t) => ({
+        type: 'function',
+        function: {
+          name: t.name,
+          description: t.description,
+          parameters: t.parameters,
+        },
+      }));
     }
 
-    const outputText =
-      toolCalls.length > 0
-        ? ''
-        : `[Secondary AI Response for: ${options.prompt.slice(0, 50)}]`;
+    const fetchFn = this.customFetch || fetch;
 
-    return {
-      text: outputText,
-      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-      usage: {
-        promptTokens: Math.ceil(options.prompt.length / 4),
-        completionTokens: Math.ceil(outputText.length / 4),
-        totalTokens: Math.ceil((options.prompt.length + outputText.length) / 4),
-      },
-      finishReason: toolCalls.length > 0 ? 'tool_call' : 'stop',
-      provider: this.providerName,
-      modelId,
-    };
+    try {
+      const response = await fetchFn(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(key ? { Authorization: `Bearer ${key}` } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Secondary AI provider error (${response.status}): ${errorText}`);
+      }
+
+      const data = (await response.json()) as any;
+      const choice = data.choices?.[0];
+      const message = choice?.message;
+
+      const toolCalls: ToolCallRequest[] = [];
+      if (message?.tool_calls && Array.isArray(message.tool_calls)) {
+        for (const tc of message.tool_calls) {
+          toolCalls.push({
+            id: tc.id || `call_${Date.now()}`,
+            name: tc.function?.name,
+            arguments: tc.function?.arguments
+              ? (typeof tc.function.arguments === 'string'
+                  ? JSON.parse(tc.function.arguments)
+                  : tc.function.arguments)
+              : {},
+          });
+        }
+      }
+
+      return {
+        text: message?.content || '',
+        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+        usage: {
+          promptTokens: data.usage?.prompt_tokens ?? Math.ceil(options.prompt.length / 4),
+          completionTokens: data.usage?.completion_tokens ?? Math.ceil((message?.content || '').length / 4),
+          totalTokens: data.usage?.total_tokens ?? 0,
+        },
+        finishReason: choice?.finish_reason || 'stop',
+        provider: this.providerName,
+        modelId,
+      };
+    } catch (err: any) {
+      throw new Error(`Secondary AI provider connection failed: ${err.message}`);
+    }
   }
 }

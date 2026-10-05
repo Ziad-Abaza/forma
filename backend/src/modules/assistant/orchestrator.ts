@@ -1,5 +1,6 @@
 import { withUserContext } from '../../core/database/index.js';
 import { AIGateway } from '../ai/gateway/gateway.js';
+import { BYOKService } from '../ai/gateway/byok.js';
 import { AIContextEngine } from '../ai/context/engine.js';
 import { AnalyticsService } from '../analytics/service.js';
 import { MeasurementsService } from '../measurements/service.js';
@@ -43,7 +44,7 @@ export class AssistantOrchestrator {
   private analyticsService: AnalyticsService;
 
   constructor() {
-    this.gateway = new AIGateway();
+    this.gateway = new AIGateway(new BYOKService());
     this.analyticsService = new AnalyticsService();
     this.contextEngine = new AIContextEngine({
       snapshotService: this.analyticsService,

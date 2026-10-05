@@ -67,6 +67,19 @@ describe('Phase 3: AI Context & Provider Infrastructure Integration Tests', () =
       expect(gateway.getAdapter('google')).toBeDefined();
       expect(gateway.getAdapter('secondary')).toBeDefined();
 
+      // Test double for secondary provider to verify gateway contract (AGENT.md §4 rule 8)
+      gateway.registerAdapter({
+        providerName: 'secondary',
+        isAvailable: async () => true,
+        generateText: async () => ({
+          text: 'Secondary adapter response for conversational query',
+          usage: { promptTokens: 5, completionTokens: 8, totalTokens: 13 },
+          finishReason: 'stop',
+          provider: 'secondary',
+          modelId: 'forma-secondary-text-v1',
+        }),
+      });
+
       const secRes = await gateway.execute('conversational', {
         prompt: 'Hello from test',
       });
@@ -94,13 +107,26 @@ describe('Phase 3: AI Context & Provider Infrastructure Integration Tests', () =
         },
       });
 
+      // Register secondary test double in test directory (Blueprint §29, AGENT.md §1.2 & §4)
+      gateway.registerAdapter({
+        providerName: 'secondary',
+        isAvailable: async () => true,
+        generateText: async () => ({
+          text: 'Secondary adapter response for protein synthesis',
+          usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+          finishReason: 'stop',
+          provider: 'secondary',
+          modelId: 'forma-secondary-text-v1',
+        }),
+      });
+
       const res = await gateway.execute('general_qa', {
         prompt: 'What is protein synthesis?',
       });
 
       expect(res.routing.fallbackUsed).toBe(true);
       expect(res.routing.selectedProvider).toBe('secondary');
-      expect(res.result.text).toContain('[Secondary AI Response');
+      expect(res.result.text).toContain('Secondary adapter response');
     });
   });
 
@@ -132,6 +158,19 @@ describe('Phase 3: AI Context & Provider Infrastructure Integration Tests', () =
       await expect(
         byokService.storeUserKey(testUserId, 'unauthorized_provider', 'some-key-12345')
       ).rejects.toThrow(/not in the allowlist/);
+    });
+
+    it('lists user credentials without exposing private keys and deletes credential by provider', async () => {
+      const listBefore = await byokService.listUserCredentials(testUserId);
+      expect(listBefore.length).toBeGreaterThan(0);
+      expect(listBefore[0]!.keyFingerprint).toBe('...8888');
+      expect(listBefore[0]).not.toHaveProperty('encryptedKey');
+
+      const deleted = await byokService.deleteUserKey(testUserId, 'google');
+      expect(deleted).toBe(true);
+
+      const resolvedAfter = await byokService.resolveUserKey(testUserId, 'google');
+      expect(resolvedAfter).toBeUndefined();
     });
   });
 

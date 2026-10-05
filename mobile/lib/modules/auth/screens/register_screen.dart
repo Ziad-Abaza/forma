@@ -94,7 +94,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.register),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/logo.png',
+              width: 24,
+              height: 24,
+              cacheWidth: 72,
+              cacheHeight: 72,
+              errorBuilder: (_, _, _) => const Icon(Icons.fitness_center, color: FormaTheme.primaryTeal),
+            ),
+            const SizedBox(width: 8),
+            Text(l10n.register),
+          ],
+        ),
         actions: [
           TextButton.icon(
             key: const Key('register_language_toggle_button'),
@@ -127,6 +141,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 20.0),
+                        child: Image.asset(
+                          'assets/logo.png',
+                          width: 64,
+                          height: 64,
+                          cacheWidth: 192,
+                          cacheHeight: 192,
+                          errorBuilder: (_, _, _) => const Icon(Icons.fitness_center, color: FormaTheme.primaryTeal, size: 64),
+                        ),
+                      ),
+                    ),
                     Text(
                       l10n.register,
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(

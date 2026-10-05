@@ -333,6 +333,62 @@ describe('Fastify HTTP API End-to-End Tests', () => {
     expect(JSON.parse(trendRes.body).typeCode).toBe('weight');
   });
 
+  it('Phase 3 AI Configuration & BYOK Management Endpoints', async () => {
+    // 1. GET /api/v1/ai/config
+    const configRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/ai/config',
+      headers: { authorization: `Bearer ${userAToken}` },
+    });
+    expect(configRes.statusCode).toBe(200);
+    const configBody = JSON.parse(configRes.body);
+    expect(configBody.availableProviders).toContain('google');
+    expect(configBody.availableProviders).toContain('openai');
+    expect(configBody.models.length).toBeGreaterThan(0);
+
+    // 2. POST /api/v1/ai/test-connection
+    const testConnRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/ai/test-connection',
+      headers: { authorization: `Bearer ${userAToken}` },
+      payload: { provider: 'google', apiKey: 'valid-test-key-12345' },
+    });
+    expect(testConnRes.statusCode).toBe(200);
+    expect(JSON.parse(testConnRes.body).status).toBe('success');
+
+    // 3. POST /api/v1/ai/credentials
+    const storeCredRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/ai/credentials',
+      headers: { authorization: `Bearer ${userAToken}` },
+      payload: { provider: 'google', apiKey: 'user-private-key-12345678' },
+    });
+    expect(storeCredRes.statusCode).toBe(201);
+    const credBody = JSON.parse(storeCredRes.body);
+    expect(credBody.credential.provider).toBe('google');
+    expect(credBody.credential.keyFingerprint).toBe('...5678');
+    expect(credBody.credential).not.toHaveProperty('encryptedKey');
+
+    // 4. Verify credential shows in config
+    const configWithCredRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/ai/config',
+      headers: { authorization: `Bearer ${userAToken}` },
+    });
+    expect(configWithCredRes.statusCode).toBe(200);
+    const creds = JSON.parse(configWithCredRes.body).credentials;
+    expect(creds.some((c: any) => c.provider === 'google')).toBe(true);
+
+    // 5. DELETE /api/v1/ai/credentials/:provider
+    const deleteCredRes = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/ai/credentials/google',
+      headers: { authorization: `Bearer ${userAToken}` },
+    });
+    expect(deleteCredRes.statusCode).toBe(200);
+    expect(JSON.parse(deleteCredRes.body).success).toBe(true);
+  });
+
   it('DELETE /api/v1/privacy/account executes irreversible account purge', async () => {
     const res = await app.inject({
       method: 'DELETE',

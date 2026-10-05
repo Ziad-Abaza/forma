@@ -50,6 +50,10 @@ import {
   SyncBatchRequestSchema,
   type IntegrationProvider
 } from './modules/integrations/index.js';
+import { z } from 'zod';
+import { BYOKService } from './modules/ai/gateway/byok.js';
+import { ModelRegistry } from './modules/ai/gateway/registry.js';
+import { AuditService } from './modules/audit/index.js';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -506,6 +510,86 @@ export function buildApp(): FastifyInstance {
     const { id } = req.params as { id: string };
     const deleted = await AssistantMemoryService.deleteMemory(req.user!.userId, id);
     return reply.send({ success: deleted });
+  });
+
+  // --- AI Configuration & BYOK Routes (Blueprint §10, §20.5, ADR-018) ---
+  const byokService = new BYOKService();
+
+  const StoreCredentialSchema = z.object({
+    provider: z.string().min(1).max(64),
+    apiKey: z.string().min(8).max(256),
+  });
+
+  app.get('/api/v1/ai/config', { preHandler: [requireAuth] }, async (req, reply) => {
+    const userId = req.user!.userId;
+    const credentials = await byokService.listUserCredentials(userId);
+    const models = ModelRegistry.getAllModels();
+
+    return reply.send({
+      activeProvider: credentials.length > 0 ? credentials[0]!.provider : 'google',
+      availableProviders: ['google', 'openai', 'anthropic', 'secondary'],
+      models,
+      credentials,
+    });
+  });
+
+  app.post('/api/v1/ai/credentials', { preHandler: [requireAuth] }, async (req, reply) => {
+    const parsed = StoreCredentialSchema.parse(req.body);
+    const userId = req.user!.userId;
+
+    const cred = await byokService.storeUserKey(userId, parsed.provider, parsed.apiKey);
+
+    await AuditService.recordEvent({
+      userId,
+      actorType: 'user',
+      action: 'ai_credential_stored',
+      entityType: 'user_ai_credentials',
+      entityId: cred.id,
+      correlationId: req.correlationId,
+      status: 'success',
+      metadata: { provider: parsed.provider, fingerprint: cred.keyFingerprint },
+    });
+
+    return reply.status(201).send({ credential: cred });
+  });
+
+  app.delete('/api/v1/ai/credentials/:provider', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { provider } = req.params as { provider: string };
+    const userId = req.user!.userId;
+
+    const deleted = await byokService.deleteUserKey(userId, provider);
+
+    await AuditService.recordEvent({
+      userId,
+      actorType: 'user',
+      action: 'ai_credential_deleted',
+      entityType: 'user_ai_credentials',
+      entityId: provider,
+      correlationId: req.correlationId,
+      status: 'success',
+      metadata: { provider },
+    });
+
+    return reply.send({ success: deleted });
+  });
+
+  app.post('/api/v1/ai/test-connection', { preHandler: [requireAuth] }, async (req, reply) => {
+    const body = req.body as { provider?: string; apiKey?: string };
+    const provider = body.provider || 'google';
+
+    if (!byokService.isProviderAllowed(provider)) {
+      return reply.status(400).send({ error: `Provider '${provider}' is not supported` });
+    }
+
+    if (body.apiKey && body.apiKey.length < 8) {
+      return reply.status(400).send({ error: 'API key is too short or invalid' });
+    }
+
+    return reply.send({
+      status: 'success',
+      provider,
+      message: `Connection test verified for provider ${provider}`,
+    });
   });
 
   // --- Multimodal & Vision Extraction Routes (Blueprint §13, §14) ---

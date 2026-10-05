@@ -426,4 +426,27 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get sexForCalculation => 'الجنس (للحسابات الحيوية)';
+
+  @override
+  String get exportData => 'تصدير البيانات';
+
+  @override
+  String get deleteAccount => 'حذف الحساب';
+
+  @override
+  String get deleteAccountConfirm =>
+      'هل أنت متأكد من رغبتك في حذف الحساب نهائياً؟ سيتم مسح كافة قياساتك وسجلاتك وذاكرة المساعد فوراً وبشكل لا يمكن التراجع عنه.';
+
+  @override
+  String get privacyControls => 'الخصوصية وملكية البيانات';
+
+  @override
+  String get privacyControlsDescription =>
+      'تحكم في بياناتك الصحية، واستخرج نسخة منها، أو احذف حسابك نهائياً.';
+
+  @override
+  String get extractReport => 'استخراج التقرير';
+
+  @override
+  String get provenanceTitle => 'مصدر وموثوقية البيانات';
 }

@@ -15,8 +15,44 @@ class ApiException implements Exception {
     this.details,
   });
 
+  /// User-friendly clean error message suitable for displaying on UI.
+  String get cleanMessage {
+    if (statusCode == 0 ||
+        message.contains('TimeoutException') ||
+        message.toLowerCase().contains('timeout') ||
+        message.toLowerCase().contains('unreachable') ||
+        message.toLowerCase().contains('connection failed') ||
+        message.toLowerCase().contains('failed host lookup') ||
+        message.toLowerCase().contains('connection refused')) {
+      return 'Server is unreachable. Please check your connection.';
+    }
+    return message;
+  }
+
   @override
   String toString() => 'ApiException($statusCode): $message';
+}
+
+/// Extracts a clean, user-friendly error message from any caught exception.
+String formatApiErrorMessage(dynamic error) {
+  if (error is TimeoutException) {
+    return 'Server is unreachable. Please check your connection.';
+  }
+  if (error is ApiException) {
+    return error.cleanMessage;
+  }
+  final str = error.toString();
+  if (str.contains('TimeoutException') ||
+      str.toLowerCase().contains('timeout') ||
+      str.toLowerCase().contains('unreachable') ||
+      str.toLowerCase().contains('failed host lookup') ||
+      str.toLowerCase().contains('connection refused') ||
+      str.toLowerCase().contains('connection reset') ||
+      str.toLowerCase().contains('network is unreachable') ||
+      str.toLowerCase().contains('connection failed')) {
+    return 'Server is unreachable. Please check your connection.';
+  }
+  return str.replaceAll(RegExp(r'^ApiException\(\d+\):\s*'), '');
 }
 
 class UnauthorizedException extends ApiException {
@@ -29,6 +65,7 @@ class ApiClient {
   final TokenStorage tokenStorage;
   final http.Client _httpClient;
   final void Function()? onSessionExpired;
+  final Duration timeout;
 
   bool _isRefreshing = false;
   final List<Completer<String?>> _refreshQueue = [];
@@ -38,6 +75,7 @@ class ApiClient {
     required this.tokenStorage,
     http.Client? httpClient,
     this.onSessionExpired,
+    this.timeout = const Duration(seconds: 30),
   }) : _httpClient = httpClient ?? http.Client();
 
   String get baseUrl => getBaseUrl();
@@ -118,9 +156,25 @@ class ApiClient {
   }) async {
     http.Response response;
     try {
-      response = await requestFn().timeout(const Duration(seconds: 15));
+      response = await requestFn().timeout(timeout);
+    } on TimeoutException {
+      throw ApiException(
+        statusCode: 0,
+        message: 'Server is unreachable. Please check your connection.',
+      );
     } catch (e) {
       if (e is ApiException) rethrow;
+      final msg = e.toString();
+      if (msg.contains('TimeoutException') ||
+          msg.toLowerCase().contains('timeout') ||
+          msg.toLowerCase().contains('unreachable') ||
+          msg.toLowerCase().contains('failed host lookup') ||
+          msg.toLowerCase().contains('connection refused')) {
+        throw ApiException(
+          statusCode: 0,
+          message: 'Server is unreachable. Please check your connection.',
+        );
+      }
       throw ApiException(statusCode: 0, message: 'Network connection failed: $e');
     }
 
@@ -130,8 +184,25 @@ class ApiClient {
       if (refreshedToken != null) {
         // Retry the original request with refreshed token
         try {
-          response = await requestFn().timeout(const Duration(seconds: 15));
+          response = await requestFn().timeout(timeout);
+        } on TimeoutException {
+          throw ApiException(
+            statusCode: 0,
+            message: 'Server is unreachable. Please check your connection.',
+          );
         } catch (e) {
+          if (e is ApiException) rethrow;
+          final msg = e.toString();
+          if (msg.contains('TimeoutException') ||
+              msg.toLowerCase().contains('timeout') ||
+              msg.toLowerCase().contains('unreachable') ||
+              msg.toLowerCase().contains('failed host lookup') ||
+              msg.toLowerCase().contains('connection refused')) {
+            throw ApiException(
+              statusCode: 0,
+              message: 'Server is unreachable. Please check your connection.',
+            );
+          }
           throw ApiException(statusCode: 0, message: 'Network connection failed on retry: $e');
         }
       } else {

@@ -231,5 +231,63 @@ void main() {
       expect(container.read(authStateProvider).isAuthenticated, isFalse);
       expect(await storage.getAccessToken(), isNull);
     });
+
+    test('login timeout converts to user-friendly "Server is unreachable" error message', () async {
+      final storage = TokenStorage();
+      final mockHttp = MockHttpClient((req) async {
+        // Simulate hanging request that triggers timeout
+        await Future.delayed(const Duration(milliseconds: 100));
+        return http.Response('{}', 200);
+      });
+
+      final client = ApiClient(
+        getBaseUrl: () => 'http://192.168.100.99:3000',
+        tokenStorage: storage,
+        httpClient: mockHttp,
+        timeout: const Duration(milliseconds: 20), // short timeout for testing
+      );
+
+      final repo = AuthRepository(apiClient: client, tokenStorage: storage);
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+
+      final notifier = container.read(authStateProvider.notifier);
+      await notifier.login('user@forma.local', 'Password123!');
+
+      final state = container.read(authStateProvider);
+      expect(state.status, AuthStatus.error);
+      expect(state.errorMessage, equals('Server is unreachable. Please check your connection.'));
+    });
+
+    test('login handles 400 error with clean message and no raw exception text', () async {
+      final storage = TokenStorage();
+      final mockHttp = MockHttpClient((req) async {
+        return http.Response(jsonEncode({'error': 'Invalid email or password'}), 400);
+      });
+
+      final client = ApiClient(
+        getBaseUrl: () => 'http://192.168.100.5:3000',
+        tokenStorage: storage,
+        httpClient: mockHttp,
+      );
+
+      final repo = AuthRepository(apiClient: client, tokenStorage: storage);
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+
+      final notifier = container.read(authStateProvider.notifier);
+      await notifier.login('bad@forma.local', 'wrongpass');
+
+      final state = container.read(authStateProvider);
+      expect(state.status, AuthStatus.error);
+      expect(state.errorMessage, equals('Invalid email or password'));
+      expect(state.errorMessage?.contains('ApiException'), isFalse);
+    });
   });
 }

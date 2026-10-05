@@ -106,4 +106,35 @@ export class BYOKService {
       return this.decryptKey(res.rows[0].encrypted_key);
     });
   }
+
+  public async listUserCredentials(userId: string): Promise<UserAICredential[]> {
+    return withUserContext(userId, async (client) => {
+      const res = await client.query(
+        `SELECT id, user_id, provider, key_fingerprint, is_active, created_at
+         FROM user_ai_credentials
+         WHERE user_id = $1
+         ORDER BY created_at ASC`,
+        [userId]
+      );
+
+      return res.rows.map((row) => ({
+        id: row.id,
+        userId: row.user_id,
+        provider: row.provider,
+        keyFingerprint: row.key_fingerprint,
+        isActive: row.is_active,
+        createdAt: row.created_at,
+      }));
+    });
+  }
+
+  public async deleteUserKey(userId: string, provider: string): Promise<boolean> {
+    return withUserContext(userId, async (client) => {
+      const res = await client.query(
+        `DELETE FROM user_ai_credentials WHERE user_id = $1 AND provider = $2`,
+        [userId, provider.toLowerCase()]
+      );
+      return (res.rowCount ?? 0) > 0;
+    });
+  }
 }

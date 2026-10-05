@@ -1,6 +1,7 @@
 import { withUserContext } from '../../core/database/index.js';
 import { normalizeToCanonical } from '../../core/units/index.js';
 import { AIGateway } from '../ai/gateway/gateway.js';
+import { BYOKService } from '../ai/gateway/byok.js';
 import { AITraceService } from '../ai/traces/service.js';
 import type {
   ExtractedField,
@@ -18,7 +19,7 @@ export interface ExtractionInput {
 }
 
 export class VisionExtractor {
-  private static gateway = new AIGateway();
+  private static gateway = new AIGateway(new BYOKService());
   private static traceService = new AITraceService();
 
   private static readonly SUPPORTED_CATALOG_TYPES: Record<string, { min: number; max: number; canonicalUnit: string }> = {

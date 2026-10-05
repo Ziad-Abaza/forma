@@ -76,7 +76,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = AuthState(
         status: AuthStatus.error,
-        errorMessage: e.toString().replaceAll('ApiException(400): ', '').replaceAll('ApiException(401): ', ''),
+        errorMessage: formatApiErrorMessage(e),
       );
     }
   }
@@ -112,7 +112,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = AuthState(
         status: AuthStatus.error,
-        errorMessage: e.toString().replaceAll('ApiException(400): ', ''),
+        errorMessage: formatApiErrorMessage(e),
       );
     }
   }

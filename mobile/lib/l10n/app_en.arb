@@ -148,5 +148,12 @@
   "loading": "Loading...",
   "retry": "Retry",
   "errorOccurred": "An error occurred",
-  "sexForCalculation": "Sex (for calculations)"
+  "sexForCalculation": "Sex (for calculations)",
+  "exportData": "Export Data",
+  "deleteAccount": "Delete Account",
+  "deleteAccountConfirm": "Are you sure you want to permanently delete your account? All your health observations, goals, AI memory and profile data will be irreversibly purged.",
+  "privacyControls": "Privacy & Data Ownership",
+  "privacyControlsDescription": "Manage your health data, export machine-readable copies, or purge your account.",
+  "extractReport": "Extract Report",
+  "provenanceTitle": "Data Provenance"
 }

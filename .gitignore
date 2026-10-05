@@ -11,5 +11,5 @@ coverage/
 build/
 .dart_tool/
 backend/storage/
-storage/
+/storage/
 
