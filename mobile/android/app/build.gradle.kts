@@ -15,7 +15,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.forma.forma"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -29,11 +28,29 @@ android {
         versionName = flutter.versionName
     }
 
+    // Release signing requires key.properties at the project root with
+    // storeFile/storePassword/keyAlias/keyPassword. If it is absent the
+    // release variant stays UNSIGNED — never fall back to the debug keys.
+    val keyPropertiesFile = rootProject.file("key.properties")
+    val hasReleaseKeystore = keyPropertiesFile.exists()
+    val keyProperties = java.util.Properties().apply {
+        if (hasReleaseKeystore) keyPropertiesFile.inputStream().use { load(it) }
+    }
+
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                keyAlias = keyProperties.getProperty("keyAlias")
+                keyPassword = keyProperties.getProperty("keyPassword")
+                storeFile = keyProperties.getProperty("storeFile")?.let { file(it) }
+                storePassword = keyProperties.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseKeystore) signingConfigs.getByName("release") else null
         }
     }
 }
