@@ -69,9 +69,19 @@ export function verifyJwt(token: string, secret: string): TokenPayload {
   const expectedSig = crypto
     .createHmac('sha256', secret)
     .update(`${b64Header}.${b64Payload}`)
-    .digest('base64url');
+    .digest();
 
-  if (signature !== expectedSig) {
+  let providedSig: Buffer;
+  try {
+    providedSig = Buffer.from(signature, 'base64url');
+  } catch {
+    throw new Error('Invalid JWT signature');
+  }
+
+  if (
+    providedSig.length !== expectedSig.length ||
+    !crypto.timingSafeEqual(providedSig, expectedSig)
+  ) {
     throw new Error('Invalid JWT signature');
   }
 

@@ -45,7 +45,7 @@ import {
   CommitDraftRequestSchema
 } from './modules/multimodal/index.js';
 import { IntegrationsPrivacyContract } from './modules/integrations/index.js';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 import { BYOKService } from './modules/ai/gateway/byok.js';
 import { ModelRegistry } from './modules/ai/gateway/registry.js';
 import { AIGateway } from './modules/ai/gateway/gateway.js';
@@ -157,16 +157,44 @@ export function buildApp(deps: AppDependencies = {}): FastifyInstance {
     }
   };
 
-  // Global Error Handler
-  app.setErrorHandler((error: Error & { statusCode?: number }, req, reply) => {
-    const statusCode = error.statusCode || 400;
+  // Global Error Handler — sanitized contract; internals never reach clients.
+  app.setErrorHandler((error: Error & { statusCode?: number; code?: string }, req, reply) => {
+    // Deliberate domain/API errors carry an explicit statusCode or are our own
+    // thrown client-facing messages. Driver/JS-internal errors are unclassified
+    // and must surface as 500 without leaking internals.
+    const explicitStatus =
+      typeof error.statusCode === 'number' && error.statusCode >= 400 && error.statusCode < 600
+        ? error.statusCode
+        : undefined;
+    const isZod = error instanceof ZodError;
+    const isInternal =
+      error instanceof TypeError ||
+      error instanceof RangeError ||
+      error instanceof ReferenceError ||
+      error instanceof SyntaxError ||
+      (typeof error.code === 'string' &&
+        (/^\d{2}[0-9A-Z]{3}$/.test(error.code) || // PostgreSQL SQLSTATE codes
+          ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET', 'EPIPE'].includes(error.code)));
+
+    const statusCode = explicitStatus ?? (isZod ? 400 : isInternal ? 500 : 400);
+    const clientError =
+      statusCode >= 500
+        ? 'An unexpected error occurred'
+        : isZod
+          ? 'Request validation failed'
+          : error.message || 'An unexpected error occurred';
+
     appLogger.error(`Unhandled request error: ${error.message}`, {
       correlationId: req.correlationId,
       statusCode,
       stack: error.stack
     });
+
     reply.status(statusCode).send({
-      error: error.message || 'An unexpected error occurred',
+      error: clientError,
+      ...(error instanceof ZodError
+        ? { details: error.issues.map((i: z.ZodIssue) => ({ path: i.path.join('.'), code: i.code })) }
+        : {}),
       correlationId: req.correlationId
     });
   });
