@@ -27,6 +27,7 @@ export const CreateObservationRequestSchema = z.object({
 });
 
 export type CreateObservationRequest = z.infer<typeof CreateObservationRequestSchema>;
+export type CreateObservationInput = z.input<typeof CreateObservationRequestSchema>;
 
 export const SupersedeObservationRequestSchema = z.object({
   previousObservationId: z.string().uuid(),

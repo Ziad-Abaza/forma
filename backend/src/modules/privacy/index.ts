@@ -217,7 +217,85 @@ export const MeasurementsPrivacyContract: ModulePrivacyContract = {
   }
 };
 
-// Register core Phase 1 modules
+export interface ExportableModule {
+  moduleName: string;
+  exportData(userId: string): Promise<Record<string, unknown>>;
+}
+
+export interface DeletableModule {
+  moduleName: string;
+  purgeData(userId: string): Promise<void>;
+}
+
+// 4. Goals Module Privacy Contract
+export const GoalsPrivacyContract: ModulePrivacyContract = {
+  moduleName: 'goals',
+  async exportData(userId: string): Promise<ExportPayload> {
+    return await withUserContext(userId, async (client) => {
+      const goals = await client.query('SELECT * FROM goals WHERE user_id = $1 ORDER BY created_at ASC', [userId]);
+      const versions = await client.query('SELECT * FROM goal_versions WHERE user_id = $1 ORDER BY created_at ASC', [userId]);
+      return {
+        module: 'goals',
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
+        data: {
+          goals: goals.rows,
+          goalVersions: versions.rows
+        }
+      };
+    });
+  },
+  async purgeUserData(userId: string): Promise<DeletionResult> {
+    return await withPurgeContext(userId, async (client) => {
+      const v = await client.query('DELETE FROM goal_versions WHERE user_id = $1', [userId]);
+      const g = await client.query('DELETE FROM goals WHERE user_id = $1', [userId]);
+      return {
+        module: 'goals',
+        recordsDeleted: (v.rowCount || 0) + (g.rowCount || 0),
+        success: true
+      };
+    });
+  }
+};
+
+// 5. Analytics Module Privacy Contract
+export const AnalyticsPrivacyContract: ModulePrivacyContract = {
+  moduleName: 'analytics',
+  async exportData(userId: string): Promise<ExportPayload> {
+    return await withUserContext(userId, async (client) => {
+      const snap = await client.query('SELECT * FROM health_snapshots WHERE user_id = $1', [userId]);
+      const rollups = await client.query('SELECT * FROM metric_rollups WHERE user_id = $1', [userId]);
+      const flags = await client.query('SELECT * FROM anomaly_flags WHERE user_id = $1', [userId]);
+      return {
+        module: 'analytics',
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
+        data: {
+          snapshot: snap.rows[0] || null,
+          rollups: rollups.rows,
+          anomalies: flags.rows
+        }
+      };
+    });
+  },
+  async purgeUserData(userId: string): Promise<DeletionResult> {
+    return await withPurgeContext(userId, async (client) => {
+      const a = await client.query('DELETE FROM anomaly_flags WHERE user_id = $1', [userId]);
+      const r = await client.query('DELETE FROM metric_rollups WHERE user_id = $1', [userId]);
+      const s = await client.query('DELETE FROM health_snapshots WHERE user_id = $1', [userId]);
+      return {
+        module: 'analytics',
+        recordsDeleted: (a.rowCount || 0) + (r.rowCount || 0) + (s.rowCount || 0),
+        success: true
+      };
+    });
+  }
+};
+
+// Register Phase 1 and Phase 2 modules
 PrivacyOrchestrator.registerModule(IdentityPrivacyContract);
 PrivacyOrchestrator.registerModule(ProfilePrivacyContract);
 PrivacyOrchestrator.registerModule(MeasurementsPrivacyContract);
+PrivacyOrchestrator.registerModule(GoalsPrivacyContract);
+PrivacyOrchestrator.registerModule(AnalyticsPrivacyContract);
+

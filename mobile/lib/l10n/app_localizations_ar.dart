@@ -125,4 +125,101 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get voided => 'ملغى';
+
+  @override
+  String get primaryGoal => 'الهدف الأساسي';
+
+  @override
+  String get goalWeightLoss => 'إنقاص الوزن';
+
+  @override
+  String get goalMuscleGain => 'بناء العضلات';
+
+  @override
+  String get goalMaintenance => 'المحافظة على الوزن';
+
+  @override
+  String get goalGeneralFitness => 'اللياقة العامة';
+
+  @override
+  String get startingValue => 'البداية';
+
+  @override
+  String get currentValue => 'الحالي';
+
+  @override
+  String get targetValue => 'المستهدف';
+
+  @override
+  String get progress => 'التقدم';
+
+  @override
+  String get projectedTimeline => 'الموعد المتوقع للإنجاز';
+
+  @override
+  String get safeRate => 'معدل أسبوعي آمن';
+
+  @override
+  String get rateWarning => 'المعدل الأسبوعي يتجاوز التوصيات الإكلينيكية';
+
+  @override
+  String get energyTargets => 'أهداف الطاقة والتغذية';
+
+  @override
+  String get maintenanceCalories => 'سعرات الثبات';
+
+  @override
+  String get targetCalories => 'المستهدف اليومي';
+
+  @override
+  String get calorieFloorApplied =>
+      'تم تطبيق الحد الأدنى للسعرات حفاظاً على الأمان الصحي';
+
+  @override
+  String get specialPopulationNotice =>
+      'تم إيقاف حساب الأهداف حفاظاً على السلامة الصحية (يرجى استشارة طبيب)';
+
+  @override
+  String get protein => 'بروتين';
+
+  @override
+  String get fats => 'دهون';
+
+  @override
+  String get carbs => 'كربوهيدرات';
+
+  @override
+  String get trends => 'المسار والاتجاهات';
+
+  @override
+  String get sevenDayAverage => 'المعدل المهدأ (٧ أيام)';
+
+  @override
+  String get weeklyRate => 'المعدل الأسبوعي';
+
+  @override
+  String get period7d => '٧ أيام';
+
+  @override
+  String get period30d => '٣٠ يوماً';
+
+  @override
+  String get period90d => '٩٠ يوماً';
+
+  @override
+  String get period1y => 'سنة';
+
+  @override
+  String get insufficientTrendData =>
+      'يلزم ٣ قياسات على الأقل عبر ٤ أيام لاحتساب معدل المسار.';
+
+  @override
+  String get anomalyTitle => 'تنبيه بخصوص القياس';
+
+  @override
+  String get anomalyJump => 'تم رصد تغير غير معتاد في الوزن خلال ٢٤ ساعة.';
+
+  @override
+  String get anomalyUnit =>
+      'اشتباه في خطأ بالوحدة (باوند مقابل كجم). يرجى المراجعة.';
 }

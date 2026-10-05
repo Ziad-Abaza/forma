@@ -15,6 +15,10 @@ import {
 import { ProfileService } from './modules/profile/service.js';
 import { UpdateProfileRequestSchema } from './modules/profile/contracts.js';
 import { PrivacyOrchestrator } from './modules/privacy/index.js';
+import { GoalsService } from './modules/goals/service.js';
+import { CreateGoalRequestSchema, UpdateGoalVersionRequestSchema } from './modules/goals/contracts.js';
+import { CalculationEngine } from './modules/calculations/engine.js';
+import { AnalyticsService } from './modules/analytics/service.js';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -179,6 +183,120 @@ export function buildApp(): FastifyInstance {
   app.delete('/api/v1/privacy/account', { preHandler: [requireAuth] }, async (req, reply) => {
     const purgeResult = await PrivacyOrchestrator.purgeUserAccount(req.user!.userId, req.correlationId);
     return reply.send(purgeResult);
+  });
+
+  // --- Goals Routes ---
+  const goalsService = new GoalsService();
+  const calculationEngine = new CalculationEngine();
+  const analyticsService = new AnalyticsService();
+
+  app.post('/api/v1/goals', { preHandler: [requireAuth] }, async (req, reply) => {
+    const parsed = CreateGoalRequestSchema.parse(req.body);
+    const goal = await goalsService.createGoal(req.user!.userId, parsed);
+    return reply.status(201).send(goal);
+  });
+
+  app.post('/api/v1/goals/:id/versions', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const parsed = UpdateGoalVersionRequestSchema.parse(req.body);
+    const goal = await goalsService.addGoalVersion(req.user!.userId, id, parsed);
+    return reply.send(goal);
+  });
+
+  app.get('/api/v1/goals/primary', { preHandler: [requireAuth] }, async (req, reply) => {
+    const goal = await goalsService.getPrimaryGoal(req.user!.userId);
+    return reply.send({ goal });
+  });
+
+  app.get('/api/v1/goals', { preHandler: [requireAuth] }, async (req, reply) => {
+    const goals = await goalsService.listGoals(req.user!.userId);
+    return reply.send({ goals });
+  });
+
+  // --- Calculations Routes (Pure, Deterministic) ---
+  app.get('/api/v1/calculations/bmi', async (req, reply) => {
+    const query = req.query as { weightKg?: string; heightCm?: string };
+    const weight = query.weightKg ? Number(query.weightKg) : undefined;
+    const height = query.heightCm ? Number(query.heightCm) : undefined;
+    const result = calculationEngine.calculateBmi(weight, height);
+    return reply.send(result);
+  });
+
+  app.get('/api/v1/calculations/bmr', async (req, reply) => {
+    const query = req.query as {
+      weightKg?: string;
+      heightCm?: string;
+      ageYears?: string;
+      sex?: 'male' | 'female' | 'other';
+      leanBodyMassKg?: string;
+    };
+    const result = calculationEngine.calculateBmr({
+      weightKg: query.weightKg ? Number(query.weightKg) : undefined,
+      heightCm: query.heightCm ? Number(query.heightCm) : undefined,
+      ageYears: query.ageYears ? Number(query.ageYears) : undefined,
+      sex: query.sex,
+      leanBodyMassKg: query.leanBodyMassKg ? Number(query.leanBodyMassKg) : undefined
+    });
+    return reply.send(result);
+  });
+
+  app.get('/api/v1/calculations/tdee', async (req, reply) => {
+    const query = req.query as { bmr?: string; activityLevel?: any };
+    const bmr = query.bmr ? Number(query.bmr) : 0;
+    const result = calculationEngine.calculateTdee(bmr, query.activityLevel);
+    return reply.send(result);
+  });
+
+  app.get('/api/v1/calculations/calorie-targets', async (req, reply) => {
+    const query = req.query as { tdee?: string; sex?: 'male' | 'female'; isPregnant?: string; hasMedicalCondition?: string };
+    const tdee = query.tdee ? Number(query.tdee) : 0;
+    const result = calculationEngine.calculateCalorieTargets({
+      tdee,
+      sex: query.sex,
+      specialFlags: {
+        isPregnant: query.isPregnant === 'true',
+        hasMedicalCondition: query.hasMedicalCondition === 'true'
+      }
+    });
+    return reply.send(result);
+  });
+
+  app.get('/api/v1/calculations/macros', async (req, reply) => {
+    const query = req.query as { targetCalories?: string; weightKg?: string };
+    const targetCalories = query.targetCalories ? Number(query.targetCalories) : 2000;
+    const weightKg = query.weightKg ? Number(query.weightKg) : 70;
+    const result = calculationEngine.calculateMacroDistribution(targetCalories, weightKg);
+    return reply.send(result);
+  });
+
+  app.get('/api/v1/calculations/timeline', async (req, reply) => {
+    const query = req.query as { currentWeightKg?: string; targetWeightKg?: string; weeklyRateKg?: string; startDate?: string };
+    const result = calculationEngine.projectWeightTimeline({
+      currentWeightKg: query.currentWeightKg ? Number(query.currentWeightKg) : undefined,
+      targetWeightKg: query.targetWeightKg ? Number(query.targetWeightKg) : undefined,
+      weeklyRateKg: query.weeklyRateKg ? Number(query.weeklyRateKg) : undefined,
+      startDate: query.startDate ? new Date(query.startDate) : undefined
+    });
+    return reply.send(result);
+  });
+
+  // --- Analytics & Snapshot Routes ---
+  app.get('/api/v1/analytics/snapshot', { preHandler: [requireAuth] }, async (req, reply) => {
+    const snapshot = await analyticsService.getSnapshot(req.user!.userId);
+    return reply.send(snapshot);
+  });
+
+  app.get('/api/v1/analytics/snapshot/reconcile', { preHandler: [requireAuth] }, async (req, reply) => {
+    const reconciliation = await analyticsService.reconcileSnapshot(req.user!.userId);
+    return reply.send(reconciliation);
+  });
+
+  app.get('/api/v1/analytics/trends/:typeCode', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { typeCode } = req.params as { typeCode: string };
+    const query = req.query as { windowDays?: string };
+    const windowDays = query.windowDays ? Number(query.windowDays) : 30;
+    const trend = await analyticsService.getTrend(req.user!.userId, typeCode, windowDays);
+    return reply.send(trend);
   });
 
   return app;

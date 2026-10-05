@@ -200,6 +200,137 @@ describe('Fastify HTTP API End-to-End Tests', () => {
     const exportString = JSON.stringify(body);
     expect(exportString).not.toMatch(/passwordHash/i);
     expect(exportString).not.toMatch(/refreshTokenHash/i);
+    expect(body.modules.goals).toBeDefined();
+    expect(body.modules.analytics).toBeDefined();
+  });
+
+  it('Phase 2 Goals & Versions Endpoints', async () => {
+    // Create Goal
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/goals',
+      headers: { authorization: `Bearer ${userAToken}` },
+      payload: {
+        goalType: 'weight_loss',
+        targetMetricTypeCode: 'weight',
+        startingValue: 90.0,
+        targetValue: 80.0,
+        weeklyRate: 0.5,
+        startDate: '2026-10-01',
+        isPrimary: true
+      }
+    });
+
+    expect(createRes.statusCode).toBe(201);
+    const goal = JSON.parse(createRes.body);
+    expect(goal.isPrimary).toBe(true);
+    expect(goal.currentVersion.version).toBe(1);
+
+    // Get Primary Goal
+    const primaryRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/goals/primary',
+      headers: { authorization: `Bearer ${userAToken}` }
+    });
+    expect(primaryRes.statusCode).toBe(200);
+    expect(JSON.parse(primaryRes.body).goal.id).toBe(goal.id);
+
+    // Add Goal Version
+    const verRes = await app.inject({
+      method: 'POST',
+      url: `/api/v1/goals/${goal.id}/versions`,
+      headers: { authorization: `Bearer ${userAToken}` },
+      payload: {
+        targetValue: 78.0,
+        rationale: 'Adjusted target'
+      }
+    });
+    expect(verRes.statusCode).toBe(200);
+    expect(JSON.parse(verRes.body).currentVersion.version).toBe(2);
+    expect(JSON.parse(verRes.body).currentVersion.targetValue).toBe(78.0);
+  });
+
+  it('Phase 2 Pure Calculation Endpoints', async () => {
+    // BMI
+    const bmiRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/calculations/bmi?weightKg=70&heightCm=175'
+    });
+    expect(bmiRes.statusCode).toBe(200);
+    expect(JSON.parse(bmiRes.body).value).toBe(22.9);
+
+    // BMR
+    const bmrRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/calculations/bmr?weightKg=80&heightCm=180&ageYears=30&sex=male'
+    });
+    expect(bmrRes.statusCode).toBe(200);
+    expect(JSON.parse(bmrRes.body).value).toBe(1780);
+
+    // TDEE
+    const tdeeRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/calculations/tdee?bmr=1780&activityLevel=moderately_active'
+    });
+    expect(tdeeRes.statusCode).toBe(200);
+    expect(JSON.parse(tdeeRes.body).value).toBe(Math.round(1780 * 1.55));
+
+    // Calorie Targets
+    const targetsRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/calculations/calorie-targets?tdee=2500&sex=male'
+    });
+    expect(targetsRes.statusCode).toBe(200);
+    expect(JSON.parse(targetsRes.body).targets.standardLoss.targetCalories).toBe(2000);
+
+    // Macros
+    const macrosRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/calculations/macros?targetCalories=2000&weightKg=70'
+    });
+    expect(macrosRes.statusCode).toBe(200);
+    expect(JSON.parse(macrosRes.body).proteinGrams).toBe(126);
+
+    // Timeline
+    const timelineRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/calculations/timeline?currentWeightKg=85&targetWeightKg=80&weeklyRateKg=0.5'
+    });
+    expect(timelineRes.statusCode).toBe(200);
+    expect(JSON.parse(timelineRes.body).estimatedWeeks).toBe(10);
+  });
+
+  it('Phase 2 Health Snapshot & Trends Endpoints', async () => {
+    // Snapshot
+    const snapRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/analytics/snapshot',
+      headers: { authorization: `Bearer ${userAToken}` }
+    });
+    expect(snapRes.statusCode).toBe(200);
+    const snap = JSON.parse(snapRes.body);
+    expect(snap.userId).toBe(userAId);
+    expect(snap.sections.identityLite).toBeDefined();
+    expect(snap.sections.bodyStatus).toBeDefined();
+    expect(snap.sections.goal).toBeDefined();
+
+    // Reconcile
+    const recRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/analytics/snapshot/reconcile',
+      headers: { authorization: `Bearer ${userAToken}` }
+    });
+    expect(recRes.statusCode).toBe(200);
+    expect(JSON.parse(recRes.body).isDriftDetected).toBe(false);
+
+    // Trends
+    const trendRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/analytics/trends/weight?windowDays=30',
+      headers: { authorization: `Bearer ${userAToken}` }
+    });
+    expect(trendRes.statusCode).toBe(200);
+    expect(JSON.parse(trendRes.body).typeCode).toBe('weight');
   });
 
   it('DELETE /api/v1/privacy/account executes irreversible account purge', async () => {

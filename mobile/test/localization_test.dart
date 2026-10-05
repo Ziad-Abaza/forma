@@ -6,7 +6,7 @@ import 'package:forma/core/providers.dart';
 import 'package:forma/presentation/screens/dashboard_screen.dart';
 
 void main() {
-  testWidgets('Bilingual Localization & RTL/LTR dynamic parity test', (WidgetTester tester) async {
+  testWidgets('Bilingual Localization & RTL/LTR dynamic parity test (Phase 1 & Phase 2)', (WidgetTester tester) async {
     // 1. Pump FormaApp wrapped in Riverpod ProviderScope
     await tester.pumpWidget(
       const ProviderScope(
@@ -17,9 +17,12 @@ void main() {
 
     // 2. Verify English initial state (LTR)
     expect(find.text('Forma'), findsOneWidget);
-    expect(find.text('No measurements yet'), findsOneWidget);
+    expect(find.text('Primary Goal'), findsOneWidget);
+    expect(find.text('Weight Loss'), findsOneWidget);
+    expect(find.text('Trends & Trajectory'), findsOneWidget);
+    expect(find.text('Energy & Nutrition Targets'), findsOneWidget);
+    expect(find.text('Health Records'), findsOneWidget);
     expect(find.text('Add Measurement'), findsOneWidget);
-    expect(find.text('Measured'), findsOneWidget);
     expect(find.text('العربية'), findsOneWidget);
 
     // Verify initial LTR text direction
@@ -34,9 +37,12 @@ void main() {
 
     // 4. Verify Arabic localized strings
     expect(find.text('فورما'), findsOneWidget);
-    expect(find.text('لا توجد قياسات بعد'), findsOneWidget);
+    expect(find.text('الهدف الأساسي'), findsOneWidget);
+    expect(find.text('إنقاص الوزن'), findsOneWidget);
+    expect(find.text('المسار والاتجاهات'), findsOneWidget);
+    expect(find.text('أهداف الطاقة والتغذية'), findsOneWidget);
+    expect(find.text('السجلات الصحية'), findsOneWidget);
     expect(find.text('إضافة قياس'), findsOneWidget);
-    expect(find.text('مقاس'), findsOneWidget);
     expect(find.text('English'), findsOneWidget);
 
     // Verify dynamic RTL text direction

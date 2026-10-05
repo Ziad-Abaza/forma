@@ -7,11 +7,12 @@ import {
   type ProvenanceRecord,
   type MeasurementTypeRecord
 } from './repository.js';
-import type {
-  CreateObservationRequest,
-  SupersedeObservationRequest,
-  VoidObservationRequest,
-  QueryObservationsFilter
+import {
+  CreateObservationRequestSchema,
+  type CreateObservationInput,
+  type SupersedeObservationRequest,
+  type VoidObservationRequest,
+  type QueryObservationsFilter
 } from './contracts.js';
 
 export interface ObservationWithProvenance {
@@ -26,9 +27,10 @@ export class MeasurementsService {
    */
   static async recordObservation(
     userId: string,
-    req: CreateObservationRequest,
+    rawReq: CreateObservationInput,
     correlationId: string
   ): Promise<ObservationWithProvenance> {
+    const req = CreateObservationRequestSchema.parse(rawReq);
     return await withUserContext(userId, async (client) => {
       const type = await MeasurementsRepository.getMeasurementType(client, req.typeCode);
       if (!type) {
@@ -262,6 +264,20 @@ export class MeasurementsService {
   static async getProvenance(userId: string, provenanceId: string): Promise<ProvenanceRecord | null> {
     return await withUserContext(userId, async (client) => {
       return await MeasurementsRepository.getProvenanceById(client, provenanceId);
+    });
+  }
+
+  /**
+   * Retrieves latest active observation for a given type code.
+   */
+  static async getLatestObservation(userId: string, typeCode: string): Promise<ObservationRecord | null> {
+    return await withUserContext(userId, async (client) => {
+      const res = await MeasurementsRepository.queryObservations(client, userId, {
+        typeCode,
+        status: 'active',
+        limit: 1
+      });
+      return res[0] ?? null;
     });
   }
 }

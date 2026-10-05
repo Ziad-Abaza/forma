@@ -325,6 +325,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Voided'**
   String get voided;
+
+  /// No description provided for @primaryGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary Goal'**
+  String get primaryGoal;
+
+  /// No description provided for @goalWeightLoss.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight Loss'**
+  String get goalWeightLoss;
+
+  /// No description provided for @goalMuscleGain.
+  ///
+  /// In en, this message translates to:
+  /// **'Muscle Gain'**
+  String get goalMuscleGain;
+
+  /// No description provided for @goalMaintenance.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight Maintenance'**
+  String get goalMaintenance;
+
+  /// No description provided for @goalGeneralFitness.
+  ///
+  /// In en, this message translates to:
+  /// **'General Fitness'**
+  String get goalGeneralFitness;
+
+  /// No description provided for @startingValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting'**
+  String get startingValue;
+
+  /// No description provided for @currentValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get currentValue;
+
+  /// No description provided for @targetValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get targetValue;
+
+  /// No description provided for @progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress'**
+  String get progress;
+
+  /// No description provided for @projectedTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Projected Completion'**
+  String get projectedTimeline;
+
+  /// No description provided for @safeRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe weekly rate'**
+  String get safeRate;
+
+  /// No description provided for @rateWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly rate exceeds clinical guideline'**
+  String get rateWarning;
+
+  /// No description provided for @energyTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy & Nutrition Targets'**
+  String get energyTargets;
+
+  /// No description provided for @maintenanceCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance Calories'**
+  String get maintenanceCalories;
+
+  /// No description provided for @targetCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Target'**
+  String get targetCalories;
+
+  /// No description provided for @calorieFloorApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Clinical safety calorie floor enforced'**
+  String get calorieFloorApplied;
+
+  /// No description provided for @specialPopulationNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Target calculations paused for health safety (consult physician)'**
+  String get specialPopulationNotice;
+
+  /// No description provided for @protein.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein'**
+  String get protein;
+
+  /// No description provided for @fats.
+  ///
+  /// In en, this message translates to:
+  /// **'Fats'**
+  String get fats;
+
+  /// No description provided for @carbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Carbohydrates'**
+  String get carbs;
+
+  /// No description provided for @trends.
+  ///
+  /// In en, this message translates to:
+  /// **'Trends & Trajectory'**
+  String get trends;
+
+  /// No description provided for @sevenDayAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'7-Day Smoothed'**
+  String get sevenDayAverage;
+
+  /// No description provided for @weeklyRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly Rate'**
+  String get weeklyRate;
+
+  /// No description provided for @period7d.
+  ///
+  /// In en, this message translates to:
+  /// **'7D'**
+  String get period7d;
+
+  /// No description provided for @period30d.
+  ///
+  /// In en, this message translates to:
+  /// **'30D'**
+  String get period30d;
+
+  /// No description provided for @period90d.
+  ///
+  /// In en, this message translates to:
+  /// **'90D'**
+  String get period90d;
+
+  /// No description provided for @period1y.
+  ///
+  /// In en, this message translates to:
+  /// **'1Y'**
+  String get period1y;
+
+  /// No description provided for @insufficientTrendData.
+  ///
+  /// In en, this message translates to:
+  /// **'Need at least 3 points across 4+ days for a trend rate.'**
+  String get insufficientTrendData;
+
+  /// No description provided for @anomalyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Measurement Alert'**
+  String get anomalyTitle;
+
+  /// No description provided for @anomalyJump.
+  ///
+  /// In en, this message translates to:
+  /// **'Unusual weight change detected within 24 hours.'**
+  String get anomalyJump;
+
+  /// No description provided for @anomalyUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Possible unit confusion (lbs vs kg). Please review.'**
+  String get anomalyUnit;
 }
 
 class _AppLocalizationsDelegate

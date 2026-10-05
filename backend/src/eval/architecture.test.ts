@@ -55,14 +55,17 @@ describe('Architectural Invariant Tests', () => {
   it('Invariant 6: Double User Isolation: All domain tables with user_id have PostgreSQL RLS policies', () => {
     const migrationsDir = path.join(srcDir, 'core', 'database', 'migrations');
     const migrationFiles = findFiles(migrationsDir, '.sql');
-    let rlsFound = false;
-    for (const mf of migrationFiles) {
-      const sql = fs.readFileSync(mf, 'utf8');
-      if (sql.includes('ENABLE ROW LEVEL SECURITY') && sql.includes('CREATE POLICY')) {
-        rlsFound = true;
-        break;
-      }
+    const allSql = migrationFiles.map(mf => fs.readFileSync(mf, 'utf8')).join('\n');
+
+    const expectedRlsTables = [
+      'users', 'credentials', 'sessions', 'consents', 'profiles',
+      'observations', 'provenance_records', 'audit_logs',
+      'goals', 'goal_versions', 'health_snapshots', 'metric_rollups', 'anomaly_flags'
+    ];
+
+    for (const table of expectedRlsTables) {
+      expect(allSql).toContain(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`);
+      expect(allSql).toContain(`ALTER TABLE ${table} FORCE ROW LEVEL SECURITY;`);
     }
-    expect(rlsFound).toBe(true);
   });
 });

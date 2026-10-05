@@ -126,4 +126,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voided => 'Voided';
+
+  @override
+  String get primaryGoal => 'Primary Goal';
+
+  @override
+  String get goalWeightLoss => 'Weight Loss';
+
+  @override
+  String get goalMuscleGain => 'Muscle Gain';
+
+  @override
+  String get goalMaintenance => 'Weight Maintenance';
+
+  @override
+  String get goalGeneralFitness => 'General Fitness';
+
+  @override
+  String get startingValue => 'Starting';
+
+  @override
+  String get currentValue => 'Current';
+
+  @override
+  String get targetValue => 'Target';
+
+  @override
+  String get progress => 'Progress';
+
+  @override
+  String get projectedTimeline => 'Projected Completion';
+
+  @override
+  String get safeRate => 'Safe weekly rate';
+
+  @override
+  String get rateWarning => 'Weekly rate exceeds clinical guideline';
+
+  @override
+  String get energyTargets => 'Energy & Nutrition Targets';
+
+  @override
+  String get maintenanceCalories => 'Maintenance Calories';
+
+  @override
+  String get targetCalories => 'Daily Target';
+
+  @override
+  String get calorieFloorApplied => 'Clinical safety calorie floor enforced';
+
+  @override
+  String get specialPopulationNotice =>
+      'Target calculations paused for health safety (consult physician)';
+
+  @override
+  String get protein => 'Protein';
+
+  @override
+  String get fats => 'Fats';
+
+  @override
+  String get carbs => 'Carbohydrates';
+
+  @override
+  String get trends => 'Trends & Trajectory';
+
+  @override
+  String get sevenDayAverage => '7-Day Smoothed';
+
+  @override
+  String get weeklyRate => 'Weekly Rate';
+
+  @override
+  String get period7d => '7D';
+
+  @override
+  String get period30d => '30D';
+
+  @override
+  String get period90d => '90D';
+
+  @override
+  String get period1y => '1Y';
+
+  @override
+  String get insufficientTrendData =>
+      'Need at least 3 points across 4+ days for a trend rate.';
+
+  @override
+  String get anomalyTitle => 'Measurement Alert';
+
+  @override
+  String get anomalyJump => 'Unusual weight change detected within 24 hours.';
+
+  @override
+  String get anomalyUnit =>
+      'Possible unit confusion (lbs vs kg). Please review.';
 }
