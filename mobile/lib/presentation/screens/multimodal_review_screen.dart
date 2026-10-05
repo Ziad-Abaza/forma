@@ -181,8 +181,15 @@ class DraftReviewNotifier extends StateNotifier<DraftReviewState> {
     MultimodalRepository? repository,
   }) async {
     if (state.approvedCount == 0 || state.isSubmitting) return;
-    state = state.copyWith(isSubmitting: true, clearError: true);
     final repo = repository ?? this.repository;
+    // No backend commit path → do not pretend a commit is possible.
+    if (onCommit == null && repo == null) {
+      state = state.copyWith(
+        actionError: 'Commit is unavailable: no backend connection.',
+      );
+      return;
+    }
+    state = state.copyWith(isSubmitting: true, clearError: true);
     try {
       String? receipt;
       if (onCommit != null) {
@@ -196,6 +203,14 @@ class DraftReviewNotifier extends StateNotifier<DraftReviewState> {
         receipt = receiptMap?['receiptId'] as String?;
       }
       if (!mounted) return;
+      // A commit without a server-issued receipt is a failure, not a success.
+      if (receipt == null || receipt.isEmpty) {
+        state = state.copyWith(
+          isSubmitting: false,
+          actionError: 'Commit failed: the server did not return a receipt.',
+        );
+        return;
+      }
       state = state.copyWith(
         isSubmitting: false,
         status: 'committed',

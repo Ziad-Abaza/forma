@@ -78,9 +78,19 @@ class MetricTileModel {
   });
 
   factory MetricTileModel.fromJson(Map<String, dynamic> json) {
+    final label = json['label'];
+    final rawValue = json['value'];
+    // Required domain fields: a metric tile without a label/value cannot be
+    // rendered honestly — throw rather than fabricate 0.0 or an empty label.
+    if (label is! String || label.isEmpty) {
+      throw const FormatException('MetricTileModel requires a non-empty label');
+    }
+    if (rawValue is! num) {
+      throw FormatException("MetricTileModel '$label' is missing a numeric value");
+    }
     return MetricTileModel(
-      label: json['label'] as String? ?? '',
-      value: (json['value'] as num?)?.toDouble() ?? 0.0,
+      label: label,
+      value: rawValue.toDouble(),
       unit: json['unit'] as String?,
       delta: (json['delta'] as num?)?.toDouble(),
       period: json['period'] as String?,
@@ -109,10 +119,19 @@ class FormaMetricsModel {
 
   factory FormaMetricsModel.fromJson(Map<String, dynamic> json) {
     final rawTiles = json['tiles'] as List<dynamic>? ?? [];
+    // Skip malformed tiles instead of rendering fabricated values.
+    final tiles = <MetricTileModel>[];
+    for (final t in rawTiles) {
+      if (t is Map<String, dynamic>) {
+        try {
+          tiles.add(MetricTileModel.fromJson(t));
+        } on FormatException {
+          continue;
+        }
+      }
+    }
     return FormaMetricsModel(
-      tiles: rawTiles
-          .map((t) => MetricTileModel.fromJson(t as Map<String, dynamic>))
-          .toList(),
+      tiles: tiles,
     );
   }
 }

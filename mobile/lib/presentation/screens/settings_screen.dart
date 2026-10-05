@@ -24,6 +24,13 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _apiKeyController = TextEditingController();
   String? _selectedProvider;
+
+  /// The provider the action buttons should target: the user's explicit
+  /// selection, else the first provider the backend reports as registered.
+  /// Null when the backend provides none — never a fabricated default.
+  String? get _effectiveProvider =>
+      _selectedProvider ??
+      ref.read(aiConfigProvider).valueOrNull?.availableProviders.firstOrNull;
   bool _obscureKey = true;
   bool _isTestingKey = false;
   bool _isSavingKey = false;
@@ -38,7 +45,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _testConnection() async {
     final l10n = AppLocalizations.of(context)!;
-    final provider = _selectedProvider;
+    final provider = _effectiveProvider;
     if (provider == null) return;
     final key = _apiKeyController.text.trim();
     setState(() {
@@ -80,7 +87,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return;
     }
 
-    final provider = _selectedProvider;
+    final provider = _effectiveProvider;
     if (provider == null) return;
 
     setState(() => _isSavingKey = true);
