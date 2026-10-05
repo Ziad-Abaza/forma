@@ -149,6 +149,30 @@ class ApiClient {
     }, requireAuth: requireAuth);
   }
 
+  /// Sends a request and returns a stream of SSE lines (Spec §6.2)
+  Stream<String> sendStream(String path, {dynamic body, bool requireAuth = true}) async* {
+    final uri = _buildUri(path);
+    final headers = await _buildHeaders(includeAuth: requireAuth, hasBody: body != null);
+    headers['Accept'] = 'text/event-stream';
+    headers['Cache-Control'] = 'no-cache';
+
+    final request = http.Request('POST', uri);
+    request.headers.addAll(headers);
+    if (body != null) {
+      request.body = jsonEncode(body);
+    }
+
+    final response = await _httpClient.send(request);
+    if (response.statusCode >= 400) {
+      final errorBody = await response.stream.bytesToString();
+      throw ApiException(statusCode: response.statusCode, message: errorBody);
+    }
+
+    yield* response.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter());
+  }
+
   Uri _buildUri(String path, [Map<String, dynamic>? queryParameters]) {
     final cleanBase = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
     final cleanPath = path.startsWith('/') ? path : '/$path';

@@ -224,7 +224,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'اشتباه في خطأ بالوحدة (باوند مقابل كجم). يرجى المراجعة.';
 
   @override
-  String get assistantTitle => 'مساعد فورما';
+  String get assistantTitle => 'مساعد Forma';
 
   @override
   String get assistantSubtitle => 'مساعدك الصحي الموثق بالأدلة';
@@ -585,4 +585,83 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get signedInAs => 'تم تسجيل الدخول باسم';
+
+  @override
+  String get assistantStatusOnline => 'متصل';
+
+  @override
+  String get assistantStatusThinking => 'جارٍ قراءة بياناتك…';
+
+  @override
+  String get assistantStatusCalculating => 'جارٍ التحقق من الأرقام…';
+
+  @override
+  String get assistantStatusGenerating => 'Forma يكتب الرد…';
+
+  @override
+  String get assistantGreeting =>
+      'مرحباً! أنا Forma، رفيقك الصحي والشخصي. يمكنني مساعدتك في الإجابة عن أسئلة اللياقة، ومتابعة تقدمك، أو إعداد إجراءات لتسجيل القياسات وتحديث الأهداف.';
+
+  @override
+  String get jumpToLatest => 'رد جديد';
+
+  @override
+  String get confirmingAction => 'جارٍ التأكيد…';
+
+  @override
+  String get actionExecuted => 'تم التسجيل بنجاح';
+
+  @override
+  String get actionPending => 'في انتظار التأكيد';
+
+  @override
+  String get sourcesTitle => 'المصادر';
+
+  @override
+  String sourcesCount(Object count) {
+    return 'المصادر ($count)';
+  }
+
+  @override
+  String get messageInputPlaceholder => 'اكتب رسالة لـ Forma…';
+
+  @override
+  String get messageTooLongHint => 'الرسالة طويلة جداً — اختصرها إلى 2000 حرف.';
+
+  @override
+  String get stopGeneration => 'إيقاف';
+
+  @override
+  String get copy => 'نسخ';
+
+  @override
+  String get copiedToClipboard => 'تم النسخ إلى الحافظة';
+
+  @override
+  String get errorS01Offline =>
+      'أنت غير متصل بالإنترنت. يرجى التحقق من اتصالك.';
+
+  @override
+  String get errorS02Provider =>
+      'تعذر الاتصال بخدمة الذكاء الاصطناعي. بياناتك بأمان.';
+
+  @override
+  String get errorS03Timeout =>
+      'يستغرق الأمر وقتاً أطول من المعتاد. يرجى المحاولة ثانية.';
+
+  @override
+  String get errorS04Interrupted => 'انقطع الرد أثناء البث.';
+
+  @override
+  String get errorS05RateLimit =>
+      'وصلت إلى حد الرسائل مؤقتاً. حاول مجدداً بعد قليل.';
+
+  @override
+  String get errorS06Expired => 'انتهت صلاحية المقترح.';
+
+  @override
+  String get errorS07Commit => 'فشل تنفيذ الإجراء.';
+
+  @override
+  String get errorS08Malformed => 'تعذر تنسيق الاستجابة.';
 }

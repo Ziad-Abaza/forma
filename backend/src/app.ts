@@ -470,7 +470,7 @@ export function buildApp(): FastifyInstance {
           reply.raw.write(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`);
         }
       } catch (err: any) {
-        reply.raw.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+        reply.raw.write(`event: error\ndata: ${JSON.stringify({ code: 'S02', retryable: true })}\n\n`);
       } finally {
         reply.raw.end();
       }

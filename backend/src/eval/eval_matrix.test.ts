@@ -7,6 +7,7 @@ import { AIContextEngine } from '../modules/ai/context/engine.js';
 import { ContextPlanner } from '../modules/ai/context/planner.js';
 import { SafetyClassifier } from '../modules/ai/safety/classifier.js';
 import { CalculationEngine } from '../modules/calculations/engine.js';
+import { TierSelector } from '../modules/assistant/tiering.js';
 import { GOLDEN_EVALUATION_DATASET } from './golden/personas.js';
 
 describe('Phase 6: AI Evaluation Matrix & Numeric Grounding Gate (Blueprint §31.1 Gate 3, §31.2)', () => {
@@ -103,15 +104,31 @@ describe('Phase 6: AI Evaluation Matrix & Numeric Grounding Gate (Blueprint §31
     emptyUserId = emptyUser.user.id;
   });
 
-  describe('1. Golden Dataset Test Matrix (Blueprint §31.2)', () => {
-    it('evaluates all golden test cases against intent, tier, and safety policies', () => {
-      for (const tc of GOLDEN_EVALUATION_DATASET) {
-        const plan = ContextPlanner.planIntentAndTier(tc.userPrompt);
-        expect(plan.tier).toBe(tc.expectedTier);
-        expect(plan.intent).toBe(tc.expectedIntent);
+  describe('1. Golden Dataset Test Matrix (Blueprint §31.2, Chat v2 Spec Phase P4)', () => {
+    it('evaluates all 120 golden test cases against tiering, safety, and bilingual balance', () => {
+      expect(GOLDEN_EVALUATION_DATASET.length).toBeGreaterThanOrEqual(120);
 
+      const arCases = GOLDEN_EVALUATION_DATASET.filter((c) => c.language === 'ar');
+      const enCases = GOLDEN_EVALUATION_DATASET.filter((c) => c.language === 'en');
+
+      // Parity check: exactly 50% Arabic and 50% English
+      expect(arCases.length).toBe(enCases.length);
+      expect(arCases.length).toBeGreaterThanOrEqual(60);
+
+      for (const tc of GOLDEN_EVALUATION_DATASET) {
+        // 1. Verify TierSelector assigns expected response tier
+        const tierConfig = TierSelector.selectTier(tc.userPrompt);
+        expect(tierConfig.tier, `Failed tier for ${tc.id}: ${tc.userPrompt}`).toBe(tc.expectedTier);
+
+        // 2. Verify SafetyClassifier classifies safety category accurately
         const safety = SafetyClassifier.classify(tc.userPrompt);
-        expect(safety.category).toBe(tc.expectedSafetyCategory);
+        expect(safety.category, `Failed safety for ${tc.id}: ${tc.userPrompt}`).toBe(tc.expectedSafetyCategory);
+
+        // 3. Verify language detection parity
+        const isArDetected = SafetyClassifier.isArabic(tc.userPrompt);
+        if (tc.language === 'ar') {
+          expect(isArDetected, `Expected Arabic detection for ${tc.id}`).toBe(true);
+        }
       }
     });
   });

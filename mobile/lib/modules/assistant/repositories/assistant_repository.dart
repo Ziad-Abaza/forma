@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
 import '../models/assistant_models.dart';
@@ -22,10 +23,47 @@ class ConfirmProposalResult {
   });
 }
 
+class SSEEvent {
+  final String event;
+  final Map<String, dynamic> data;
+
+  const SSEEvent({required this.event, required this.data});
+}
+
 class AssistantRepository {
   final ApiClient apiClient;
 
   AssistantRepository({required this.apiClient});
+
+  /// Streams assistant SSE responses natively (Spec §6.2)
+  Stream<SSEEvent> streamMessage({
+    required String message,
+    String? conversationId,
+  }) async* {
+    final body = <String, dynamic>{
+      'message': message,
+      'stream': true,
+    };
+    if (conversationId != null) {
+      body['conversationId'] = conversationId;
+    }
+
+    String currentEvent = 'message';
+
+    await for (final line in apiClient.sendStream('/api/v1/assistant/chat', body: body)) {
+      if (line.startsWith('event: ')) {
+        currentEvent = line.substring(7).trim();
+      } else if (line.startsWith('data: ')) {
+        final dataStr = line.substring(6).trim();
+        try {
+          final parsed = jsonDecode(dataStr);
+          if (parsed is Map<String, dynamic>) {
+            yield SSEEvent(event: currentEvent, data: parsed);
+          }
+        } catch (_) {}
+      }
+    }
+  }
 
   Future<SendMessageResult> sendMessage({
     required String message,
@@ -65,12 +103,24 @@ class AssistantRepository {
       }
     }
 
+    FormaMetricsModel? metricsBlock;
+    if (map['metricsBlock'] is Map<String, dynamic>) {
+      metricsBlock = FormaMetricsModel.fromJson(map['metricsBlock'] as Map<String, dynamic>);
+    }
+
+    FormaSuggestionsModel? suggestionsBlock;
+    if (map['suggestionsBlock'] is Map<String, dynamic>) {
+      suggestionsBlock = FormaSuggestionsModel.fromJson(map['suggestionsBlock'] as Map<String, dynamic>);
+    }
+
     final assistantMsg = AssistantChatMessage(
       id: assistantMsgId,
       role: 'assistant',
       content: content,
       evidenceClaims: evidenceList,
       proposals: proposalsList,
+      metricsBlock: metricsBlock,
+      suggestionsBlock: suggestionsBlock,
       isEmergencyNotice: isEmergency,
       timestamp: DateTime.tryParse(map['createdAt'] as String? ?? '') ?? DateTime.now(),
     );

@@ -58,17 +58,92 @@ class EvidenceClaimModel {
   }
 }
 
+class MetricTileModel {
+  final String label;
+  final double value;
+  final String? unit;
+  final double? delta;
+  final String? period;
+  final EvidenceBadgeType evidence;
+  final String size; // 'sm' or 'wide'
+
+  const MetricTileModel({
+    required this.label,
+    required this.value,
+    this.unit,
+    this.delta,
+    this.period,
+    required this.evidence,
+    this.size = 'sm',
+  });
+
+  factory MetricTileModel.fromJson(Map<String, dynamic> json) {
+    return MetricTileModel(
+      label: json['label'] as String? ?? '',
+      value: (json['value'] as num?)?.toDouble() ?? 0.0,
+      unit: json['unit'] as String?,
+      delta: (json['delta'] as num?)?.toDouble(),
+      period: json['period'] as String?,
+      evidence: EvidenceBadgeType.fromString(json['evidence'] as String?),
+      size: json['size'] as String? ?? 'sm',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'label': label,
+      'value': value,
+      if (unit != null) 'unit': unit,
+      if (delta != null) 'delta': delta,
+      if (period != null) 'period': period,
+      'evidence': evidence.toBackendString(),
+      'size': size,
+    };
+  }
+}
+
+class FormaMetricsModel {
+  final List<MetricTileModel> tiles;
+
+  const FormaMetricsModel({required this.tiles});
+
+  factory FormaMetricsModel.fromJson(Map<String, dynamic> json) {
+    final rawTiles = json['tiles'] as List<dynamic>? ?? [];
+    return FormaMetricsModel(
+      tiles: rawTiles
+          .map((t) => MetricTileModel.fromJson(t as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class FormaSuggestionsModel {
+  final List<String> items;
+
+  List<String> get chips => items;
+
+  const FormaSuggestionsModel({required this.items});
+
+  factory FormaSuggestionsModel.fromJson(Map<String, dynamic> json) {
+    final raw = (json['chips'] ?? json['items']) as List<dynamic>? ?? [];
+    return FormaSuggestionsModel(
+      items: raw.map((e) => e.toString()).toList(),
+    );
+  }
+}
+
 class ActionProposalModel {
   final String id;
   final String actionType;
   final String humanReadableSummary;
   final String? diffBefore;
   final String diffAfter;
-  String status; // 'pending', 'confirmed', 'declined', 'expired', 'executed', 'failed'
+  final String status; // 'pending', 'confirming', 'confirmed', 'declined', 'expired', 'executed', 'failed'
   final String? receiptId;
   final Map<String, dynamic>? parameters;
+  final String? errorMessage;
 
-  ActionProposalModel({
+  const ActionProposalModel({
     required this.id,
     required this.actionType,
     required this.humanReadableSummary,
@@ -77,7 +152,32 @@ class ActionProposalModel {
     this.status = 'pending',
     this.receiptId,
     this.parameters,
+    this.errorMessage,
   });
+
+  ActionProposalModel copyWith({
+    String? id,
+    String? actionType,
+    String? humanReadableSummary,
+    String? diffBefore,
+    String? diffAfter,
+    String? status,
+    String? receiptId,
+    Map<String, dynamic>? parameters,
+    String? errorMessage,
+  }) {
+    return ActionProposalModel(
+      id: id ?? this.id,
+      actionType: actionType ?? this.actionType,
+      humanReadableSummary: humanReadableSummary ?? this.humanReadableSummary,
+      diffBefore: diffBefore ?? this.diffBefore,
+      diffAfter: diffAfter ?? this.diffAfter,
+      status: status ?? this.status,
+      receiptId: receiptId ?? this.receiptId,
+      parameters: parameters ?? this.parameters,
+      errorMessage: errorMessage ?? this.errorMessage,
+    );
+  }
 
   factory ActionProposalModel.fromJson(Map<String, dynamic> json) {
     String? beforeStr;
@@ -166,7 +266,11 @@ class AssistantChatMessage {
   final String content;
   final List<EvidenceClaimModel> evidenceClaims;
   final List<ActionProposalModel> proposals;
+  final FormaMetricsModel? metricsBlock;
+  final FormaSuggestionsModel? suggestionsBlock;
   final bool isEmergencyNotice;
+  final bool isInterrupted;
+  final String? errorCode; // e.g. S01-S08
   final DateTime timestamp;
 
   const AssistantChatMessage({
@@ -175,7 +279,11 @@ class AssistantChatMessage {
     required this.content,
     this.evidenceClaims = const [],
     this.proposals = const [],
+    this.metricsBlock,
+    this.suggestionsBlock,
     this.isEmergencyNotice = false,
+    this.isInterrupted = false,
+    this.errorCode,
     required this.timestamp,
   });
 
@@ -185,7 +293,11 @@ class AssistantChatMessage {
     String? content,
     List<EvidenceClaimModel>? evidenceClaims,
     List<ActionProposalModel>? proposals,
+    FormaMetricsModel? metricsBlock,
+    FormaSuggestionsModel? suggestionsBlock,
     bool? isEmergencyNotice,
+    bool? isInterrupted,
+    String? errorCode,
     DateTime? timestamp,
   }) {
     return AssistantChatMessage(
@@ -194,7 +306,11 @@ class AssistantChatMessage {
       content: content ?? this.content,
       evidenceClaims: evidenceClaims ?? this.evidenceClaims,
       proposals: proposals ?? this.proposals,
+      metricsBlock: metricsBlock ?? this.metricsBlock,
+      suggestionsBlock: suggestionsBlock ?? this.suggestionsBlock,
       isEmergencyNotice: isEmergencyNotice ?? this.isEmergencyNotice,
+      isInterrupted: isInterrupted ?? this.isInterrupted,
+      errorCode: errorCode ?? this.errorCode,
       timestamp: timestamp ?? this.timestamp,
     );
   }

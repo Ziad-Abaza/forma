@@ -272,7 +272,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get safetyEmergencyTitle => 'Health & Safety Notice';
 
   @override
-  String get newChat => 'New Conversation';
+  String get newChat => 'New Chat';
 
   @override
   String actionReceiptId(String id) {
@@ -585,4 +585,83 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signedInAs => 'Signed In As';
+
+  @override
+  String get assistantStatusOnline => 'Online';
+
+  @override
+  String get assistantStatusThinking => 'Reading your latest data…';
+
+  @override
+  String get assistantStatusCalculating => 'Checking the numbers…';
+
+  @override
+  String get assistantStatusGenerating => 'Forma is replying…';
+
+  @override
+  String get assistantGreeting =>
+      'Hello! I am Forma, your personalized health and wellness companion. I can help answer fitness questions, monitor your progress, or prepare action proposals to log measurements and update goals.';
+
+  @override
+  String get jumpToLatest => 'New reply';
+
+  @override
+  String get confirmingAction => 'Confirming…';
+
+  @override
+  String get actionExecuted => 'Logged successfully';
+
+  @override
+  String get actionPending => 'Pending Confirmation';
+
+  @override
+  String get sourcesTitle => 'Sources';
+
+  @override
+  String sourcesCount(Object count) {
+    return 'Sources ($count)';
+  }
+
+  @override
+  String get messageInputPlaceholder => 'Message Forma…';
+
+  @override
+  String get messageTooLongHint =>
+      'Message is too long — trim it to 2,000 characters.';
+
+  @override
+  String get stopGeneration => 'Stop';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get copiedToClipboard => 'Copied to clipboard';
+
+  @override
+  String get errorS01Offline =>
+      'You\'re offline. Check your internet connection.';
+
+  @override
+  String get errorS02Provider =>
+      'Forma couldn\'t reach the AI service. Your data is safe.';
+
+  @override
+  String get errorS03Timeout => 'Taking longer than usual. Please retry.';
+
+  @override
+  String get errorS04Interrupted => 'Reply interrupted.';
+
+  @override
+  String get errorS05RateLimit =>
+      'You\'ve reached the message limit for now. Try again shortly.';
+
+  @override
+  String get errorS06Expired => 'Action proposal expired.';
+
+  @override
+  String get errorS07Commit => 'Failed to commit action.';
+
+  @override
+  String get errorS08Malformed => 'Unable to format response.';
 }

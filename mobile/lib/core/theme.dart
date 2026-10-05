@@ -17,13 +17,31 @@ class FormaTheme {
 
   static const Color textPrimary = Color(0xFFF0F6FC);
   static const Color textSecondary = Color(0xFF8B949E);
-  static const Color textTertiary = Color(0xFF6E7681);
+  // A11 contrast fix: use #8B949E (~6:1 on obsidianBackground) instead of low contrast #6E7681
+  static const Color textTertiary = Color(0xFF8B949E);
+
+  // Glass & Bento Visual System Tokens (Spec §1.2)
+  static const Color glassFill = Color(0x0FFFFFFF); // Colors.white @ 6%
+  static const Color glassBorder = Color(0x1AFFFFFF); // Colors.white @ 10%
+  static const Color glassFallback = Color(0xEB161B22); // #161B22 @ 92%
+  static const double glassBlur = 20.0;
+
+  static const double radiusBubble = 20.0;
+  static const double radiusBubbleTail = 6.0;
+  static const double radiusCard = 16.0;
+  static const double radiusTile = 14.0;
+
+  static const Duration motionFast = Duration(milliseconds: 120);
+  static const Duration motionBase = Duration(milliseconds: 220);
+  static const Duration motionSlow = Duration(milliseconds: 360);
+  static const Curve motionCurve = Curves.easeOutCubic;
 
   // Epistemic Class Badge Colors
   static const Color badgeMeasured = Color(0xFF1F6FEB); // Calm Royal Blue
   static const Color badgeCalculated = Color(0xFF8957E5); // Purple
   static const Color badgeEstimated = Color(0xFFD29922); // Amber
   static const Color badgeAsserted = Color(0xFF238636); // Forest Green
+  static const Color badgeRecommended = Color(0xFF00E5FF); // Teal
 
   static ThemeData darkTheme(Locale locale) {
     final bool isArabic = locale.languageCode == 'ar';

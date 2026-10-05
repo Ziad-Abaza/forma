@@ -5,12 +5,19 @@ import { AIContextEngine } from '../ai/context/engine.js';
 import { AnalyticsService } from '../analytics/service.js';
 import { MeasurementsService } from '../measurements/service.js';
 import { GoalsService } from '../goals/service.js';
+import { ProfileService } from '../profile/service.js';
 import { SafetyClassifier, SafetyCategory } from '../ai/safety/classifier.js';
+import { LLMSafetyClassifier } from '../ai/safety/llmClassifier.js';
 import { AITraceService } from '../ai/traces/service.js';
 import { ToolRegistry, ToolExecutor } from '../ai/tools/executor.js';
 import { AssistantMemoryService } from './memory.js';
 import { ActionProposalEngine } from './proposals.js';
 import { EvidenceClaimVerifier } from './evidence.js';
+import { renderSystemPrompt, PROMPT_VERSION } from './prompts/system.v2.js';
+import { TierSelector, ResponseTier } from './tiering.js';
+import { StructuredBlocksExtractor, FormaMetricsBlock, FormaSuggestionsBlock } from './blocks.js';
+import { ResponseFormatter } from './formatter.js';
+import { StreamFilter } from './streamFilter.js';
 import type {
   Conversation,
   ConversationMessage,
@@ -26,12 +33,15 @@ export interface ChatResponse {
   content: string;
   evidenceClaims: EvidenceClaim[];
   proposals: ActionProposal[];
+  metricsBlock?: FormaMetricsBlock | undefined;
+  suggestionsBlock?: FormaSuggestionsBlock | undefined;
   safetyCategory: string;
+  tier: ResponseTier;
   createdAt: string;
 }
 
 export interface ChatStreamEvent {
-  event: 'start' | 'delta' | 'evidence' | 'proposal' | 'done' | 'error';
+  event: 'start' | 'status' | 'delta' | 'metrics' | 'proposal' | 'suggestions' | 'evidence' | 'done' | 'error';
   data: Record<string, any>;
 }
 
@@ -70,12 +80,12 @@ export class AssistantOrchestrator {
   }
 
   /**
-   * Retrieves a specific conversation with all its messages and proposals.
+   * Retrieves a conversation by ID with messages in chronological order.
    */
   async getConversation(
     userId: string,
     conversationId: string
-  ): Promise<{ conversation: Conversation; messages: ConversationMessage[]; proposals: ActionProposal[] } | null> {
+  ): Promise<(Conversation & { messages: ConversationMessage[] }) | null> {
     return await withUserContext(userId, async (client) => {
       const convRes = await client.query(
         `SELECT * FROM conversations WHERE id = $1 AND user_id = $2`,
@@ -83,20 +93,18 @@ export class AssistantOrchestrator {
       );
       if (convRes.rows.length === 0) return null;
 
-      const msgRes = await client.query(
-        `SELECT * FROM conversation_messages WHERE conversation_id = $1 AND user_id = $2 ORDER BY created_at ASC`,
-        [conversationId, userId]
-      );
+      const conv = mapConversationRow(convRes.rows[0]);
 
-      const propRes = await client.query(
-        `SELECT * FROM action_proposals WHERE conversation_id = $1 AND user_id = $2 ORDER BY created_at ASC`,
+      const msgRes = await client.query(
+        `SELECT * FROM conversation_messages
+         WHERE conversation_id = $1 AND user_id = $2
+         ORDER BY created_at ASC`,
         [conversationId, userId]
       );
 
       return {
-        conversation: mapConversationRow(convRes.rows[0]),
-        messages: msgRes.rows.map(mapMessageRow),
-        proposals: propRes.rows.map(mapProposalRow)
+        ...conv,
+        messages: msgRes.rows.map(mapMessageRow)
       };
     });
   }
@@ -122,15 +130,20 @@ export class AssistantOrchestrator {
     req: ChatRequest,
     correlationId: string
   ): Promise<ChatResponse> {
+    const startTime = Date.now();
     const userPrompt = req.message.trim();
 
-    // 1. Safety classification
-    const safety = SafetyClassifier.classify(userPrompt);
+    // 1. Safety classification - Stage 1 fast keyword check
+    let safety = SafetyClassifier.classify(userPrompt);
 
     // 2. Get or create conversation
     const conversation = await this.getOrCreateConversation(userId, req.conversationId, userPrompt);
 
-    // 3. Persist user message
+    // 3. A3 Fix: Fetch recent history BEFORE saving current user message
+    // A2 Fix: Fetch the latest 10 messages preserving chronological order
+    const history = await this.getRecentMessages(userId, conversation.id, 10);
+
+    // 4. Persist user message (after history is captured, so current prompt appears exactly once)
     const userMessage = await this.saveMessage(userId, {
       conversationId: conversation.id,
       role: 'user',
@@ -141,10 +154,10 @@ export class AssistantOrchestrator {
       safetyCategory: safety.category
     });
 
-    // 4. If Safety Category D (Crisis/Acute Symptom), return immediate redirect
+    // 5. If Safety Category D (Crisis/Acute Symptom), return immediate localized redirect without LLM call
     if (safety.category === 'D') {
-      const redirectText = safety.redirectMessage ||
-        'Your safety and health are paramount. The symptoms or behaviors you described require immediate evaluation by a licensed healthcare professional or emergency medical services. Forma is an informational companion and does not provide medical treatment or diagnose conditions.';
+      const isAr = safety.detectedLanguage === 'ar';
+      const redirectText = isAr ? SafetyClassifier.REDIRECT_MESSAGE_AR : SafetyClassifier.REDIRECT_MESSAGE_EN;
 
       const assistantMsg = await this.saveMessage(userId, {
         conversationId: conversation.id,
@@ -174,7 +187,12 @@ export class AssistantOrchestrator {
         },
         safetyCategory: 'D',
         guardrailsTriggered: safety.guardrailsTriggered,
-        outcome: 'refusal'
+        outcome: 'refusal',
+        promptVersion: PROMPT_VERSION,
+        responseTier: 'T0',
+        formatViolations: 0,
+        languageMismatch: false,
+        latencyMs: Date.now() - startTime
       });
 
       return {
@@ -185,69 +203,74 @@ export class AssistantOrchestrator {
         evidenceClaims: [],
         proposals: [],
         safetyCategory: 'D',
+        tier: 'T0',
         createdAt: assistantMsg.createdAt
       };
     }
 
-    // 5. Build AI Context & Grounding
-    const contextBundle = await this.contextEngine.assembleContext(userId, userPrompt);
-    const durableMemories = await AssistantMemoryService.formatMemoriesForContext(userId);
+    // 6. G-S3 Second-pass LLM safety check in parallel with context assembly
+    const [llmSafety, contextBundle, durableMemories, profile] = await Promise.all([
+      LLMSafetyClassifier.classify(userPrompt, this.gateway),
+      this.contextEngine.assembleContext(userId, userPrompt),
+      AssistantMemoryService.formatMemoriesForContext(userId),
+      ProfileService.getProfile(userId)
+    ]);
 
-    // 6. Fetch conversation history
-    const history = await this.getRecentMessages(userId, conversation.id, 8);
+    // If second-pass classified as Category D, intercept
+    if (llmSafety.category === 'D') {
+      const isAr = SafetyClassifier.isArabic(userPrompt);
+      const redirectText = isAr ? SafetyClassifier.REDIRECT_MESSAGE_AR : SafetyClassifier.REDIRECT_MESSAGE_EN;
+
+      const assistantMsg = await this.saveMessage(userId, {
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: redirectText,
+        evidenceClaims: [],
+        proposals: [],
+        tokenCount: Math.ceil(redirectText.length / 4),
+        safetyCategory: 'D'
+      });
+
+      return {
+        conversationId: conversation.id,
+        userMessageId: userMessage.id,
+        assistantMessageId: assistantMsg.id,
+        content: redirectText,
+        evidenceClaims: [],
+        proposals: [],
+        safetyCategory: 'D',
+        tier: 'T0',
+        createdAt: assistantMsg.createdAt
+      };
+    }
 
     // 7. Check for uncommitted proposals or recent receipts in this conversation
     const recentProposals = await this.getRecentProposals(userId, conversation.id);
     const proposalsContextText = formatProposalsContext(recentProposals);
+    const hasReceiptThisTurn = recentProposals.some(p => p.status === 'executed');
 
-    // 8. Assemble system instructions with strict Propose -> Confirm -> Commit rules
-    const systemInstruction = `
-You are Forma, an intelligent, empathetic, evidence-based personal fitness and wellness companion.
-You adhere strictly to safety, accuracy, and user privacy boundaries.
+    // 8. Tier selection (Spec §2.1)
+    const tierConfig = TierSelector.selectTier(userPrompt, contextBundle.intentClass);
 
-CRITICAL INVARIANTS:
-1. CONTROLLED ACTIONS PROTOCOL (Propose -> Confirm -> Commit):
-   - You CANNOT write to or modify the database directly.
-   - If the user asks or intends to log a measurement (e.g. weight), update a goal, or save a memory/preference, you MUST propose the action by emitting a strictly formatted XML block:
-     <action_proposal>
-     {
-       "actionType": "log_measurement" | "update_goal" | "save_memory",
-       "parameters": { ... },
-       "diffPreview": { "before": ..., "after": ..., "description": "..." },
-       "humanReadableSummary": "Clear sentence describing what will be done upon confirmation"
-     }
-     </action_proposal>
-   - Examples of parameters:
-     - For log_measurement: { "typeCode": "weight", "value": 74.5, "unit": "kg", "observedAt": "${new Date().toISOString()}" }
-     - For update_goal: { "targetMetricTypeCode": "weight", "targetValue": 70, "targetDate": "2026-12-31" }
-     - For save_memory: { "category": "preference", "key": "dietary_preference", "value": "vegetarian" }
-2. ACTION CLAIMS BOUND TO RECEIPTS:
-   - You MUST NOT assert that an action succeeded, was saved, or was committed UNLESS you see an explicit Action Receipt with status 'executed' in the conversation context.
-   - If an action was only proposed, inform the user that you've prepared the proposal and they can confirm it.
-3. ANTI-HALLUCINATION & EVIDENCE LABELING:
-   - Ground all numeric health claims strictly in the provided snapshot or tool data.
-   - Tag substantive claims inline where appropriate:
-     [Retrieved] for direct observations (e.g., recorded weight).
-     [Calculated] for derived formulas (e.g., BMI, BMR, TDEE).
-     [Estimated] for heuristic estimations.
-     [Inferred] for trends.
-     [Recommended] for caloric/macro targets and guidance.
-   - If user data is missing, admit it transparently and ask the user to provide it.
-4. BILINGUAL SUPPORT:
-   - If the user speaks Arabic, reply naturally in Arabic while maintaining all proposal formats.
-   - If English, reply in English.
+    // 9. Build versioned system prompt v2
+    const preferredUnits = (profile?.preferences as any)?.units || 'metric';
+    const systemInstruction = renderSystemPrompt({
+      unit_system: preferredUnits,
+      now_iso: new Date().toISOString(),
+      user_timezone: 'UTC',
+      response_tier: tierConfig.tier,
+      durable_memories: durableMemories,
+      data_freshness: 'fresh',
+      context_tier: contextBundle.tier,
+      system_context_text: contextBundle.systemContextText,
+      proposals_context_text: proposalsContextText
+    });
 
-USER MEMORIES & PREFERENCES:
-${durableMemories}
-
-HEALTH SNAPSHOT & CONTEXT:
-${contextBundle.systemContextText}
-
-${proposalsContextText}
-`;
-
-    // 9. Format message history into prompt
+    // 10. Format message history into prompt (native user/Forma turns with rolling summary if long)
     let formattedPrompt = '';
+    if (conversation.rollingSummary) {
+      formattedPrompt += `Summary of previous discussion: ${conversation.rollingSummary}\n\n`;
+    }
     for (const msg of history) {
       if (msg.role === 'user') {
         formattedPrompt += `User: ${msg.content}\n`;
@@ -257,7 +280,7 @@ ${proposalsContextText}
     }
     formattedPrompt += `User: ${userPrompt}\nForma:`;
 
-    // 10. Execute generation through AI Gateway
+    // 11. Execute generation through AI Gateway
     let gatewayResult;
     try {
       gatewayResult = await this.gateway.execute(
@@ -265,25 +288,25 @@ ${proposalsContextText}
         {
           prompt: formattedPrompt,
           systemInstruction,
-          temperature: 0.3,
-          maxTokens: 1024
+          temperature: tierConfig.temperature,
+          maxTokens: tierConfig.maxTokens
         },
         userId
       );
     } catch (providerError: any) {
-      // Graceful error reporting when AI provider encounters authentication or connectivity failure (Blueprint Gate 11)
-      const isArabic = /[\u0600-\u06FF]/.test(userPrompt);
-      const fallbackText = isArabic
-        ? `أواجه حالياً صعوبة مؤقتة في الاتصال بمزود الذكاء الاصطناعي: ${providerError.message || providerError}. بياناتك وسجلاتك محفوظة بأمان. يرجى التحقق من إعدادات المفتاح في الإعدادات.`
-        : `I am currently experiencing connectivity issues contacting the AI service: ${providerError.message || providerError}. Your health metrics are safe. Please check your API key in Settings -> AI Provider.`;
+      // A4 Error Privacy: Map error to safe localized message, never leak provider exception details
+      const isArabic = SafetyClassifier.isArabic(userPrompt);
+      const safeErrorText = isArabic
+        ? 'أواجه حالياً صعوبة مؤقتة في الاتصال بخدمة الذكاء الاصطناعي. بياناتك وسجلاتك محفوظة بأمان. يرجى التحقق من إعدادات مفتاح الخدمة في الإعدادات.'
+        : 'Forma is currently experiencing connectivity issues reaching the AI service. Your health metrics are safe. Please check your API key in Settings -> AI Provider.';
 
       const assistantMessage = await this.saveMessage(userId, {
         conversationId: conversation.id,
         role: 'assistant',
-        content: fallbackText,
+        content: safeErrorText,
         evidenceClaims: [],
         proposals: [],
-        tokenCount: Math.ceil(fallbackText.length / 4),
+        tokenCount: Math.ceil(safeErrorText.length / 4),
         safetyCategory: 'A'
       });
 
@@ -299,30 +322,36 @@ ${proposalsContextText}
           tier: 1,
           intentClass: 'guidance',
           includedSections: ['fallback'],
-          excludedReasons: { provider_error: providerError.message || 'Provider degraded' },
+          excludedReasons: { provider_error: 'safe_mapped_error' },
           recordCount: 0,
           dataFreshness: 'none'
         },
         safetyCategory: 'A',
         guardrailsTriggered: [],
-        outcome: 'degraded'
+        outcome: 'degraded',
+        promptVersion: PROMPT_VERSION,
+        responseTier: tierConfig.tier,
+        formatViolations: 0,
+        languageMismatch: false,
+        latencyMs: Date.now() - startTime
       });
 
       return {
         conversationId: conversation.id,
         userMessageId: userMessage.id,
         assistantMessageId: assistantMessage.id,
-        content: fallbackText,
+        content: safeErrorText,
         evidenceClaims: [],
         proposals: [],
         safetyCategory: 'A',
+        tier: tierConfig.tier,
         createdAt: assistantMessage.createdAt
       };
     }
 
     let rawText = gatewayResult.result.text;
 
-    // 11. Extract and process any <action_proposal> blocks
+    // 12. Extract and process <action_proposal> blocks
     const extractedProposals: ActionProposal[] = [];
     const proposalRegex = /<action_proposal>([\s\S]*?)<\/action_proposal>/gi;
     let propMatch: RegExpExecArray | null;
@@ -332,47 +361,57 @@ ${proposalsContextText}
         const jsonStr = (propMatch[1] ?? '').trim();
         const parsed = JSON.parse(jsonStr);
         if (parsed.actionType && parsed.parameters && parsed.humanReadableSummary) {
-          const createdProp = await ActionProposalEngine.createProposal(userId, {
-            conversationId: conversation.id,
-            actionType: parsed.actionType,
-            parameters: parsed.parameters,
-            diffPreview: parsed.diffPreview || { after: parsed.parameters, description: parsed.humanReadableSummary },
-            humanReadableSummary: parsed.humanReadableSummary
-          });
-          extractedProposals.push(createdProp);
+          // Limit: at most 2 proposals per message
+          if (extractedProposals.length < 2) {
+            const createdProp = await ActionProposalEngine.createProposal(userId, {
+              conversationId: conversation.id,
+              actionType: parsed.actionType,
+              parameters: parsed.parameters,
+              diffPreview: parsed.diffPreview || { after: parsed.parameters, description: parsed.humanReadableSummary },
+              humanReadableSummary: parsed.humanReadableSummary
+            });
+            extractedProposals.push(createdProp);
+          }
         }
       } catch (err) {
         // Ignore unparseable proposal block
       }
     }
 
-    // Clean text by replacing XML block with clean summary card marker
-    let cleanText = rawText.replace(proposalRegex, (_match, p1) => {
-      try {
-        const parsed = JSON.parse((p1 ?? '').trim());
-        return `\n\n📋 **Action Proposed:** ${parsed.humanReadableSummary}\n*(Please confirm or decline below)*\n`;
-      } catch {
-        return '';
-      }
-    }).trim();
+    // Replace proposal blocks with clean anchor tokens <<proposal:{id}>> per Spec §1.8
+    let propIndex = 0;
+    let textWithProposalTokens = rawText.replace(proposalRegex, () => {
+      const prop = extractedProposals[propIndex++];
+      return prop ? `\n\n<<proposal:${prop.id}>>\n\n` : '';
+    });
 
-    // 12. Extract and verify evidence claims against snapshot and tool data
-    const evidenceClaims = EvidenceClaimVerifier.extractAndVerifyClaims(cleanText, {
+    // 13. Extract structured blocks (forma:metrics, forma:suggestions) per Spec §2.4, G-A2, G-F3
+    const { cleanedText, metricsBlock, suggestionsBlock, formatViolations: blockViolations } =
+      StructuredBlocksExtractor.extractAndValidate(textWithProposalTokens, contextBundle.snapshot);
+
+    // 14. ResponseFormatter post-processing (Spec §2.2, G-A3, G-P2, G-F5)
+    const expectedLang = SafetyClassifier.isArabic(userPrompt) ? 'ar' : 'en';
+    const formattingResult = ResponseFormatter.format(cleanedText, hasReceiptThisTurn, expectedLang);
+    const finalContent = formattingResult.formattedText;
+    const totalViolations = blockViolations + formattingResult.formatViolations;
+
+    // 15. Extract and verify evidence claims against snapshot
+    const evidenceClaims = EvidenceClaimVerifier.extractAndVerifyClaims(finalContent, {
       snapshot: contextBundle.snapshot
     });
 
-    // 13. Save assistant message
+    // 16. Save assistant message
     const assistantMessage = await this.saveMessage(userId, {
       conversationId: conversation.id,
       role: 'assistant',
-      content: cleanText,
+      content: finalContent,
       evidenceClaims,
       proposals: extractedProposals,
-      tokenCount: gatewayResult.result.usage.completionTokens || Math.ceil(cleanText.length / 4),
+      tokenCount: gatewayResult.result.usage.completionTokens || Math.ceil(finalContent.length / 4),
       safetyCategory: safety.category
     });
 
-    // 14. Update proposal message_ids
+    // 17. Update proposal message_ids
     if (extractedProposals.length > 0) {
       await withUserContext(userId, async (client) => {
         for (const p of extractedProposals) {
@@ -384,7 +423,7 @@ ${proposalsContextText}
       });
     }
 
-    // 15. Record AI Trace
+    // 18. Record AI Trace with promptVersion, tier, formatViolations, languageMismatch
     await this.traceService.emitTrace({
       userId,
       correlationId,
@@ -397,23 +436,31 @@ ${proposalsContextText}
       safetyCategory: safety.category as SafetyCategory,
       guardrailsTriggered: safety.guardrailsTriggered,
       evidenceTypes: evidenceClaims.map(c => c.evidenceType),
-      outcome: 'success'
+      outcome: 'success',
+      promptVersion: PROMPT_VERSION,
+      responseTier: tierConfig.tier,
+      formatViolations: totalViolations,
+      languageMismatch: formattingResult.languageMismatch,
+      latencyMs: Date.now() - startTime
     });
 
     return {
       conversationId: conversation.id,
       userMessageId: userMessage.id,
       assistantMessageId: assistantMessage.id,
-      content: cleanText,
+      content: finalContent,
       evidenceClaims,
       proposals: extractedProposals,
+      metricsBlock,
+      suggestionsBlock,
       safetyCategory: safety.category,
+      tier: tierConfig.tier,
       createdAt: assistantMessage.createdAt
     };
   }
 
   /**
-   * Handles a conversational turn with Server-Sent Events (SSE) streaming.
+   * Handles a conversational turn with Server-Sent Events (SSE) streaming (Spec §6.2).
    */
   async *chatStream(
     userId: string,
@@ -423,6 +470,9 @@ ${proposalsContextText}
     const userPrompt = req.message.trim();
     const safety = SafetyClassifier.classify(userPrompt);
     const conversation = await this.getOrCreateConversation(userId, req.conversationId, userPrompt);
+
+    // History before saving user message (A2 / A3)
+    await this.getRecentMessages(userId, conversation.id, 10);
 
     const userMessage = await this.saveMessage(userId, {
       conversationId: conversation.id,
@@ -443,8 +493,8 @@ ${proposalsContextText}
     };
 
     if (safety.category === 'D') {
-      const redirectText = safety.redirectMessage ||
-        'Your safety and health are paramount. The symptoms or behaviors you described require immediate evaluation by a licensed healthcare professional or emergency medical services.';
+      const isAr = safety.detectedLanguage === 'ar';
+      const redirectText = isAr ? SafetyClassifier.REDIRECT_MESSAGE_AR : SafetyClassifier.REDIRECT_MESSAGE_EN;
 
       // Stream the redirect message in chunks
       const words = redirectText.split(' ');
@@ -470,19 +520,64 @@ ${proposalsContextText}
           fullText: redirectText,
           proposals: [],
           evidenceClaims: [],
-          safetyCategory: 'D'
+          safetyCategory: 'D',
+          tier: 'T0'
         }
       };
       return;
     }
 
-    // Execute through full pipeline
-    const chatResult = await this.chat(userId, req, correlationId);
+    // Status: retrieving context
+    yield { event: 'status', data: { stage: 'retrieving_context' } };
 
-    // Stream text in small chunks for smooth SSE client rendering
-    const chunks = chatResult.content.match(/[\s\S]{1,24}/g) || [chatResult.content];
+    // Status: calculating
+    yield { event: 'status', data: { stage: 'calculating' } };
+
+    // Status: generating
+    yield { event: 'status', data: { stage: 'generating' } };
+
+    // Execute chat with StreamFilter hold-back buffer
+    let chatResult: ChatResponse;
+    try {
+      chatResult = await this.chat(userId, req, correlationId);
+    } catch (err: any) {
+      // Map to error code S02
+      yield {
+        event: 'error',
+        data: {
+          code: 'S02',
+          retryable: true
+        }
+      };
+      return;
+    }
+
+    const filter = new StreamFilter();
+    // Feed response text through hold-back filter
+    const chunks = chatResult.content.match(/[\s\S]{1,16}/g) || [chatResult.content];
     for (const chunk of chunks) {
-      yield { event: 'delta', data: { text: chunk } };
+      const events = filter.processChunk(chunk);
+      for (const ev of events) {
+        if (ev.type === 'delta' && ev.text) {
+          yield { event: 'delta', data: { text: ev.text } };
+        }
+      }
+    }
+
+    const flushEvents = filter.flush();
+    for (const ev of flushEvents) {
+      if (ev.type === 'delta' && ev.text) {
+        yield { event: 'delta', data: { text: ev.text } };
+      }
+    }
+
+    // Emit structured blocks
+    if (chatResult.metricsBlock) {
+      yield { event: 'metrics', data: chatResult.metricsBlock };
+    }
+
+    if (chatResult.suggestionsBlock) {
+      yield { event: 'suggestions', data: chatResult.suggestionsBlock };
     }
 
     for (const proposal of chatResult.proposals) {
@@ -501,7 +596,8 @@ ${proposalsContextText}
         fullText: chatResult.content,
         proposals: chatResult.proposals,
         evidenceClaims: chatResult.evidenceClaims,
-        safetyCategory: chatResult.safetyCategory
+        safetyCategory: chatResult.safetyCategory,
+        tier: chatResult.tier
       }
     };
   }
@@ -524,17 +620,18 @@ ${proposalsContextText}
         }
       }
 
+      // Generate title from initial prompt
       const title = initialPrompt
-        ? initialPrompt.length > 40
-          ? initialPrompt.substring(0, 37) + '...'
-          : initialPrompt
+        ? initialPrompt.slice(0, 40) + (initialPrompt.length > 40 ? '...' : '')
         : 'New Conversation';
 
-      const insertRes = await client.query(
-        `INSERT INTO conversations (user_id, title) VALUES ($1, $2) RETURNING *`,
+      const res = await client.query(
+        `INSERT INTO conversations (user_id, title, metadata)
+         VALUES ($1, $2, '{}'::jsonb)
+         RETURNING *`,
         [userId, title]
       );
-      return mapConversationRow(insertRes.rows[0]);
+      return mapConversationRow(res.rows[0]);
     });
   }
 
@@ -578,6 +675,10 @@ ${proposalsContextText}
     });
   }
 
+  /**
+   * Retrieves the latest N messages from the conversation while preserving chronological order.
+   * A2 Defect Fix: Subquery fetches DESC limit $3, outer query sorts ASC.
+   */
   private async getRecentMessages(
     userId: string,
     conversationId: string,
@@ -585,10 +686,13 @@ ${proposalsContextText}
   ): Promise<ConversationMessage[]> {
     return await withUserContext(userId, async (client) => {
       const res = await client.query(
-        `SELECT * FROM conversation_messages
-         WHERE conversation_id = $1 AND user_id = $2
-         ORDER BY created_at ASC
-         LIMIT $3`,
+        `SELECT * FROM (
+           SELECT * FROM conversation_messages
+           WHERE conversation_id = $1 AND user_id = $2
+           ORDER BY created_at DESC
+           LIMIT $3
+         ) sub
+         ORDER BY created_at ASC`,
         [conversationId, userId, limit]
       );
       return res.rows.map(mapMessageRow);

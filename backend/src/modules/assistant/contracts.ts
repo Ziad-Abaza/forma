@@ -85,7 +85,7 @@ export interface AssistantMemory {
 
 export const ChatRequestSchema = z.object({
   conversationId: z.string().uuid().optional(),
-  message: z.string().min(1, 'Message cannot be empty'),
+  message: z.string().trim().min(1, 'Message cannot be empty').max(2000, 'Message cannot exceed 2000 characters'),
   stream: z.boolean().default(false)
 });
 

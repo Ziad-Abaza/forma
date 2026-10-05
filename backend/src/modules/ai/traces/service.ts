@@ -19,6 +19,11 @@ export interface CreateTraceInput {
   guardrailsTriggered?: string[] | undefined;
   budgetConsumed?: BudgetConsumption | undefined;
   outcome?: 'success' | 'error' | 'refusal' | 'degraded' | undefined;
+  promptVersion?: string | undefined;
+  responseTier?: string | undefined;
+  formatViolations?: number | undefined;
+  languageMismatch?: boolean | undefined;
+  latencyMs?: number | undefined;
 }
 
 export interface AITraceRecord extends CreateTraceInput {
@@ -36,11 +41,13 @@ export class AITraceService implements ExportableModule, DeletableModule {
         `INSERT INTO ai_traces (
           user_id, correlation_id, provider, model_id, task_class, intent_class,
           context_tier, context_manifest, tools_invoked, evidence_types,
-          safety_category, guardrails_triggered, budget_consumed, outcome
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          safety_category, guardrails_triggered, budget_consumed, outcome,
+          prompt_version, response_tier, format_violations, language_mismatch, latency_ms
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
         RETURNING id, user_id, correlation_id, provider, model_id, task_class, intent_class,
                   context_tier, context_manifest, tools_invoked, evidence_types,
-                  safety_category, guardrails_triggered, budget_consumed, outcome, created_at`,
+                  safety_category, guardrails_triggered, budget_consumed, outcome,
+                  prompt_version, response_tier, format_violations, language_mismatch, latency_ms, created_at`,
         [
           input.userId,
           input.correlationId,
@@ -56,6 +63,11 @@ export class AITraceService implements ExportableModule, DeletableModule {
           JSON.stringify(input.guardrailsTriggered || []),
           JSON.stringify(input.budgetConsumed || {}),
           input.outcome || 'success',
+          input.promptVersion || '2.0.0',
+          input.responseTier || 'T1',
+          input.formatViolations ?? 0,
+          input.languageMismatch ?? false,
+          input.latencyMs ?? 0,
         ]
       );
 

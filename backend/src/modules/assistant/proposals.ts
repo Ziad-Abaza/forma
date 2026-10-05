@@ -32,6 +32,32 @@ export class ActionProposalEngine {
     userId: string,
     input: CreateProposalInput
   ): Promise<ActionProposal> {
+    // G-A4: Implausible-value gate (Spec §4.2 G-A4)
+    if (input.actionType === 'log_measurement') {
+      const typeCode = input.parameters?.typeCode;
+      const val = Number(input.parameters?.value);
+      if (!isNaN(val)) {
+        if (typeCode === 'weight' && (val < 20 || val > 350)) {
+          throw new Error(`Implausible weight value: ${val}. Plausible physiological bounds are 20 to 350 kg.`);
+        }
+        if (typeCode === 'body_fat_percentage' && (val < 2 || val > 70)) {
+          throw new Error(`Implausible body fat value: ${val}%. Plausible physiological bounds are 2% to 70%.`);
+        }
+        if (typeCode === 'height' && (val < 50 || val > 270)) {
+          throw new Error(`Implausible height value: ${val} cm. Plausible bounds are 50 to 270 cm.`);
+        }
+      }
+    }
+
+    // G-A6: Prompt injection defense in save_memory (Spec §4.2 G-A6)
+    if (input.actionType === 'save_memory') {
+      const val = String(input.parameters?.value || '');
+      const suspiciousPattern = /\b(ignore\s+all\s+previous|system\s+prompt|you\s+are\s+now|developer\s+mode|override\s+instructions)\b/i;
+      if (suspiciousPattern.test(val)) {
+        throw new Error('Instruction-like pattern detected in memory proposal. Cannot save as memory.');
+      }
+    }
+
     const idempotencyKey = `prop_${crypto.randomUUID()}`;
     const expiryMinutes = input.expiryMinutes ?? 15;
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000).toISOString();

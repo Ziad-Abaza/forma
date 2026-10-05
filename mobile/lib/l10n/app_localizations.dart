@@ -611,7 +611,7 @@ abstract class AppLocalizations {
   /// No description provided for @newChat.
   ///
   /// In en, this message translates to:
-  /// **'New Conversation'**
+  /// **'New Chat'**
   String get newChat;
 
   /// No description provided for @actionReceiptId.
@@ -1165,6 +1165,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Signed In As'**
   String get signedInAs;
+
+  /// No description provided for @assistantStatusOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get assistantStatusOnline;
+
+  /// No description provided for @assistantStatusThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your latest data…'**
+  String get assistantStatusThinking;
+
+  /// No description provided for @assistantStatusCalculating.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the numbers…'**
+  String get assistantStatusCalculating;
+
+  /// No description provided for @assistantStatusGenerating.
+  ///
+  /// In en, this message translates to:
+  /// **'Forma is replying…'**
+  String get assistantStatusGenerating;
+
+  /// No description provided for @assistantGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello! I am Forma, your personalized health and wellness companion. I can help answer fitness questions, monitor your progress, or prepare action proposals to log measurements and update goals.'**
+  String get assistantGreeting;
+
+  /// No description provided for @jumpToLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'New reply'**
+  String get jumpToLatest;
+
+  /// No description provided for @confirmingAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirming…'**
+  String get confirmingAction;
+
+  /// No description provided for @actionExecuted.
+  ///
+  /// In en, this message translates to:
+  /// **'Logged successfully'**
+  String get actionExecuted;
+
+  /// No description provided for @actionPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Confirmation'**
+  String get actionPending;
+
+  /// No description provided for @sourcesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get sourcesTitle;
+
+  /// No description provided for @sourcesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources ({count})'**
+  String sourcesCount(Object count);
+
+  /// No description provided for @messageInputPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Message Forma…'**
+  String get messageInputPlaceholder;
+
+  /// No description provided for @messageTooLongHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Message is too long — trim it to 2,000 characters.'**
+  String get messageTooLongHint;
+
+  /// No description provided for @stopGeneration.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get stopGeneration;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get copiedToClipboard;
+
+  /// No description provided for @errorS01Offline.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re offline. Check your internet connection.'**
+  String get errorS01Offline;
+
+  /// No description provided for @errorS02Provider.
+  ///
+  /// In en, this message translates to:
+  /// **'Forma couldn\'t reach the AI service. Your data is safe.'**
+  String get errorS02Provider;
+
+  /// No description provided for @errorS03Timeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Taking longer than usual. Please retry.'**
+  String get errorS03Timeout;
+
+  /// No description provided for @errorS04Interrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply interrupted.'**
+  String get errorS04Interrupted;
+
+  /// No description provided for @errorS05RateLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached the message limit for now. Try again shortly.'**
+  String get errorS05RateLimit;
+
+  /// No description provided for @errorS06Expired.
+  ///
+  /// In en, this message translates to:
+  /// **'Action proposal expired.'**
+  String get errorS06Expired;
+
+  /// No description provided for @errorS07Commit.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to commit action.'**
+  String get errorS07Commit;
+
+  /// No description provided for @errorS08Malformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to format response.'**
+  String get errorS08Malformed;
 }
 
 class _AppLocalizationsDelegate

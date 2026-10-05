@@ -1,10 +1,19 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/theme.dart';
 import '../../core/providers.dart';
 import '../../modules/assistant/models/assistant_models.dart';
 import '../../modules/assistant/repositories/assistant_repository.dart';
+import '../widgets/chat/assistant_message_view.dart';
+import '../widgets/chat/chat_error_card.dart';
+import '../widgets/chat/composer.dart';
+import '../widgets/chat/empty_state_bento.dart';
+import '../widgets/chat/jump_to_latest_pill.dart';
+import '../widgets/chat/typing_indicator.dart';
+import '../widgets/chat/user_bubble.dart';
 
 export '../../modules/assistant/models/assistant_models.dart';
 export '../../modules/assistant/repositories/assistant_repository.dart';
@@ -12,103 +21,314 @@ export '../../modules/assistant/repositories/assistant_repository.dart';
 class AssistantChatState {
   final List<AssistantChatMessage> messages;
   final bool isStreaming;
+  final String? streamingStage; // 'retrieving_context' | 'calculating' | 'generating'
   final String? conversationId;
-  final String? errorMessage;
+  final String? activeErrorCode; // 'S01' through 'S08'
+  final List<String> currentSuggestions;
+  final String? lastUserPrompt;
 
   const AssistantChatState({
     required this.messages,
     this.isStreaming = false,
+    this.streamingStage,
     this.conversationId,
-    this.errorMessage,
+    this.activeErrorCode,
+    this.currentSuggestions = const [],
+    this.lastUserPrompt,
   });
 
   AssistantChatState copyWith({
     List<AssistantChatMessage>? messages,
     bool? isStreaming,
+    String? streamingStage,
+    bool clearStreamingStage = false,
     String? conversationId,
-    String? errorMessage,
+    String? activeErrorCode,
+    bool clearErrorCode = false,
+    List<String>? currentSuggestions,
+    String? lastUserPrompt,
   }) {
     return AssistantChatState(
       messages: messages ?? this.messages,
       isStreaming: isStreaming ?? this.isStreaming,
+      streamingStage: clearStreamingStage ? null : (streamingStage ?? this.streamingStage),
       conversationId: conversationId ?? this.conversationId,
-      errorMessage: errorMessage,
+      activeErrorCode: clearErrorCode ? null : (activeErrorCode ?? this.activeErrorCode),
+      currentSuggestions: currentSuggestions ?? this.currentSuggestions,
+      lastUserPrompt: lastUserPrompt ?? this.lastUserPrompt,
     );
   }
 }
 
 class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
   final AssistantRepository repository;
+  StreamSubscription<SSEEvent>? _streamSubscription;
 
   AssistantChatNotifier({required this.repository})
-      : super(AssistantChatState(
-          messages: [
-            AssistantChatMessage(
-              id: 'init_1',
-              role: 'assistant',
-              content:
-                  'Hello! I am Forma, your personalized health and wellness companion. I can help answer fitness questions, monitor your progress, or prepare action proposals to log measurements and update goals.',
-              evidenceClaims: const [
-                EvidenceClaimModel(
-                  claimText: 'Grounding verified',
-                  type: EvidenceBadgeType.retrieved,
-                ),
-              ],
-              timestamp: DateTime.now(),
-            ),
-          ],
+      : super(const AssistantChatState(
+          messages: [],
         ));
 
+  @override
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
+  }
+
+  void stopStreaming() {
+    if (_streamSubscription != null) {
+      _streamSubscription?.cancel();
+      _streamSubscription = null;
+      state = state.copyWith(
+        isStreaming: false,
+        clearStreamingStage: true,
+      );
+    }
+  }
+
+  Future<void> retryLastPrompt(AppLocalizations l10n) async {
+    final prompt = state.lastUserPrompt;
+    if (prompt != null && prompt.isNotEmpty) {
+      await sendMessage(prompt, l10n);
+    }
+  }
+
   Future<void> sendMessage(String text, AppLocalizations l10n) async {
-    if (text.trim().isEmpty) return;
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    // Cancel any active stream before starting a new one
+    stopStreaming();
 
     final userMsg = AssistantChatMessage(
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
       role: 'user',
-      content: text.trim(),
+      content: trimmed,
       timestamp: DateTime.now(),
     );
 
     state = state.copyWith(
       messages: [...state.messages, userMsg],
       isStreaming: true,
-      errorMessage: null,
+      streamingStage: 'retrieving_context',
+      clearErrorCode: true,
+      lastUserPrompt: trimmed,
+      currentSuggestions: const [],
+    );
+
+    // Placeholder for incoming assistant stream
+    final assistantMsgId = 'asst_${DateTime.now().millisecondsSinceEpoch}';
+    final assistantMsg = AssistantChatMessage(
+      id: assistantMsgId,
+      role: 'assistant',
+      content: '',
+      timestamp: DateTime.now(),
+    );
+
+    state = state.copyWith(
+      messages: [...state.messages, assistantMsg],
     );
 
     try {
-      final result = await repository.sendMessage(
-        message: text.trim(),
+      final stream = repository.streamMessage(
+        message: trimmed,
         conversationId: state.conversationId,
       );
 
-      state = state.copyWith(
-        messages: [...state.messages, result.assistantMessage],
-        conversationId: result.conversationId.isNotEmpty ? result.conversationId : state.conversationId,
-        isStreaming: false,
+      _streamSubscription = stream.listen(
+        (event) {
+          _handleSSEEvent(event, assistantMsgId);
+        },
+        onError: (err) {
+          _handleStreamError(err, assistantMsgId);
+        },
+        onDone: () {
+          state = state.copyWith(
+            isStreaming: false,
+            clearStreamingStage: true,
+          );
+          _streamSubscription = null;
+        },
+        cancelOnError: true,
       );
     } catch (err) {
-      final errorMsg = AssistantChatMessage(
-        id: 'err_${DateTime.now().millisecondsSinceEpoch}',
-        role: 'assistant',
-        content: 'Unable to connect to Forma Assistant service: ${err.toString()}',
-        timestamp: DateTime.now(),
-      );
-      state = state.copyWith(
-        messages: [...state.messages, errorMsg],
-        isStreaming: false,
-        errorMessage: err.toString(),
-      );
+      _handleStreamError(err, assistantMsgId);
     }
   }
 
+  void _handleSSEEvent(SSEEvent event, String assistantMsgId) {
+    final eventName = event.event;
+    final data = event.data;
+
+    switch (eventName) {
+      case 'start':
+        final convId = data['conversationId'] as String?;
+        if (convId != null && convId.isNotEmpty) {
+          state = state.copyWith(conversationId: convId);
+        }
+        break;
+
+      case 'status':
+        final stage = data['stage'] as String?;
+        if (stage != null) {
+          state = state.copyWith(streamingStage: stage);
+        }
+        break;
+
+      case 'delta':
+        final deltaText = data['text'] as String? ?? '';
+        if (deltaText.isNotEmpty) {
+          final updated = state.messages.map((m) {
+            if (m.id == assistantMsgId) {
+              return m.copyWith(content: m.content + deltaText);
+            }
+            return m;
+          }).toList();
+          state = state.copyWith(
+            messages: updated,
+            streamingStage: 'generating',
+          );
+        }
+        break;
+
+      case 'metrics':
+        final metrics = FormaMetricsModel.fromJson(data);
+        final updated = state.messages.map((m) {
+          if (m.id == assistantMsgId) {
+            return m.copyWith(metricsBlock: metrics);
+          }
+          return m;
+        }).toList();
+        state = state.copyWith(messages: updated);
+        break;
+
+      case 'proposal':
+        final proposal = ActionProposalModel.fromJson(data);
+        final updated = state.messages.map((m) {
+          if (m.id == assistantMsgId) {
+            final exists = m.proposals.any((p) => p.id == proposal.id);
+            final updatedProposals = exists
+                ? m.proposals.map((p) => p.id == proposal.id ? proposal : p).toList()
+                : [...m.proposals, proposal];
+            return m.copyWith(proposals: updatedProposals);
+          }
+          return m;
+        }).toList();
+        state = state.copyWith(messages: updated);
+        break;
+
+      case 'suggestions':
+        final suggestionsModel = FormaSuggestionsModel.fromJson(data);
+        final updated = state.messages.map((m) {
+          if (m.id == assistantMsgId) {
+            return m.copyWith(suggestionsBlock: suggestionsModel);
+          }
+          return m;
+        }).toList();
+        state = state.copyWith(
+          messages: updated,
+          currentSuggestions: suggestionsModel.chips,
+        );
+        break;
+
+      case 'evidence':
+        final evidenceModel = EvidenceClaimModel.fromJson(data);
+        final updated = state.messages.map((m) {
+          if (m.id == assistantMsgId) {
+            return m.copyWith(evidenceClaims: [...m.evidenceClaims, evidenceModel]);
+          }
+          return m;
+        }).toList();
+        state = state.copyWith(messages: updated);
+        break;
+
+      case 'done':
+        final finalContent = data['content'] as String?;
+        final safetyCategory = data['safetyCategory'] as String?;
+        final isEmergency = safetyCategory == 'D';
+
+        final updated = state.messages.map((m) {
+          if (m.id == assistantMsgId) {
+            return m.copyWith(
+              content: (finalContent != null && finalContent.isNotEmpty)
+                  ? finalContent
+                  : m.content,
+              isEmergencyNotice: isEmergency,
+            );
+          }
+          return m;
+        }).toList();
+
+        state = state.copyWith(
+          messages: updated,
+          isStreaming: false,
+          clearStreamingStage: true,
+        );
+        break;
+
+      case 'error':
+        final code = data['code'] as String? ?? 'S02';
+        state = state.copyWith(
+          isStreaming: false,
+          clearStreamingStage: true,
+          activeErrorCode: code,
+        );
+        break;
+    }
+  }
+
+  void _handleStreamError(dynamic err, String assistantMsgId) {
+    String code = 'S02';
+    final errStr = err.toString().toLowerCase();
+    if (errStr.contains('socket') || errStr.contains('network') || errStr.contains('offline')) {
+      code = 'S01';
+    } else if (errStr.contains('timeout')) {
+      code = 'S03';
+    } else if (errStr.contains('rate') || errStr.contains('429')) {
+      code = 'S05';
+    }
+
+    // Clean up empty assistant placeholder if failed right away
+    final updated = state.messages.where((m) {
+      if (m.id == assistantMsgId && m.content.isEmpty && m.proposals.isEmpty && m.metricsBlock == null) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    state = state.copyWith(
+      messages: updated,
+      isStreaming: false,
+      clearStreamingStage: true,
+      activeErrorCode: code,
+    );
+  }
+
   Future<void> confirmProposal(String messageId, String proposalId) async {
+    // 1. Optimistic transition: pending -> confirming
+    final updatedConfirming = state.messages.map((msg) {
+      if (msg.id == messageId) {
+        final updatedProps = msg.proposals.map((p) {
+          if (p.id == proposalId) {
+            return p.copyWith(status: 'confirming');
+          }
+          return p;
+        }).toList();
+        return msg.copyWith(proposals: updatedProps);
+      }
+      return msg;
+    }).toList();
+    state = state.copyWith(messages: updatedConfirming);
+
     try {
       final result = await repository.confirmProposal(proposalId);
-      final updated = state.messages.map((msg) {
+
+      // 2. Transition confirming -> executed with confirmed proposal from server
+      final updatedExecuted = state.messages.map((msg) {
         if (msg.id == messageId) {
           final updatedProps = msg.proposals.map((p) {
             if (p.id == proposalId) {
-              p.status = 'executed';
+              return result.proposal.copyWith(status: 'executed');
             }
             return p;
           }).toList();
@@ -134,15 +354,29 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
         timestamp: DateTime.now(),
       );
 
-      state = state.copyWith(messages: [...updated, receiptMsg]);
+      state = state.copyWith(messages: [...updatedExecuted, receiptMsg]);
     } catch (err) {
-      final failMsg = AssistantChatMessage(
-        id: 'fail_${DateTime.now().millisecondsSinceEpoch}',
-        role: 'assistant',
-        content: 'Failed to commit action proposal: $err',
-        timestamp: DateTime.now(),
+      // 3. Transition confirming -> failed with error description
+      final updatedFailed = state.messages.map((msg) {
+        if (msg.id == messageId) {
+          final updatedProps = msg.proposals.map((p) {
+            if (p.id == proposalId) {
+              return p.copyWith(
+                status: 'failed',
+                errorMessage: err.toString(),
+              );
+            }
+            return p;
+          }).toList();
+          return msg.copyWith(proposals: updatedProps);
+        }
+        return msg;
+      }).toList();
+
+      state = state.copyWith(
+        messages: updatedFailed,
+        activeErrorCode: 'S07',
       );
-      state = state.copyWith(messages: [...state.messages, failMsg]);
     }
   }
 
@@ -155,7 +389,7 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
       if (msg.id == messageId) {
         final updatedProps = msg.proposals.map((p) {
           if (p.id == proposalId) {
-            p.status = 'declined';
+            return p.copyWith(status: 'declined');
           }
           return p;
         }).toList();
@@ -168,16 +402,11 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
   }
 
   void clearConversation() {
-    state = AssistantChatState(
-      messages: [
-        AssistantChatMessage(
-          id: 'init_reset',
-          role: 'assistant',
-          content: 'Started a new conversation. How can I assist you with your health today?',
-          timestamp: DateTime.now(),
-        ),
-      ],
+    stopStreaming();
+    state = const AssistantChatState(
+      messages: [],
       conversationId: null,
+      currentSuggestions: [],
     );
   }
 }
@@ -196,35 +425,66 @@ class AssistantScreen extends ConsumerStatefulWidget {
 }
 
 class _AssistantScreenState extends ConsumerState<AssistantScreen> {
-  final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _isNearBottom = true;
+  bool _showJumpToLatest = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
   @override
   void dispose() {
-    _textController.dispose();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    // In reverse: true ListView, offset 0 is the bottom!
+    final offset = _scrollController.offset;
+    final isNear = offset < 80;
+    if (isNear != _isNearBottom) {
+      setState(() {
+        _isNearBottom = isNear;
+        _showJumpToLatest = !isNear;
+      });
+    }
+  }
+
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final chatState = ref.watch(assistantChatProvider);
-    final numeralSystem = ref.watch(numeralSystemProvider);
 
-    ref.listen(assistantChatProvider, (_, _) => _scrollToBottom());
+    // Auto-scroll on new tokens if user is already near bottom (<= 80dp)
+    ref.listen(assistantChatProvider, (_, next) {
+      if (_isNearBottom) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients && _isNearBottom) {
+            _scrollController.jumpTo(0.0);
+          }
+        });
+      }
+    });
+
+    final messages = chatState.messages;
+    final hasMessages = messages.isNotEmpty;
+
+    // Display messages in reverse order for reverse: true ListView
+    final reversedMessages = messages.reversed.toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -270,475 +530,104 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
         ],
       ),
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Messages list
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                itemCount: chatState.messages.length,
-                itemBuilder: (context, index) {
-                  final msg = chatState.messages[index];
-                  return _buildMessageRow(context, msg, l10n, numeralSystem);
-                },
-              ),
-            ),
-
-            if (chatState.isStreaming)
-              const LinearProgressIndicator(
-                backgroundColor: FormaTheme.surfaceCard,
-                color: FormaTheme.primaryTeal,
-              ),
-
-            // Input bar
-            _buildInputBar(context, l10n),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMessageRow(
-    BuildContext context,
-    AssistantChatMessage msg,
-    AppLocalizations l10n,
-    String numeralSystem,
-  ) {
-    final isUser = msg.role == 'user';
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment:
-            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment:
-                isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (!isUser) ...[
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: msg.isEmergencyNotice
-                        ? FormaTheme.alertCoral.withAlpha(40)
-                        : FormaTheme.primaryTeal.withAlpha(30),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: msg.isEmergencyNotice
-                          ? FormaTheme.alertCoral
-                          : FormaTheme.primaryTeal,
-                      width: 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: msg.isEmergencyNotice
-                        ? const Icon(
-                            Icons.warning_amber_rounded,
-                            size: 18,
-                            color: FormaTheme.alertCoral,
-                          )
-                        : ClipOval(
-                            child: Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: Image.asset(
-                                'assets/logo.png',
-                                width: 22,
-                                height: 22,
-                                cacheWidth: 66,
-                                cacheHeight: 66,
-                                errorBuilder: (_, _, _) => const Icon(
-                                  Icons.smart_toy_outlined,
-                                  size: 18,
-                                  color: FormaTheme.primaryTeal,
-                                ),
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isUser
-                        ? FormaTheme.primaryTeal.withAlpha(40)
-                        : (msg.isEmergencyNotice
-                            ? FormaTheme.alertCoral.withAlpha(25)
-                            : FormaTheme.surfaceCard),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: msg.isEmergencyNotice
-                          ? FormaTheme.alertCoral
-                          : (isUser
-                              ? FormaTheme.primaryTeal.withAlpha(80)
-                              : FormaTheme.borderSubtle),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (msg.isEmergencyNotice) ...[
-                        Row(
-                          children: [
-                            const Icon(Icons.emergency,
-                                color: FormaTheme.alertCoral, size: 16),
-                            const SizedBox(width: 6),
-                            Text(
-                              l10n.safetyEmergencyTitle,
-                              style: const TextStyle(
-                                color: FormaTheme.alertCoral,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                      ],
-                      Text(
-                        formatNumeralString(msg.content, numeralSystem),
-                        style: TextStyle(
-                          color: msg.isEmergencyNotice
-                              ? FormaTheme.textPrimary
-                              : (isUser
-                                  ? FormaTheme.textPrimary
-                                  : FormaTheme.textPrimary),
-                          fontSize: 14.5,
-                          height: 1.45,
-                        ),
-                      ),
-
-                      // Evidence Badges
-                      if (msg.evidenceClaims.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 4,
-                          children: msg.evidenceClaims
-                              .map((c) => _buildEvidenceBadge(c, l10n))
-                              .toList(),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              if (isUser) ...[
-                const SizedBox(width: 8),
-                const CircleAvatar(
-                  radius: 16,
-                  backgroundColor: FormaTheme.surfaceElevated,
-                  child: Icon(Icons.person, size: 18, color: FormaTheme.textPrimary),
-                ),
-              ],
-            ],
-          ),
-
-          // Action Proposals Cards
-          if (msg.proposals.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            ...msg.proposals.map((p) => _buildActionProposalCard(context, msg.id, p, l10n, numeralSystem)),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEvidenceBadge(EvidenceClaimModel claim, AppLocalizations l10n) {
-    Color badgeColor;
-    String label;
-
-    switch (claim.type) {
-      case EvidenceBadgeType.retrieved:
-        badgeColor = FormaTheme.badgeMeasured;
-        label = l10n.evidenceBadgeRetrieved;
-        break;
-      case EvidenceBadgeType.calculated:
-        badgeColor = FormaTheme.badgeCalculated;
-        label = l10n.evidenceBadgeCalculated;
-        break;
-      case EvidenceBadgeType.estimated:
-        badgeColor = FormaTheme.badgeEstimated;
-        label = l10n.evidenceBadgeEstimated;
-        break;
-      case EvidenceBadgeType.inferred:
-        badgeColor = FormaTheme.secondaryMint;
-        label = l10n.evidenceBadgeInferred;
-        break;
-      case EvidenceBadgeType.recommended:
-        badgeColor = FormaTheme.successGreen;
-        label = l10n.evidenceBadgeRecommended;
-        break;
-      default:
-        badgeColor = FormaTheme.textTertiary;
-        label = 'Note';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: badgeColor.withAlpha(35),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: badgeColor.withAlpha(120), width: 1),
-      ),
-      child: Text(
-        '[$label: ${claim.claimText}]',
-        style: TextStyle(
-          color: badgeColor,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionProposalCard(
-    BuildContext context,
-    String messageId,
-    ActionProposalModel proposal,
-    AppLocalizations l10n,
-    String numeralSystem,
-  ) {
-    final isPending = proposal.status == 'pending';
-    final isExecuted = proposal.status == 'executed';
-    final isDeclined = proposal.status == 'declined';
-
-    return Container(
-      margin: const EdgeInsets.only(top: 8, left: 40, right: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: FormaTheme.surfaceElevated,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isExecuted
-              ? FormaTheme.successGreen
-              : (isPending ? FormaTheme.warningAmber : FormaTheme.borderSubtle),
-          width: 1.2,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                isExecuted
-                    ? Icons.check_circle_outline
-                    : (isDeclined ? Icons.cancel_outlined : Icons.pending_actions),
-                size: 18,
-                color: isExecuted
-                    ? FormaTheme.successGreen
-                    : (isDeclined ? FormaTheme.textTertiary : FormaTheme.warningAmber),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  l10n.actionProposed,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: isExecuted
-                        ? FormaTheme.successGreen
-                        : (isDeclined ? FormaTheme.textTertiary : FormaTheme.warningAmber),
-                  ),
-                ),
-              ),
-              _buildStatusPill(proposal.status, l10n),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            formatNumeralString(proposal.humanReadableSummary, numeralSystem),
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w500,
-              color: FormaTheme.textPrimary,
-            ),
-          ),
-          if (proposal.diffBefore != null || proposal.diffAfter.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: FormaTheme.obsidianBackground,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: FormaTheme.borderSubtle, width: 0.8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (proposal.diffBefore != null) ...[
-                    Text(
-                      proposal.diffBefore!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: FormaTheme.textSecondary,
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward, size: 12, color: FormaTheme.primaryTeal),
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    proposal.diffAfter,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: FormaTheme.primaryTeal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          if (isPending) ...[
-            const SizedBox(height: 12),
-            Row(
+            Column(
               children: [
+                // Chat List or Empty State
                 Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: FormaTheme.primaryTeal,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () {
-                      ref
-                          .read(assistantChatProvider.notifier)
-                          .confirmProposal(messageId, proposal.id);
-                    },
-                    icon: const Icon(Icons.check, size: 16),
-                    label: Text(l10n.confirmAction, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ),
+                  child: !hasMessages
+                      ? SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: EmptyStateBento(
+                            onPromptTap: (prompt) {
+                              ref.read(assistantChatProvider.notifier).sendMessage(prompt, l10n);
+                            },
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          reverse: true,
+                          padding: const EdgeInsets.only(top: 12, bottom: 8),
+                          itemCount: reversedMessages.length,
+                          itemBuilder: (context, index) {
+                            final msg = reversedMessages[index];
+                            final isUser = msg.role == 'user';
+
+                            if (isUser) {
+                              return UserBubble(message: msg);
+                            }
+
+                            return AssistantMessageView(
+                              message: msg,
+                              onConfirmProposal: (msgId, propId) {
+                                ref.read(assistantChatProvider.notifier).confirmProposal(msgId, propId);
+                              },
+                              onDeclineProposal: (msgId, propId) {
+                                ref.read(assistantChatProvider.notifier).declineProposal(msgId, propId);
+                              },
+                              onCopy: () {
+                                Clipboard.setData(ClipboardData(text: msg.content));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(l10n.copiedToClipboard),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                              onRetry: () {
+                                ref.read(assistantChatProvider.notifier).retryLastPrompt(l10n);
+                              },
+                            );
+                          },
+                        ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: FormaTheme.textSecondary,
-                      side: const BorderSide(color: FormaTheme.borderSubtle),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () {
-                      ref
-                          .read(assistantChatProvider.notifier)
-                          .declineProposal(messageId, proposal.id);
-                    },
-                    icon: const Icon(Icons.close, size: 16),
-                    label: Text(l10n.declineAction),
+
+                // Typing indicator when streaming or retrieving context
+                if (chatState.isStreaming && chatState.streamingStage != null)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TypingIndicator(stage: chatState.streamingStage!),
                   ),
+
+                // Active error card if non-null
+                if (chatState.activeErrorCode != null)
+                  ChatErrorCard(
+                    errorCode: chatState.activeErrorCode!,
+                    onRetry: () {
+                      ref.read(assistantChatProvider.notifier).retryLastPrompt(l10n);
+                    },
+                  ),
+
+                // Composer with quick suggestions & streaming stop action
+                Composer(
+                  isStreaming: chatState.isStreaming,
+                  suggestions: chatState.currentSuggestions,
+                  onSuggestionTap: (chip) {
+                    ref.read(assistantChatProvider.notifier).sendMessage(chip, l10n);
+                  },
+                  onSend: (text) {
+                    ref.read(assistantChatProvider.notifier).sendMessage(text, l10n);
+                  },
+                  onStop: () {
+                    ref.read(assistantChatProvider.notifier).stopStreaming();
+                  },
                 ),
               ],
             ),
-          ],
-        ],
-      ),
-    );
-  }
 
-  Widget _buildStatusPill(String status, AppLocalizations l10n) {
-    Color bg;
-    Color fg;
-    String text;
-
-    switch (status) {
-      case 'executed':
-        bg = FormaTheme.successGreen.withAlpha(30);
-        fg = FormaTheme.successGreen;
-        text = l10n.actionConfirmed;
-        break;
-      case 'declined':
-        bg = FormaTheme.textTertiary.withAlpha(30);
-        fg = FormaTheme.textTertiary;
-        text = l10n.actionDeclined;
-        break;
-      case 'expired':
-        bg = FormaTheme.warningAmber.withAlpha(30);
-        fg = FormaTheme.warningAmber;
-        text = l10n.actionExpired;
-        break;
-      default:
-        bg = FormaTheme.primaryTeal.withAlpha(30);
-        fg = FormaTheme.primaryTeal;
-        text = 'Pending Confirmation';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: fg.withAlpha(100), width: 0.8),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: fg),
-      ),
-    );
-  }
-
-  Widget _buildInputBar(BuildContext context, AppLocalizations l10n) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
-        color: FormaTheme.surfaceCard,
-        border: Border(top: BorderSide(color: FormaTheme.borderSubtle, width: 1)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              decoration: InputDecoration(
-                hintText: l10n.chatInputPlaceholder,
-                hintStyle: const TextStyle(color: FormaTheme.textTertiary, fontSize: 14),
-                filled: true,
-                fillColor: FormaTheme.obsidianBackground,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: const BorderSide(color: FormaTheme.borderSubtle),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: const BorderSide(color: FormaTheme.borderSubtle),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: const BorderSide(color: FormaTheme.primaryTeal),
+            // Jump to latest button floating over list when scrolled back
+            if (_showJumpToLatest)
+              Positioned(
+                bottom: 80,
+                left: 0,
+                right: 0,
+                child: JumpToLatestPill(
+                  onTap: _scrollToBottom,
                 ),
               ),
-              onSubmitted: (val) {
-                ref.read(assistantChatProvider.notifier).sendMessage(val, l10n);
-                _textController.clear();
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton.filled(
-            style: IconButton.styleFrom(
-              backgroundColor: FormaTheme.primaryTeal,
-              foregroundColor: Colors.black,
-            ),
-            icon: const Icon(Icons.send_rounded, size: 20),
-            onPressed: () {
-              ref
-                  .read(assistantChatProvider.notifier)
-                  .sendMessage(_textController.text, l10n);
-              _textController.clear();
-            },
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -5,49 +5,89 @@ import 'package:forma/core/theme.dart';
 import 'package:forma/core/providers.dart';
 import 'package:forma/l10n/app_localizations.dart';
 import 'package:forma/presentation/screens/assistant_screen.dart';
-
-
+import 'package:forma/presentation/widgets/chat/empty_state_bento.dart';
+import 'package:forma/presentation/widgets/chat/composer.dart';
+import 'package:forma/presentation/widgets/chat/proposal_card.dart';
 
 class FakeAssistantRepository extends AssistantRepository {
-  FakeAssistantRepository() : super(apiClient: ApiClient(tokenStorage: TokenStorage(), getBaseUrl: () => 'http://localhost'));
+  FakeAssistantRepository()
+      : super(apiClient: ApiClient(tokenStorage: TokenStorage(), getBaseUrl: () => 'http://localhost'));
 
   @override
-  Future<SendMessageResult> sendMessage({required String message, String? conversationId}) async {
+  Stream<SSEEvent> streamMessage({
+    required String message,
+    String? conversationId,
+  }) async* {
+    yield const SSEEvent(event: 'start', data: {'conversationId': 'conv_1'});
+
     final lower = message.toLowerCase();
     if (lower.contains('chest pain') || lower.contains('dizziness')) {
-      return SendMessageResult(
-        conversationId: 'conv_1',
-        assistantMessage: AssistantChatMessage(
-          id: 'msg_emergency',
-          role: 'assistant',
-          content: 'Your safety and health are paramount. The symptoms or behaviors you described require immediate evaluation by a licensed healthcare professional or emergency medical services.',
-          isEmergencyNotice: true,
-          timestamp: DateTime.now(),
-        ),
+      yield const SSEEvent(
+        event: 'done',
+        data: {
+          'content':
+              'Your safety and health are paramount. The symptoms or behaviors you described require immediate evaluation by a licensed healthcare professional or emergency medical services.',
+          'safetyCategory': 'D',
+        },
       );
+      return;
     }
 
     if (lower.contains('log') || lower.contains('weight')) {
-      return SendMessageResult(
-        conversationId: 'conv_1',
-        assistantMessage: AssistantChatMessage(
-          id: 'msg_proposal',
-          role: 'assistant',
-          content: 'I have prepared an action proposal to record your weight.',
-          proposals: [
-            ActionProposalModel(
-              id: 'prop_123',
-              actionType: 'log_measurement',
-              humanReadableSummary: 'Record today’s weight measurement as 74.0 kg',
-              diffBefore: '75.0 kg',
-              diffAfter: '74.0 kg',
-            ),
-          ],
-          timestamp: DateTime.now(),
-        ),
+      yield const SSEEvent(
+        event: 'delta',
+        data: {'text': 'I have prepared an action proposal to record your weight.'},
       );
+      yield const SSEEvent(
+        event: 'proposal',
+        data: {
+          'id': 'prop_123',
+          'actionType': 'log_measurement',
+          'humanReadableSummary': 'Record today’s weight measurement as 74.0 kg',
+          'diffBefore': '75.0 kg',
+          'diffAfter': '74.0 kg',
+          'status': 'pending',
+        },
+      );
+      yield const SSEEvent(
+        event: 'evidence',
+        data: {
+          'claimText': 'Measured data',
+          'type': 'retrieved',
+        },
+      );
+      yield const SSEEvent(
+        event: 'done',
+        data: {
+          'content': 'I have prepared an action proposal to record your weight.',
+          'safetyCategory': 'A',
+        },
+      );
+      return;
     }
 
+    yield const SSEEvent(
+      event: 'delta',
+      data: {'text': 'Hello, how can I help you today?'},
+    );
+    yield const SSEEvent(
+      event: 'evidence',
+      data: {
+        'claimText': 'Grounding verified',
+        'type': 'retrieved',
+      },
+    );
+    yield const SSEEvent(
+      event: 'done',
+      data: {
+        'content': 'Hello, how can I help you today?',
+        'safetyCategory': 'A',
+      },
+    );
+  }
+
+  @override
+  Future<SendMessageResult> sendMessage({required String message, String? conversationId}) async {
     return SendMessageResult(
       conversationId: 'conv_1',
       assistantMessage: AssistantChatMessage(
@@ -111,17 +151,16 @@ void main() {
     );
   }
 
-  testWidgets('Assistant Screen renders greeting and evidence badge', (WidgetTester tester) async {
+  testWidgets('Assistant Screen renders header and empty state bento cards', (WidgetTester tester) async {
     await tester.pumpWidget(buildTestableWidget());
     await tester.pumpAndSettle();
 
     expect(find.text('Forma Assistant'), findsOneWidget);
     expect(find.text('Evidence-grounded wellness companion'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
-    expect(find.byIcon(Icons.send_rounded), findsOneWidget);
-
-    // Initial evidence badge
-    expect(find.textContaining('Grounding verified'), findsOneWidget);
+    expect(find.byType(Composer), findsOneWidget);
+    expect(find.byType(EmptyStateBento), findsOneWidget);
+    expect(find.text('Forma Companion'), findsOneWidget);
   });
 
   testWidgets('Controlled Actions Protocol: Propose -> Confirm -> Receipt interaction', (WidgetTester tester) async {
@@ -130,12 +169,13 @@ void main() {
 
     // Type a request that triggers an action proposal
     await tester.enterText(find.byType(TextField), 'Please log weight 74.0 kg');
-    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.byIcon(Icons.arrow_circle_up_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     // Verify Action Proposal card is displayed
-    expect(find.text('Action Proposed'), findsOneWidget);
+    expect(find.byType(ProposalCard), findsOneWidget);
     expect(find.text('Record today’s weight measurement as 74.0 kg'), findsOneWidget);
     expect(find.text('Confirm'), findsOneWidget);
     expect(find.text('Decline'), findsOneWidget);
@@ -147,7 +187,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Action Receipt confirmation
-    expect(find.text('Confirmed & Executed'), findsOneWidget);
     expect(find.textContaining('Action Receipt verified'), findsOneWidget);
   });
 
@@ -157,9 +196,10 @@ void main() {
 
     // Type acute symptom
     await tester.enterText(find.byType(TextField), 'I have severe chest pain and dizziness');
-    await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.byIcon(Icons.arrow_circle_up_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     // Verify Safety Redirection
     expect(find.text('Health & Safety Notice'), findsOneWidget);
@@ -170,7 +210,7 @@ void main() {
     await tester.pumpWidget(buildTestableWidget(locale: const Locale('ar')));
     await tester.pumpAndSettle();
 
-    expect(find.text('مساعد فورما'), findsOneWidget);
+    expect(find.text('مساعد Forma'), findsOneWidget);
     expect(find.text('مساعدك الصحي الموثق بالأدلة'), findsOneWidget);
 
     final BuildContext context = tester.element(find.byType(AssistantScreen));

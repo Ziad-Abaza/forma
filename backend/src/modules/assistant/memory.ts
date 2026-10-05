@@ -35,6 +35,11 @@ export class AssistantMemoryService {
     provenanceId?: string,
     source: string = 'assistant_proposal'
   ): Promise<AssistantMemory> {
+    const suspiciousPattern = /\b(ignore\s+all\s+previous|system\s+prompt|you\s+are\s+now|developer\s+mode|override\s+instructions)\b/i;
+    if (suspiciousPattern.test(req.value)) {
+      throw new Error('Instruction-like pattern detected in memory value. Cannot save as memory.');
+    }
+
     return await withUserContext(userId, async (client) => {
       const query = `
         INSERT INTO assistant_memories (user_id, category, key, value, confidence, source, provenance_id, is_active, updated_at)
