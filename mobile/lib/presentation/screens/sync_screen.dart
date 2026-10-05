@@ -218,26 +218,26 @@ class SyncScreen extends ConsumerWidget {
                 ),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: device.isConnected
                             ? FormaTheme.primaryTeal.withValues(alpha: 0.15)
                             : Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         device.icon,
                         color: device.isConnected
                             ? FormaTheme.primaryTeal
                             : FormaTheme.textSecondary,
-                        size: 26,
+                        size: 22,
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,38 +245,50 @@ class SyncScreen extends ConsumerWidget {
                           Text(
                             displayName,
                             style: const TextStyle(
-                              fontSize: 15,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: FormaTheme.textPrimary,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
-                          Row(
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 6,
+                            runSpacing: 2,
                             children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: device.isConnected
-                                      ? FormaTheme.primaryTeal
-                                      : Colors.grey,
-                                ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: device.isConnected
+                                          ? FormaTheme.primaryTeal
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      device.isConnected
+                                          ? l10n.connectedStatus
+                                          : l10n.disconnectedStatus,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: device.isConnected
+                                            ? FormaTheme.primaryTeal
+                                            : FormaTheme.textSecondary,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                device.isConnected
-                                    ? l10n.connectedStatus
-                                    : l10n.disconnectedStatus,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: device.isConnected
-                                      ? FormaTheme.primaryTeal
-                                      : FormaTheme.textSecondary,
-                                ),
-                              ),
-                              if (device.isConnected && device.lastSynced != null) ...[
-                                const SizedBox(width: 8),
+                              if (device.isConnected && device.lastSynced != null)
                                 Text(
                                   l10n.lastSynced(device.lastSynced!),
                                   style: const TextStyle(
@@ -284,23 +296,26 @@ class SyncScreen extends ConsumerWidget {
                                     color: FormaTheme.textSecondary,
                                   ),
                                 ),
-                              ],
                             ],
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(width: 6),
                     if (device.isConnected) ...[
                       IconButton(
                         key: Key('sync_button_${device.id}'),
                         tooltip: l10n.syncNow,
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        padding: const EdgeInsets.all(4),
                         icon: device.isSyncing
                             ? const SizedBox(
-                                width: 18,
-                                height: 18,
+                                width: 16,
+                                height: 16,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Icon(Icons.refresh, size: 20, color: FormaTheme.primaryTeal),
+                            : const Icon(Icons.refresh, size: 18, color: FormaTheme.primaryTeal),
                         onPressed: device.isSyncing
                             ? null
                             : () => ref.read(deviceIntegrationsProvider.notifier).syncDevice(device.id),
@@ -309,11 +324,12 @@ class SyncScreen extends ConsumerWidget {
                     OutlinedButton(
                       key: Key('toggle_button_${device.id}'),
                       style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
                         foregroundColor: device.isConnected ? Colors.redAccent : FormaTheme.primaryTeal,
                         side: BorderSide(
                           color: device.isConnected ? Colors.redAccent : FormaTheme.primaryTeal,
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                       ),
                       onPressed: () {
                         ref.read(deviceIntegrationsProvider.notifier).toggleConnection(device.id);

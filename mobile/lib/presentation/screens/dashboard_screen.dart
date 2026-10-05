@@ -25,63 +25,86 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset(
-              'assets/logo.png',
-              width: 32,
-              height: 32,
-              errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.fitness_center, color: FormaTheme.primaryTeal),
-            ),
-            const SizedBox(width: 12),
-            Text(l10n.appTitle),
-          ],
+        titleSpacing: 12,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: AlignmentDirectional.centerStart,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/logo.png',
+                width: 28,
+                height: 28,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.fitness_center, color: FormaTheme.primaryTeal),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.appTitle,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
         actions: [
-          IconButton(
-            key: const Key('sync_devices_button'),
-            tooltip: l10n.syncScreenTitle,
-            icon: const Icon(Icons.sync_outlined, color: FormaTheme.primaryTeal),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SyncScreen()),
-              );
-            },
-          ),
-          IconButton(
-            key: const Key('assistant_button'),
-            tooltip: l10n.assistantTitle,
-            icon: const Icon(Icons.smart_toy_outlined, color: FormaTheme.primaryTeal),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AssistantScreen()),
-              );
-            },
-          ),
-          TextButton.icon(
-            key: const Key('language_toggle_button'),
-            onPressed: () {
-              if (currentLocale.languageCode == 'en') {
-                ref.read(localeProvider.notifier).state = const Locale('ar');
-                ref.read(numeralSystemProvider.notifier).state = 'eastern_arabic';
-              } else {
-                ref.read(localeProvider.notifier).state = const Locale('en');
-                ref.read(numeralSystemProvider.notifier).state = 'western';
-              }
-            },
-            icon: const Icon(Icons.language, color: FormaTheme.primaryTeal),
-            label: Text(
-              currentLocale.languageCode == 'en' ? 'العربية' : 'English',
-              style: const TextStyle(
-                color: FormaTheme.primaryTeal,
-                fontWeight: FontWeight.bold,
-              ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  key: const Key('sync_devices_button'),
+                  tooltip: l10n.syncScreenTitle,
+                  icon: const Icon(Icons.sync_outlined, color: FormaTheme.primaryTeal),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SyncScreen()),
+                    );
+                  },
+                ),
+                IconButton(
+                  key: const Key('assistant_button'),
+                  tooltip: l10n.assistantTitle,
+                  icon: const Icon(Icons.smart_toy_outlined, color: FormaTheme.primaryTeal),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AssistantScreen()),
+                    );
+                  },
+                ),
+                TextButton.icon(
+                  key: const Key('language_toggle_button'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  ),
+                  onPressed: () {
+                    if (currentLocale.languageCode == 'en') {
+                      ref.read(localeProvider.notifier).state = const Locale('ar');
+                      ref.read(numeralSystemProvider.notifier).state = 'eastern_arabic';
+                    } else {
+                      ref.read(localeProvider.notifier).state = const Locale('en');
+                      ref.read(numeralSystemProvider.notifier).state = 'western';
+                    }
+                  },
+                  icon: const Icon(Icons.language, color: FormaTheme.primaryTeal, size: 18),
+                  label: Text(
+                    currentLocale.languageCode == 'en' ? 'العربية' : 'English',
+                    style: const TextStyle(
+                      color: FormaTheme.primaryTeal,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
             ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -167,16 +190,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.flag_outlined, color: FormaTheme.warningAmber, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.primaryGoal,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.flag_outlined, color: FormaTheme.warningAmber, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.primaryGoal,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 _buildBadge(l10n.calculated, FormaTheme.badgeCalculated),
               ],
             ),
@@ -189,9 +218,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildMetricCol(l10n.startingValue, '${formatNumeralString(startingKg.toStringAsFixed(1), numeralSystem)} kg'),
-                _buildMetricCol(l10n.currentValue, '${formatNumeralString(currentKg.toStringAsFixed(1), numeralSystem)} kg'),
-                _buildMetricCol(l10n.targetValue, '${formatNumeralString(targetKg.toStringAsFixed(1), numeralSystem)} kg'),
+                Expanded(
+                  child: _buildMetricCol(
+                    l10n.startingValue,
+                    '${formatNumeralString(startingKg.toStringAsFixed(1), numeralSystem)} kg',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMetricCol(
+                    l10n.currentValue,
+                    '${formatNumeralString(currentKg.toStringAsFixed(1), numeralSystem)} kg',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMetricCol(
+                    l10n.targetValue,
+                    '${formatNumeralString(targetKg.toStringAsFixed(1), numeralSystem)} kg',
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -208,13 +254,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '${l10n.progress}: ${formatNumeralString(progress.toStringAsFixed(1), numeralSystem)}%',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                Flexible(
+                  child: Text(
+                    '${l10n.progress}: ${formatNumeralString(progress.toStringAsFixed(1), numeralSystem)}%',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                Text(
-                  l10n.safeRate,
-                  style: const TextStyle(color: FormaTheme.successGreen, fontSize: 12),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    l10n.safeRate,
+                    style: const TextStyle(color: FormaTheme.successGreen, fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -234,40 +287,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.trending_down, color: FormaTheme.primaryTeal, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.trends,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.trending_down, color: FormaTheme.primaryTeal, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.trends,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 _buildBadge(l10n.calculated, FormaTheme.badgeCalculated),
               ],
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildPeriodChip('7d', l10n.period7d),
-                _buildPeriodChip('30d', l10n.period30d),
-                _buildPeriodChip('90d', l10n.period90d),
-                _buildPeriodChip('1y', l10n.period1y),
-              ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildPeriodChip('7d', l10n.period7d),
+                  const SizedBox(width: 8),
+                  _buildPeriodChip('30d', l10n.period30d),
+                  const SizedBox(width: 8),
+                  _buildPeriodChip('90d', l10n.period90d),
+                  const SizedBox(width: 8),
+                  _buildPeriodChip('1y', l10n.period1y),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildMetricCol(
-                  l10n.sevenDayAverage,
-                  '${formatNumeralString('84.2', numeralSystem)} kg',
+                Expanded(
+                  child: _buildMetricCol(
+                    l10n.sevenDayAverage,
+                    '${formatNumeralString('84.2', numeralSystem)} kg',
+                  ),
                 ),
-                _buildMetricCol(
-                  l10n.weeklyRate,
-                  '${formatNumeralString('-0.48', numeralSystem)} kg/wk',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildMetricCol(
+                    l10n.weeklyRate,
+                    '${formatNumeralString('-0.48', numeralSystem)} kg/wk',
+                  ),
                 ),
               ],
             ),
@@ -304,16 +373,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.bolt, color: FormaTheme.warningAmber, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.energyTargets,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.bolt, color: FormaTheme.warningAmber, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.energyTargets,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 _buildBadge(l10n.calculated, FormaTheme.badgeCalculated),
               ],
             ),
@@ -321,13 +396,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildMetricCol(
-                  l10n.maintenanceCalories,
-                  '${formatNumeralString('2,450', numeralSystem)} kcal',
+                Expanded(
+                  child: _buildMetricCol(
+                    l10n.maintenanceCalories,
+                    '${formatNumeralString('2,450', numeralSystem)} kcal',
+                  ),
                 ),
-                _buildMetricCol(
-                  l10n.targetCalories,
-                  '${formatNumeralString('1,950', numeralSystem)} kcal',
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMetricCol(
+                    l10n.targetCalories,
+                    '${formatNumeralString('1,950', numeralSystem)} kcal',
+                  ),
                 ),
               ],
             ),
@@ -335,9 +415,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildMacroBar(l10n.protein, '152g', FormaTheme.primaryTeal, numeralSystem),
-                _buildMacroBar(l10n.fats, '54g', FormaTheme.warningAmber, numeralSystem),
-                _buildMacroBar(l10n.carbs, '213g', FormaTheme.secondaryMint, numeralSystem),
+                Expanded(child: _buildMacroBar(l10n.protein, '152g', FormaTheme.primaryTeal, numeralSystem)),
+                const SizedBox(width: 8),
+                Expanded(child: _buildMacroBar(l10n.fats, '54g', FormaTheme.warningAmber, numeralSystem)),
+                const SizedBox(width: 8),
+                Expanded(child: _buildMacroBar(l10n.carbs, '213g', FormaTheme.secondaryMint, numeralSystem)),
               ],
             ),
           ],
@@ -349,17 +431,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget _buildMacroBar(String label, String amount, Color color, String numeralSystem) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: 4),
-        Container(
-          width: 60,
-          height: 6,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+        FractionallySizedBox(
+          widthFactor: 0.8,
+          child: Container(
+            height: 6,
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           formatNumeralString(amount, numeralSystem),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -375,17 +466,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  l10n.healthRecords,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                Expanded(
+                  child: Text(
+                    l10n.healthRecords,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                ElevatedButton.icon(
-                  key: const Key('add_measurement_button'),
-                  onPressed: () => _showAddMeasurementDialog(context, l10n),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: Text(l10n.addMeasurement),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: ElevatedButton.icon(
+                    key: const Key('add_measurement_button'),
+                    onPressed: () => _showAddMeasurementDialog(context, l10n),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: Text(
+                      l10n.addMeasurement,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
                   ),
                 ),
               ],
@@ -414,9 +514,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }
