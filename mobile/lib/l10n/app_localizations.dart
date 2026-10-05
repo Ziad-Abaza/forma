@@ -137,7 +137,7 @@ abstract class AppLocalizations {
   /// No description provided for @dateOfBirth.
   ///
   /// In en, this message translates to:
-  /// **'Date of Birth (YYYY-MM-DD)'**
+  /// **'Date of Birth'**
   String get dateOfBirth;
 
   /// No description provided for @height.
@@ -608,12 +608,6 @@ abstract class AppLocalizations {
   /// **'Health & Safety Notice'**
   String get safetyEmergencyTitle;
 
-  /// No description provided for @newChat.
-  ///
-  /// In en, this message translates to:
-  /// **'New Chat'**
-  String get newChat;
-
   /// No description provided for @actionReceiptId.
   ///
   /// In en, this message translates to:
@@ -908,12 +902,6 @@ abstract class AppLocalizations {
   /// **'Add constraint (e.g. knee injury)'**
   String get addConstraintHint;
 
-  /// No description provided for @sexForCalculation.
-  ///
-  /// In en, this message translates to:
-  /// **'Sex (for calculations)'**
-  String get sexForCalculation;
-
   /// No description provided for @physicalActivityLevel.
   ///
   /// In en, this message translates to:
@@ -943,6 +931,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a valid height between 80 and 250 cm'**
   String get heightValidation;
+
+  /// No description provided for @activitySedentary.
+  ///
+  /// In en, this message translates to:
+  /// **'Sedentary (Little/no exercise)'**
+  String get activitySedentary;
+
+  /// No description provided for @activityLightly.
+  ///
+  /// In en, this message translates to:
+  /// **'Lightly Active (1-3 days/wk)'**
+  String get activityLightly;
+
+  /// No description provided for @activityModerately.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderately Active (3-5 days/wk)'**
+  String get activityModerately;
+
+  /// No description provided for @activityVery.
+  ///
+  /// In en, this message translates to:
+  /// **'Very Active (6-7 days/wk)'**
+  String get activityVery;
+
+  /// No description provided for @activityExtra.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra Active (Hard training)'**
+  String get activityExtra;
+
+  /// No description provided for @sexForCalculation.
+  ///
+  /// In en, this message translates to:
+  /// **'Sex (for calculations)'**
+  String get sexForCalculation;
 
   /// No description provided for @exportData.
   ///
@@ -1243,6 +1267,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hello! I am Forma, your personalized health and wellness companion. I can help answer fitness questions, monitor your progress, or prepare action proposals to log measurements and update goals.'**
   String get assistantGreeting;
+
+  /// No description provided for @newChat.
+  ///
+  /// In en, this message translates to:
+  /// **'New Chat'**
+  String get newChat;
 
   /// No description provided for @jumpToLatest.
   ///

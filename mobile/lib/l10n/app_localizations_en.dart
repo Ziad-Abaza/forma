@@ -28,7 +28,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get password => 'Password';
 
   @override
-  String get dateOfBirth => 'Date of Birth (YYYY-MM-DD)';
+  String get dateOfBirth => 'Date of Birth';
 
   @override
   String get height => 'Height';
@@ -272,9 +272,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get safetyEmergencyTitle => 'Health & Safety Notice';
 
   @override
-  String get newChat => 'New Chat';
-
-  @override
   String actionReceiptId(String id) {
     return 'Receipt ID: $id';
   }
@@ -431,9 +428,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addConstraintHint => 'Add constraint (e.g. knee injury)';
 
   @override
-  String get sexForCalculation => 'Sex (for calculations)';
-
-  @override
   String get physicalActivityLevel => 'Physical Activity Level';
 
   @override
@@ -447,6 +441,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get heightValidation => 'Enter a valid height between 80 and 250 cm';
+
+  @override
+  String get activitySedentary => 'Sedentary (Little/no exercise)';
+
+  @override
+  String get activityLightly => 'Lightly Active (1-3 days/wk)';
+
+  @override
+  String get activityModerately => 'Moderately Active (3-5 days/wk)';
+
+  @override
+  String get activityVery => 'Very Active (6-7 days/wk)';
+
+  @override
+  String get activityExtra => 'Extra Active (Hard training)';
+
+  @override
+  String get sexForCalculation => 'Sex (for calculations)';
 
   @override
   String get exportData => 'Export Data';
@@ -623,6 +635,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get assistantGreeting =>
       'Hello! I am Forma, your personalized health and wellness companion. I can help answer fitness questions, monitor your progress, or prepare action proposals to log measurements and update goals.';
+
+  @override
+  String get newChat => 'New Chat';
 
   @override
   String get jumpToLatest => 'New reply';

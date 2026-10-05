@@ -28,7 +28,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get password => 'كلمة المرور';
 
   @override
-  String get dateOfBirth => 'تاريخ الميلاد (YYYY-MM-DD)';
+  String get dateOfBirth => 'تاريخ الميلاد';
 
   @override
   String get height => 'الطول';
@@ -224,7 +224,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'اشتباه في خطأ بالوحدة (باوند مقابل كجم). يرجى المراجعة.';
 
   @override
-  String get assistantTitle => 'مساعد Forma';
+  String get assistantTitle => 'مساعد فورما';
 
   @override
   String get assistantSubtitle => 'مساعدك الصحي الموثق بالأدلة';
@@ -270,9 +270,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get safetyEmergencyTitle => 'تنبيه صحي وأمان';
-
-  @override
-  String get newChat => 'محادثة جديدة';
 
   @override
   String actionReceiptId(String id) {
@@ -432,9 +429,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addConstraintHint => 'أضف قيداً (مثل: إصابة ركبة)';
 
   @override
-  String get sexForCalculation => 'الجنس (للحسابات الحيوية)';
-
-  @override
   String get physicalActivityLevel => 'مستوى النشاط البدني';
 
   @override
@@ -448,6 +442,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get heightValidation => 'أدخل طولاً صحيحاً بين 80 و 250 سم';
+
+  @override
+  String get activitySedentary => 'خامل (قليل/بدون تمارين)';
+
+  @override
+  String get activityLightly => 'نشاط خفيف (1-3 أيام/أسبوع)';
+
+  @override
+  String get activityModerately => 'نشاط متوسط (3-5 أيام/أسبوع)';
+
+  @override
+  String get activityVery => 'نشاط عالٍ (6-7 أيام/أسبوع)';
+
+  @override
+  String get activityExtra => 'نشاط مكثف (تدريب شاق)';
+
+  @override
+  String get sexForCalculation => 'الجنس (للحسابات الحيوية)';
 
   @override
   String get exportData => 'تصدير البيانات';
@@ -623,6 +635,9 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get assistantGreeting =>
       'مرحباً! أنا Forma، رفيقك الصحي والشخصي. يمكنني مساعدتك في الإجابة عن أسئلة اللياقة، ومتابعة تقدمك، أو إعداد إجراءات لتسجيل القياسات وتحديث الأهداف.';
+
+  @override
+  String get newChat => 'محادثة جديدة';
 
   @override
   String get jumpToLatest => 'رد جديد';
