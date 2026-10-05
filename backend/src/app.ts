@@ -45,6 +45,7 @@ import {
   CommitDraftRequestSchema
 } from './modules/multimodal/index.js';
 import {
+  IntegrationProviderSchema,
   IntegrationSyncService,
   IntegrationsPrivacyContract,
   SyncBatchRequestSchema,
@@ -727,6 +728,10 @@ export function buildApp(): FastifyInstance {
 
   // --- Integrations & Sync Routes (Blueprint §28.1) ---
   PrivacyOrchestrator.registerModule(new IntegrationsPrivacyContract());
+
+  app.get('/api/v1/integrations/providers', { preHandler: [requireAuth] }, async (_req, reply) => {
+    return reply.send({ providers: IntegrationProviderSchema.options });
+  });
 
   app.get('/api/v1/integrations/connections', { preHandler: [requireAuth] }, async (req, reply) => {
     const connections = await IntegrationSyncService.getConnections(req.user!.userId);

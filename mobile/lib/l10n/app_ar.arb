@@ -115,6 +115,7 @@
   "garmin": "جارمن كونيكت",
   "withings": "ويذينجز",
   "oura": "أورا رينج",
+  "fitbit": "فيتبيت",
   "lastSynced": "آخر مزامنة: {time}",
   "@lastSynced": {
     "placeholders": {
@@ -127,6 +128,10 @@
   "disconnectedStatus": "غير متصل",
   "connect": "ربط",
   "disconnect": "إلغاء الربط",
+  "syncFailed": "فشلت المزامنة. حاول مرة أخرى.",
+  "connectionUpdateFailed": "تعذر تحديث الاتصال. حاول مرة أخرى.",
+  "integrationsLoadError": "تعذر تحميل اتصالات الأجهزة.",
+  "noIntegrationsAvailable": "لا توجد تكاملات أجهزة متاحة حالياً.",
   "epistemicResolutionHeader": "فض التضارب ومصدر البيانات",
   "epistemicResolutionDesc": "قراءات الأجهزة المباشرة تتفوق نظامياً على الإدخالات اليدوية دون فقدان السجل التاريخي.",
   "privacyDataSection": "خصوصية البيانات وإدارتها",

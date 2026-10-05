@@ -60,22 +60,25 @@ class IntegrationsRepository {
     });
   }
 
-  Future<Map<String, dynamic>> syncProvider(String provider, {List<Map<String, dynamic>>? records}) async {
-    final now = DateTime.now().toIso8601String();
-    final sampleRecords = records ?? [
-      {
-        'externalRecordId': 'ext_${DateTime.now().millisecondsSinceEpoch}',
-        'typeCode': 'step_count',
-        'value': 8540.0,
-        'unit': 'count',
-        'recordedAt': now,
-        'epistemicClass': 'measured',
-      },
-    ];
+  /// Provider catalog is server-issued (IntegrationProviderSchema) — the client
+  /// must never fabricate or hardcode the list.
+  Future<List<String>> getProviders() async {
+    final resp = await apiClient.get('/api/v1/integrations/providers');
+    if (resp is Map && resp['providers'] is List) {
+      return (resp['providers'] as List).map((e) => e.toString()).toList();
+    }
+    throw ApiException(
+      statusCode: 0,
+      message: 'Malformed response from /api/v1/integrations/providers',
+    );
+  }
 
+  /// Syncs device-sourced records for [provider]. [records] is required and may
+  /// be empty — the client never fabricates health observations.
+  Future<Map<String, dynamic>> syncProvider(String provider, {required List<Map<String, dynamic>> records}) async {
     final resp = await apiClient.post('/api/v1/integrations/sync', body: {
       'provider': provider,
-      'records': sampleRecords,
+      'records': records,
     });
     return resp as Map<String, dynamic>;
   }

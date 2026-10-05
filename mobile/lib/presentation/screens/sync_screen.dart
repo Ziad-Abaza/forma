@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/theme.dart';
 import '../../modules/privacy/repositories/privacy_repository.dart';
@@ -8,161 +11,183 @@ import '../../modules/auth/notifiers/auth_state.dart';
 
 class DeviceIntegration {
   final String id;
-  final String nameKey;
   final IconData icon;
   final bool isConnected;
-  final String? lastSynced;
+  final DateTime? lastSyncedAt;
   final bool isSyncing;
+  final bool isToggling;
 
   const DeviceIntegration({
     required this.id,
-    required this.nameKey,
     required this.icon,
     required this.isConnected,
-    this.lastSynced,
+    this.lastSyncedAt,
     this.isSyncing = false,
+    this.isToggling = false,
   });
 
   DeviceIntegration copyWith({
     bool? isConnected,
-    String? lastSynced,
+    DateTime? lastSyncedAt,
+    bool clearLastSynced = false,
     bool? isSyncing,
+    bool? isToggling,
   }) {
     return DeviceIntegration(
       id: id,
-      nameKey: nameKey,
       icon: icon,
       isConnected: isConnected ?? this.isConnected,
-      lastSynced: lastSynced ?? this.lastSynced,
+      lastSyncedAt: clearLastSynced ? null : (lastSyncedAt ?? this.lastSyncedAt),
       isSyncing: isSyncing ?? this.isSyncing,
+      isToggling: isToggling ?? this.isToggling,
     );
   }
 }
 
-final deviceIntegrationsProvider = StateNotifierProvider<DeviceIntegrationsNotifier, List<DeviceIntegration>>((ref) {
+class DeviceIntegrationsState {
+  final List<DeviceIntegration> devices;
+  final bool isLoading;
+  final Object? loadError;
+
+  const DeviceIntegrationsState({
+    this.devices = const [],
+    this.isLoading = false,
+    this.loadError,
+  });
+
+  DeviceIntegrationsState copyWith({
+    List<DeviceIntegration>? devices,
+    bool? isLoading,
+    Object? loadError,
+    bool clearLoadError = false,
+  }) {
+    return DeviceIntegrationsState(
+      devices: devices ?? this.devices,
+      isLoading: isLoading ?? this.isLoading,
+      loadError: clearLoadError ? null : (loadError ?? this.loadError),
+    );
+  }
+}
+
+final deviceIntegrationsProvider =
+    StateNotifierProvider<DeviceIntegrationsNotifier, DeviceIntegrationsState>((ref) {
   final isAuth = ref.watch(authStateProvider).isAuthenticated;
   final repository = isAuth ? ref.watch(integrationsRepositoryProvider) : null;
   return DeviceIntegrationsNotifier(repository: repository);
 });
 
-class DeviceIntegrationsNotifier extends StateNotifier<List<DeviceIntegration>> {
+class DeviceIntegrationsNotifier extends StateNotifier<DeviceIntegrationsState> {
   final IntegrationsRepository? repository;
 
   DeviceIntegrationsNotifier({this.repository})
-      : super([
-          const DeviceIntegration(
-            id: 'health_connect',
-            nameKey: 'healthConnect',
-            icon: Icons.favorite_border,
-            isConnected: false,
-          ),
-          const DeviceIntegration(
-            id: 'apple_health',
-            nameKey: 'appleHealth',
-            icon: Icons.apple,
-            isConnected: false,
-          ),
-          const DeviceIntegration(
-            id: 'garmin',
-            nameKey: 'garmin',
-            icon: Icons.watch,
-            isConnected: false,
-          ),
-          const DeviceIntegration(
-            id: 'withings',
-            nameKey: 'withings',
-            icon: Icons.monitor_weight_outlined,
-            isConnected: false,
-          ),
-          const DeviceIntegration(
-            id: 'oura',
-            nameKey: 'oura',
-            icon: Icons.circle_outlined,
-            isConnected: false,
-          ),
-        ]);
+      : super(const DeviceIntegrationsState(isLoading: true)) {
+    unawaited(loadConnections());
+  }
+
+  static const Map<String, IconData> _providerIcons = {
+    'health_connect': Icons.favorite_border,
+    'apple_health': Icons.apple,
+    'garmin': Icons.watch,
+    'withings': Icons.monitor_weight_outlined,
+    'oura': Icons.circle_outlined,
+    'fitbit': Icons.fitness_center,
+  };
 
   Future<void> loadConnections() async {
-    if (repository == null) return;
+    final repo = repository;
+    if (repo == null) {
+      state = const DeviceIntegrationsState();
+      return;
+    }
+
+    state = state.copyWith(isLoading: true, clearLoadError: true);
     try {
-      final list = await repository!.getConnections();
-      if (list.isNotEmpty && mounted) {
-        state = state.map((d) {
-          final match = list.where((c) => c.provider == d.id).firstOrNull;
-          if (match != null) {
-            return d.copyWith(
-              isConnected: match.isConnected,
-              lastSynced: match.lastSyncedAt != null ? 'Synced' : null,
-            );
-          }
-          return d;
-        }).toList();
+      // Provider catalog and connection state are both server-issued.
+      final providers = await repo.getProviders();
+      final connections = await repo.getConnections();
+      final byProvider = {for (final c in connections) c.provider: c};
+
+      if (!mounted) return;
+      state = DeviceIntegrationsState(
+        devices: [
+          for (final provider in providers)
+            DeviceIntegration(
+              id: provider,
+              icon: _providerIcons[provider] ?? Icons.devices_other,
+              isConnected: byProvider[provider]?.isConnected ?? false,
+              lastSyncedAt: byProvider[provider]?.lastSyncedAt != null
+                  ? DateTime.tryParse(byProvider[provider]!.lastSyncedAt!)
+                  : null,
+            ),
+        ],
+      );
+    } catch (e) {
+      if (mounted) {
+        state = DeviceIntegrationsState(devices: const [], loadError: e);
       }
-    } catch (_) {}
+    }
   }
 
-  void toggleConnection(String id) {
-    final current = state.firstWhere((d) => d.id == id, orElse: () => state.first);
-    final nowConnected = !current.isConnected;
+  /// Returns true only when the backend confirmed the state change.
+  Future<bool> toggleConnection(String id) async {
+    final repo = repository;
+    if (repo == null) return false;
 
-    state = state.map((device) {
-      if (device.id == id) {
-        return device.copyWith(
-          isConnected: nowConnected,
-          lastSynced: nowConnected ? 'Just now' : null,
-          isSyncing: false,
-        );
-      }
-      return device;
-    }).toList();
+    final current = state.devices.where((d) => d.id == id).firstOrNull;
+    if (current == null || current.isToggling) return false;
 
-    if (repository != null) {
-      if (nowConnected) {
-        repository!.connectProvider(id).catchError((_) => const IntegrationConnectionModel(id: '', provider: '', status: ''));
+    _updateDevice(id, (d) => d.copyWith(isToggling: true));
+    try {
+      if (current.isConnected) {
+        await repo.disconnectProvider(id);
       } else {
-        repository!.disconnectProvider(id).catchError((_) {});
+        await repo.connectProvider(id);
       }
+      // Reflect the server's view of the world after a confirmed change.
+      await loadConnections();
+      return true;
+    } catch (_) {
+      _updateDevice(id, (d) => d.copyWith(isToggling: false));
+      return false;
     }
   }
 
-  Future<void> syncDevice(String id) async {
-    state = state.map((device) {
-      if (device.id == id) {
-        return device.copyWith(isSyncing: true);
-      }
-      return device;
-    }).toList();
+  /// Returns true only when the backend confirmed the sync completed.
+  Future<bool> syncDevice(String id) async {
+    final repo = repository;
+    if (repo == null) return false;
 
-    if (repository != null) {
-      try {
-        await repository!.syncProvider(id);
-      } catch (_) {
-        await Future.delayed(const Duration(milliseconds: 300));
-      }
-    } else {
-      await Future.delayed(const Duration(milliseconds: 300));
+    _updateDevice(id, (d) => d.copyWith(isSyncing: true));
+    try {
+      // No device bridge is installed yet — sync pushes only real records.
+      await repo.syncProvider(id, records: const []);
+      await loadConnections();
+      return true;
+    } catch (_) {
+      _updateDevice(id, (d) => d.copyWith(isSyncing: false));
+      return false;
     }
+  }
 
-    if (mounted) {
-      state = state.map((device) {
-        if (device.id == id) {
-          return device.copyWith(isSyncing: false, lastSynced: 'Just now');
-        }
-        return device;
-      }).toList();
-    }
+  void _updateDevice(String id, DeviceIntegration Function(DeviceIntegration) update) {
+    if (!mounted) return;
+    state = state.copyWith(
+      devices: [
+        for (final d in state.devices) d.id == id ? update(d) : d,
+      ],
+    );
   }
 }
 
 class SyncScreen extends ConsumerWidget {
   const SyncScreen({super.key});
 
-  String _getDeviceDisplayName(BuildContext context, String key) {
+  String _getDeviceDisplayName(BuildContext context, String provider) {
     final l10n = AppLocalizations.of(context)!;
-    switch (key) {
-      case 'healthConnect':
+    switch (provider) {
+      case 'health_connect':
         return l10n.healthConnect;
-      case 'appleHealth':
+      case 'apple_health':
         return l10n.appleHealth;
       case 'garmin':
         return l10n.garmin;
@@ -170,15 +195,23 @@ class SyncScreen extends ConsumerWidget {
         return l10n.withings;
       case 'oura':
         return l10n.oura;
+      case 'fitbit':
+        return l10n.fitbit;
       default:
-        return key;
+        return provider;
     }
+  }
+
+  String _formatSyncedAt(BuildContext context, DateTime value) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return DateFormat.yMMMd(locale).add_jm().format(value.toLocal());
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final devices = ref.watch(deviceIntegrationsProvider);
+    final integrationsState = ref.watch(deviceIntegrationsProvider);
+    final devices = integrationsState.devices;
 
     return Scaffold(
       appBar: AppBar(
@@ -207,15 +240,24 @@ class SyncScreen extends ConsumerWidget {
             key: const Key('sync_all_button'),
             tooltip: l10n.syncNow,
             icon: const Icon(Icons.sync),
-            onPressed: () {
+            onPressed: () async {
+              final notifier = ref.read(deviceIntegrationsProvider.notifier);
+              var failures = 0;
               for (final d in devices) {
                 if (d.isConnected) {
-                  ref.read(deviceIntegrationsProvider.notifier).syncDevice(d.id);
+                  final ok = await notifier.syncDevice(d.id);
+                  if (!ok) failures++;
                 }
               }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.syncing)),
-              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      failures == 0 ? l10n.syncing : l10n.syncFailed,
+                    ),
+                  ),
+                );
+              }
             },
           ),
         ],
@@ -266,148 +308,215 @@ class SyncScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // 2. Connected Devices List
-          ...devices.map((device) {
-            final displayName = _getDeviceDisplayName(context, device.nameKey);
-            return Card(
-              key: Key('device_card_${device.id}'),
-              margin: const EdgeInsets.only(bottom: 12),
+          // 2. Connected Devices List — server-driven state only
+          if (integrationsState.isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (integrationsState.loadError != null)
+            Card(
               color: FormaTheme.surfaceCard,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(
-                  color: device.isConnected
-                      ? FormaTheme.primaryTeal.withValues(alpha: 0.4)
-                      : Colors.white10,
-                ),
-              ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Row(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: device.isConnected
-                            ? FormaTheme.primaryTeal.withValues(alpha: 0.15)
-                            : Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        device.icon,
-                        color: device.isConnected
-                            ? FormaTheme.primaryTeal
-                            : FormaTheme.textSecondary,
-                        size: 22,
-                      ),
+                    Text(
+                      l10n.integrationsLoadError,
+                      style: const TextStyle(color: FormaTheme.textSecondary),
+                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            displayName,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: FormaTheme.textPrimary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 6,
-                            runSpacing: 2,
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: device.isConnected
-                                          ? FormaTheme.primaryTeal
-                                          : Colors.grey,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      device.isConnected
-                                          ? l10n.connectedStatus
-                                          : l10n.disconnectedStatus,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: device.isConnected
-                                            ? FormaTheme.primaryTeal
-                                            : FormaTheme.textSecondary,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (device.isConnected && device.lastSynced != null)
-                                Text(
-                                  l10n.lastSynced(device.lastSynced!),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: FormaTheme.textSecondary,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    if (device.isConnected) ...[
-                      IconButton(
-                        key: Key('sync_button_${device.id}'),
-                        tooltip: l10n.syncNow,
-                        visualDensity: VisualDensity.compact,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                        padding: const EdgeInsets.all(4),
-                        icon: device.isSyncing
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.refresh, size: 18, color: FormaTheme.primaryTeal),
-                        onPressed: device.isSyncing
-                            ? null
-                            : () => ref.read(deviceIntegrationsProvider.notifier).syncDevice(device.id),
-                      ),
-                    ],
+                    const SizedBox(height: 8),
                     OutlinedButton(
-                      key: Key('toggle_button_${device.id}'),
-                      style: OutlinedButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        foregroundColor: device.isConnected ? Colors.redAccent : FormaTheme.primaryTeal,
-                        side: BorderSide(
-                          color: device.isConnected ? Colors.redAccent : FormaTheme.primaryTeal,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      ),
-                      onPressed: () {
-                        ref.read(deviceIntegrationsProvider.notifier).toggleConnection(device.id);
-                      },
-                      child: Text(
-                        device.isConnected ? l10n.disconnect : l10n.connect,
-                        style: const TextStyle(fontSize: 12),
-                      ),
+                      key: const Key('integrations_retry_button'),
+                      onPressed: () => ref
+                          .read(deviceIntegrationsProvider.notifier)
+                          .loadConnections(),
+                      child: Text(l10n.retry),
                     ),
                   ],
                 ),
               ),
-            );
-          }),
+            )
+          else if (devices.isEmpty)
+            Card(
+              color: FormaTheme.surfaceCard,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  l10n.noIntegrationsAvailable,
+                  style: const TextStyle(color: FormaTheme.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            )
+          else
+            ...devices.map((device) {
+              final displayName = _getDeviceDisplayName(context, device.id);
+              return Card(
+                key: Key('device_card_${device.id}'),
+                margin: const EdgeInsets.only(bottom: 12),
+                color: FormaTheme.surfaceCard,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: device.isConnected
+                        ? FormaTheme.primaryTeal.withValues(alpha: 0.4)
+                        : Colors.white10,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: device.isConnected
+                              ? FormaTheme.primaryTeal.withValues(alpha: 0.15)
+                              : Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          device.icon,
+                          color: device.isConnected
+                              ? FormaTheme.primaryTeal
+                              : FormaTheme.textSecondary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: FormaTheme.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 6,
+                              runSpacing: 2,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: device.isConnected
+                                            ? FormaTheme.primaryTeal
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        device.isConnected
+                                            ? l10n.connectedStatus
+                                            : l10n.disconnectedStatus,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: device.isConnected
+                                              ? FormaTheme.primaryTeal
+                                              : FormaTheme.textSecondary,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (device.isConnected && device.lastSyncedAt != null)
+                                  Text(
+                                    l10n.lastSynced(_formatSyncedAt(context, device.lastSyncedAt!)),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: FormaTheme.textSecondary,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      if (device.isConnected) ...[
+                        IconButton(
+                          key: Key('sync_button_${device.id}'),
+                          tooltip: l10n.syncNow,
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                          padding: const EdgeInsets.all(4),
+                          icon: device.isSyncing
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.refresh, size: 18, color: FormaTheme.primaryTeal),
+                          onPressed: device.isSyncing
+                              ? null
+                              : () async {
+                                  final ok = await ref
+                                      .read(deviceIntegrationsProvider.notifier)
+                                      .syncDevice(device.id);
+                                  if (!ok && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(l10n.syncFailed)),
+                                    );
+                                  }
+                                },
+                        ),
+                      ],
+                      OutlinedButton(
+                        key: Key('toggle_button_${device.id}'),
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          foregroundColor:
+                              device.isConnected ? Colors.redAccent : FormaTheme.primaryTeal,
+                          side: BorderSide(
+                            color: device.isConnected ? Colors.redAccent : FormaTheme.primaryTeal,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        onPressed: device.isToggling
+                            ? null
+                            : () async {
+                                final ok = await ref
+                                    .read(deviceIntegrationsProvider.notifier)
+                                    .toggleConnection(device.id);
+                                if (!ok && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(l10n.connectionUpdateFailed)),
+                                  );
+                                }
+                              },
+                        child: device.isToggling
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(
+                                device.isConnected ? l10n.disconnect : l10n.connect,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
 
           const SizedBox(height: 24),
 

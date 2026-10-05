@@ -338,6 +338,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get oura => 'أورا رينج';
 
   @override
+  String get fitbit => 'فيتبيت';
+
+  @override
   String lastSynced(String time) {
     return 'آخر مزامنة: $time';
   }
@@ -359,6 +362,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get disconnect => 'إلغاء الربط';
+
+  @override
+  String get syncFailed => 'فشلت المزامنة. حاول مرة أخرى.';
+
+  @override
+  String get connectionUpdateFailed => 'تعذر تحديث الاتصال. حاول مرة أخرى.';
+
+  @override
+  String get integrationsLoadError => 'تعذر تحميل اتصالات الأجهزة.';
+
+  @override
+  String get noIntegrationsAvailable => 'لا توجد تكاملات أجهزة متاحة حالياً.';
 
   @override
   String get epistemicResolutionHeader => 'فض التضارب ومصدر البيانات';

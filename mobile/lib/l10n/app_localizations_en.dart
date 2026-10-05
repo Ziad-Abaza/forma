@@ -338,6 +338,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get oura => 'Oura Ring';
 
   @override
+  String get fitbit => 'Fitbit';
+
+  @override
   String lastSynced(String time) {
     return 'Last synced: $time';
   }
@@ -359,6 +362,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get disconnect => 'Disconnect';
+
+  @override
+  String get syncFailed => 'Sync failed. Please try again.';
+
+  @override
+  String get connectionUpdateFailed =>
+      'Couldn\'t update the connection. Please try again.';
+
+  @override
+  String get integrationsLoadError => 'Couldn\'t load your device connections.';
+
+  @override
+  String get noIntegrationsAvailable =>
+      'No device integrations are available right now.';
 
   @override
   String get epistemicResolutionHeader => 'Conflict Resolution & Provenance';

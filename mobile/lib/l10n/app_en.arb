@@ -116,6 +116,7 @@
   "garmin": "Garmin Connect",
   "withings": "Withings Health Mate",
   "oura": "Oura Ring",
+  "fitbit": "Fitbit",
   "lastSynced": "Last synced: {time}",
   "@lastSynced": {
     "placeholders": {
@@ -128,6 +129,10 @@
   "disconnectedStatus": "Disconnected",
   "connect": "Connect",
   "disconnect": "Disconnect",
+  "syncFailed": "Sync failed. Please try again.",
+  "connectionUpdateFailed": "Couldn't update the connection. Please try again.",
+  "integrationsLoadError": "Couldn't load your device connections.",
+  "noIntegrationsAvailable": "No device integrations are available right now.",
   "epistemicResolutionHeader": "Conflict Resolution & Provenance",
   "epistemicResolutionDesc": "Direct device readings supersede manual assertions deterministically without loss of history.",
   "privacyDataSection": "Data Privacy & Management",

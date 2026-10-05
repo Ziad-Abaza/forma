@@ -728,6 +728,12 @@ abstract class AppLocalizations {
   /// **'Oura Ring'**
   String get oura;
 
+  /// No description provided for @fitbit.
+  ///
+  /// In en, this message translates to:
+  /// **'Fitbit'**
+  String get fitbit;
+
   /// No description provided for @lastSynced.
   ///
   /// In en, this message translates to:
@@ -769,6 +775,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Disconnect'**
   String get disconnect;
+
+  /// No description provided for @syncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed. Please try again.'**
+  String get syncFailed;
+
+  /// No description provided for @connectionUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the connection. Please try again.'**
+  String get connectionUpdateFailed;
+
+  /// No description provided for @integrationsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your device connections.'**
+  String get integrationsLoadError;
+
+  /// No description provided for @noIntegrationsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No device integrations are available right now.'**
+  String get noIntegrationsAvailable;
 
   /// No description provided for @epistemicResolutionHeader.
   ///
