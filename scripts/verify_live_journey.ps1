@@ -48,15 +48,21 @@ Write-Host "   Active AI Provider:" $aiConfig.activeProvider
 Write-Host "   Available Providers:" ($aiConfig.availableProviders -join ", ")
 Write-Host "   Supported Models:" $aiConfig.models.Count
 
-$byokBody = @{ provider = "google"; apiKey = "AIzaSyLiveValidationKey12345678" } | ConvertTo-Json
-$byok = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/ai/credentials" -Method Post -Headers $headers -Body $byokBody -ContentType "application/json"
-Write-Host "   Stored BYOK Key Fingerprint:" $byok.credential.keyFingerprint
+# Register OpenAI BYOK Key
+$openaiBody = @{ provider = "openai"; apiKey = "sk-LiveValidationKeyOpenAI12345678" } | ConvertTo-Json
+$openaiKey = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/ai/credentials" -Method Post -Headers $headers -Body $openaiBody -ContentType "application/json"
+Write-Host "   Stored OpenAI BYOK Key Fingerprint:" $openaiKey.credential.keyFingerprint
 
-$testConnBody = @{ provider = "google" } | ConvertTo-Json
+# Switch Active Provider to OpenAI
+$switchPrefBody = @{ activeProvider = "openai" } | ConvertTo-Json
+$prefRes = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/ai/preferences" -Method Patch -Headers $headers -Body $switchPrefBody -ContentType "application/json"
+Write-Host "   Switched Active Provider to:" $prefRes.activeProvider
+
+$testConnBody = @{ provider = "openai" } | ConvertTo-Json
 $testConn = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/ai/test-connection" -Method Post -Headers $headers -Body $testConnBody -ContentType "application/json"
 Write-Host "   Test Connection:" $testConn.status "-" $testConn.message
 
-Write-Host "`n6. Journey J2: Record Observation with Mandatory Provenance"
+Write-Host "`n6. Journey J2: Record Observation with Mandatory Provenance & New Types"
 $obsBody = @{
     typeCode = "weight"
     value = 82.5
@@ -68,11 +74,31 @@ $obs = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/measurements/observa
 Write-Host "   Observation ID:" $obs.observation.id "Value:" $obs.observation.canonical_value $obs.observation.canonical_unit
 Write-Host "   Provenance ID:" $obs.observation.provenance_id "Epistemic:" $obs.provenance.epistemic_class
 
-Write-Host "`n7. Journey J7: Goal Creation & Versioning"
+# Test new measurement type: calf_circumference
+$calfBody = @{
+    typeCode = "calf_circumference"
+    value = 38.5
+    unit = "cm"
+    originType = "manual_entry"
+    epistemicClass = "measured"
+} | ConvertTo-Json
+$calfObs = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/measurements/observations" -Method Post -Headers $headers -Body $calfBody -ContentType "application/json"
+Write-Host "   New Metric Observation (calf_circumference):" $calfObs.observation.canonical_value $calfObs.observation.canonical_unit
+
+# Test Superseding Observation
+$supersedeBody = @{
+    newValue = 82.0
+    newUnit = "kg"
+    correctionReason = "Correction of scale calibration"
+} | ConvertTo-Json
+$supersededObs = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/measurements/observations/$($obs.observation.id)/supersede" -Method Post -Headers $headers -Body $supersedeBody -ContentType "application/json"
+Write-Host "   Superseded Observation: New ID" $supersededObs.observation.id "Supersedes" $supersededObs.observation.superseded_observation_id
+
+Write-Host "`n7. Journey J7: Goal Creation, Versioning & Status Lifecycle"
 $goalBody = @{
     goalType = "weight_loss"
     targetMetricTypeCode = "weight"
-    startingValue = 82.5
+    startingValue = 82.0
     targetValue = 76.0
     ratePerWeek = 0.5
     isPrimary = $true
@@ -84,10 +110,15 @@ $verBody = @{ targetValue = 75.0; rationale = "Adjusted target" } | ConvertTo-Js
 $ver = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/goals/$($goal.id)/versions" -Method Post -Headers $headers -Body $verBody -ContentType "application/json"
 Write-Host "   Updated Goal Target:" $ver.currentVersion.targetValue "kg (Version" $ver.currentVersion.version ")"
 
+# Update Goal Status to Completed
+$statusBody = @{ status = "completed"; rationale = "Target milestone reached" } | ConvertTo-Json
+$statusRes = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/goals/$($goal.id)/status" -Method Patch -Headers $headers -Body $statusBody -ContentType "application/json"
+Write-Host "   Goal Status Updated To:" $statusRes.goal.status
+
 Write-Host "`n8. Health Snapshot & Lineage Reconciliation"
 $snap = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/analytics/snapshot" -Headers $headers
 Write-Host "   Snapshot Weight:" $snap.sections.bodyStatus.latestWeightKg "kg"
-Write-Host "   Primary Goal Target:" $snap.sections.goal.targetValue "kg"
+Write-Host "   Deterministic Macros - Protein:" $snap.sections.energy.macros.proteinGrams "g, Fat:" $snap.sections.energy.macros.fatGrams "g, Carbs:" $snap.sections.energy.macros.carbsGrams "g"
 Write-Host "   Source Watermark:" $snap.sourceDataWatermark
 
 Write-Host "`n9. Journey J10: Privacy Export & Irreversible Purge"
@@ -95,7 +126,7 @@ $export = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/privacy/export" -
 Write-Host "   GDPR Export Modules:" ($export.modules.PSObject.Properties.Name -join ", ")
 Write-Host "   Measurements in Export:" $export.modules.measurements.Count
 
-$delKey = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/ai/credentials/google" -Method Delete -Headers $headers
+$delKey = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/ai/credentials/openai" -Method Delete -Headers $headers
 Write-Host "   Deleted BYOK Key:" $delKey.success
 
 $purge = Invoke-RestMethod -Uri "http://localhost:3000/api/v1/privacy/account" -Method Delete -Headers $headers
