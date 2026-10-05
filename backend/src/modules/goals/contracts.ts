@@ -6,6 +6,17 @@ export type GoalType = z.infer<typeof GoalTypeSchema>;
 export const GoalStatusSchema = z.enum(['active', 'achieved', 'abandoned', 'superseded']);
 export type GoalStatus = z.infer<typeof GoalStatusSchema>;
 
+/**
+ * Physiological sanity bound for a goal's weekly rate. Beyond ±2 kg/week is
+ * implausible outside surgical settings; the clinical floor (1%/week,
+ * calorie floors) is enforced by the CalculationEngine guardrails.
+ */
+export const MAX_WEEKLY_RATE_KG = 2;
+const weeklyRateSchema = z
+  .number()
+  .min(-MAX_WEEKLY_RATE_KG)
+  .max(MAX_WEEKLY_RATE_KG, `weeklyRate must be within ±${MAX_WEEKLY_RATE_KG} kg/week`);
+
 export const CreateGoalRequestSchema = z.object({
   goalType: GoalTypeSchema.optional(),
   type: GoalTypeSchema.optional(),
@@ -13,8 +24,8 @@ export const CreateGoalRequestSchema = z.object({
   targetValue: z.number().positive(),
   startingValue: z.number().positive().optional(),
   baselineValue: z.number().positive().optional(),
-  weeklyRate: z.number().optional(),
-  ratePerWeek: z.number().optional(),
+  weeklyRate: weeklyRateSchema.optional(),
+  ratePerWeek: weeklyRateSchema.optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD').optional(),
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD').optional(),
   rationale: z.string().max(500).optional(),
@@ -25,7 +36,7 @@ export type CreateGoalRequest = z.infer<typeof CreateGoalRequestSchema>;
 export const UpdateGoalVersionRequestSchema = z.object({
   targetValue: z.number().positive(),
   startingValue: z.number().positive().optional(),
-  weeklyRate: z.number().optional(),
+  weeklyRate: weeklyRateSchema.optional(),
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD').optional(),
   rationale: z.string().max(500).optional()
 });
