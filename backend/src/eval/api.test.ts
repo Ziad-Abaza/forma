@@ -3,6 +3,8 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../app.js';
 import { closePool } from '../core/database/index.js';
 import { runMigrations } from '../core/database/migrate.js';
+import { AIGateway } from '../modules/ai/gateway/gateway.js';
+import type { AIProviderAdapter } from '../modules/ai/gateway/types.js';
 
 describe('Fastify HTTP API End-to-End Tests', () => {
   let app: FastifyInstance;
@@ -10,11 +12,35 @@ describe('Fastify HTTP API End-to-End Tests', () => {
   let userBToken: string;
   let userAId: string;
   let observationAId: string;
+  let testConnectionCalls: { modelId: string; apiKey: string | undefined }[] = [];
 
   beforeAll(async () => {
     process.env['NODE_ENV'] = 'test';
     await runMigrations();
-    app = buildApp();
+
+    // Stub adapter injected at the composition root — proves the test-connection
+    // route delegates to the real adapter instead of magic-key short-circuiting.
+    const gateway = new AIGateway();
+    const stubAdapter: AIProviderAdapter = {
+      providerName: 'google',
+      isAvailable: async () => true,
+      generateText: async (modelId, _options, customApiKey) => {
+        testConnectionCalls.push({ modelId, apiKey: customApiKey });
+        if (customApiKey === 'definitely-invalid-key-0000') {
+          throw new Error('Gemini API Error [401]: API key not valid');
+        }
+        return {
+          text: 'pong',
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+          finishReason: 'stop',
+          provider: 'google',
+          modelId
+        };
+      }
+    };
+    gateway.registerAdapter(stubAdapter);
+
+    app = buildApp({ aiGateway: gateway });
     await app.ready();
   });
 
@@ -346,7 +372,8 @@ describe('Fastify HTTP API End-to-End Tests', () => {
     expect(configBody.availableProviders).toContain('openai');
     expect(configBody.models.length).toBeGreaterThan(0);
 
-    // 2. POST /api/v1/ai/test-connection
+    // 2. POST /api/v1/ai/test-connection — a 'test-key' must NOT bypass the adapter
+    const callsBefore = testConnectionCalls.length;
     const testConnRes = await app.inject({
       method: 'POST',
       url: '/api/v1/ai/test-connection',
@@ -355,6 +382,19 @@ describe('Fastify HTTP API End-to-End Tests', () => {
     });
     expect(testConnRes.statusCode).toBe(200);
     expect(JSON.parse(testConnRes.body).status).toBe('success');
+    // The stub adapter was actually invoked with the provided key (no short-circuit)
+    expect(testConnectionCalls.length).toBe(callsBefore + 1);
+    expect(testConnectionCalls[testConnectionCalls.length - 1]!.apiKey).toBe('valid-test-key-12345');
+
+    // 2b. An invalid key surfaces an honest failure — no fabricated success
+    const badConnRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/ai/test-connection',
+      headers: { authorization: `Bearer ${userAToken}` },
+      payload: { provider: 'google', apiKey: 'definitely-invalid-key-0000' },
+    });
+    expect(badConnRes.statusCode).toBe(400);
+    expect(JSON.parse(badConnRes.body).status).toBe('failed');
 
     // 3. POST /api/v1/ai/credentials
     const storeCredRes = await app.inject({

@@ -23,7 +23,7 @@ import { ProfileService } from './modules/profile/service.js';
 import { UpdateProfileRequestSchema } from './modules/profile/contracts.js';
 import { PrivacyOrchestrator } from './modules/privacy/index.js';
 import { GoalsService } from './modules/goals/service.js';
-import { CreateGoalRequestSchema, UpdateGoalVersionRequestSchema } from './modules/goals/contracts.js';
+import { CreateGoalRequestSchema, UpdateGoalVersionRequestSchema, GoalStatusSchema } from './modules/goals/contracts.js';
 import { CalculationEngine } from './modules/calculations/engine.js';
 import { AnalyticsService } from './modules/analytics/service.js';
 import {
@@ -44,13 +44,7 @@ import {
   UpdateDraftFieldSchema,
   CommitDraftRequestSchema
 } from './modules/multimodal/index.js';
-import {
-  IntegrationProviderSchema,
-  IntegrationSyncService,
-  IntegrationsPrivacyContract,
-  SyncBatchRequestSchema,
-  type IntegrationProvider
-} from './modules/integrations/index.js';
+import { IntegrationsPrivacyContract } from './modules/integrations/index.js';
 import { z } from 'zod';
 import { BYOKService } from './modules/ai/gateway/byok.js';
 import { ModelRegistry } from './modules/ai/gateway/registry.js';
@@ -63,6 +57,10 @@ export interface AuthenticatedUser {
   role: string;
 }
 
+export interface AppDependencies {
+  aiGateway?: AIGateway;
+}
+
 declare module 'fastify' {
   interface FastifyRequest {
     user?: AuthenticatedUser;
@@ -71,7 +69,7 @@ declare module 'fastify' {
   }
 }
 
-export function buildApp(): FastifyInstance {
+export function buildApp(deps: AppDependencies = {}): FastifyInstance {
   const app = fastify({
     logger: false // Logging handled by structured sanitized logger
   });
@@ -219,6 +217,48 @@ export function buildApp(): FastifyInstance {
     return reply.status(200).send({ message: 'Successfully logged out' });
   });
 
+  app.post('/api/v1/auth/logout-all', { preHandler: [requireAuth] }, async (req, reply) => {
+    const revoked = await IdentityService.revokeAllSessions(req.user!.userId, req.correlationId);
+    return reply.send({ success: true, sessionsRevoked: revoked });
+  });
+
+  app.get('/api/v1/auth/sessions', { preHandler: [requireAuth] }, async (req, reply) => {
+    const sessions = await IdentityService.listSessions(req.user!.userId);
+    return reply.send({
+      sessions: sessions.map((s) => ({
+        id: s.id,
+        deviceInfo: s.device_info,
+        familyId: s.family_id,
+        isRevoked: s.is_revoked,
+        expiresAt: s.expires_at,
+        createdAt: s.created_at
+      }))
+    });
+  });
+
+  app.delete('/api/v1/auth/sessions/:id', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const revoked = await IdentityService.revokeSession(req.user!.userId, id, req.correlationId);
+    if (!revoked) {
+      return reply.status(404).send({ error: 'Session not found' });
+    }
+    return reply.send({ success: true });
+  });
+
+  app.post('/api/v1/auth/change-password', { preHandler: [requireAuth] }, async (req, reply) => {
+    const parsed = z.object({
+      currentPassword: z.string().min(1),
+      newPassword: z.string().min(8)
+    }).parse(req.body);
+    await IdentityService.changePassword(
+      req.user!.userId,
+      parsed.currentPassword,
+      parsed.newPassword,
+      req.correlationId
+    );
+    return reply.send({ success: true, message: 'Password updated. Please sign in again.' });
+  });
+
   app.get('/api/v1/auth/me', { preHandler: [requireAuth] }, async (req, reply) => {
     const user = await IdentityService.getCurrentUser(req.user!.userId);
     if (!user) {
@@ -318,6 +358,25 @@ export function buildApp(): FastifyInstance {
   });
 
   // --- Privacy Routes (Export & Deletion Contracts) ---
+  app.get('/api/v1/privacy/consents', { preHandler: [requireAuth] }, async (req, reply) => {
+    const consents = await IdentityService.listConsents(req.user!.userId);
+    return reply.send({
+      consents: consents.map((c) => ({
+        policyType: c.policy_type,
+        version: c.version,
+        granted: c.granted,
+        grantedAt: c.granted_at,
+        withdrawnAt: c.withdrawn_at
+      }))
+    });
+  });
+
+  app.post('/api/v1/privacy/consents/:policyType/withdraw', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { policyType } = req.params as { policyType: string };
+    await IdentityService.withdrawConsent(req.user!.userId, policyType, req.correlationId);
+    return reply.send({ success: true, policyType, withdrawnAt: new Date().toISOString() });
+  });
+
   app.get('/api/v1/privacy/export', { preHandler: [requireAuth] }, async (req, reply) => {
     const exportData = await PrivacyOrchestrator.exportAllUserData(req.user!.userId, req.correlationId);
     return reply.send(exportData);
@@ -356,14 +415,20 @@ export function buildApp(): FastifyInstance {
     return reply.send({ goals });
   });
 
+  app.get('/api/v1/goals/:id/versions', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const versions = await goalsService.listGoalVersions(req.user!.userId, id);
+    return reply.send({ versions });
+  });
+
   app.patch('/api/v1/goals/:id/status', { preHandler: [requireAuth] }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { status } = req.body as { status: string };
-    if (!status || !['active', 'completed', 'archived'].includes(status)) {
-      return reply.status(400).send({ error: "Status must be 'active', 'completed', or 'archived'" });
+    const parsed = z.object({ status: GoalStatusSchema }).safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: "Status must be one of: active, achieved, abandoned, superseded" });
     }
-    const success = await goalsService.updateGoalStatus(req.user!.userId, id, status);
-    return reply.send({ success, status });
+    const success = await goalsService.updateGoalStatus(req.user!.userId, id, parsed.data.status);
+    return reply.send({ success, status: parsed.data.status });
   });
 
   // --- Calculations Routes (Pure, Deterministic) ---
@@ -460,6 +525,15 @@ export function buildApp(): FastifyInstance {
     const parsed = ChatRequestSchema.parse(req.body);
     const userId = req.user!.userId;
 
+    // Sending health context to a third-party AI provider requires active consent.
+    const aiConsent = await IdentityService.hasActiveConsent(userId, 'ai_third_party_processing');
+    if (!aiConsent) {
+      return reply.status(403).send({
+        error: 'AI processing consent has not been granted or was withdrawn.',
+        code: 'AI_CONSENT_REQUIRED'
+      });
+    }
+
     if (parsed.stream) {
       reply.raw.setHeader('Content-Type', 'text/event-stream');
       reply.raw.setHeader('Cache-Control', 'no-cache');
@@ -540,6 +614,7 @@ export function buildApp(): FastifyInstance {
 
   // --- AI Configuration & BYOK Routes (Blueprint §10, §20.5, ADR-018) ---
   const byokService = new BYOKService();
+  const aiGateway = deps.aiGateway ?? new AIGateway(byokService);
 
   const StoreCredentialSchema = z.object({
     provider: z.string().min(1).max(64),
@@ -554,7 +629,7 @@ export function buildApp(): FastifyInstance {
 
     return reply.send({
       activeProvider,
-      availableProviders: ['google', 'openai', 'anthropic', 'secondary'],
+      availableProviders: aiGateway.getRegisteredProviders(),
       models,
       credentials,
     });
@@ -641,18 +716,8 @@ export function buildApp(): FastifyInstance {
       return reply.status(400).send({ error: `No API key provided or stored for provider '${provider}'` });
     }
 
-    // Skip network roundtrip in synthetic test environment or validation fixtures
-    if (keyToTest.includes('LiveValidationKey') || keyToTest.includes('test-key') || process.env.NODE_ENV === 'test') {
-      return reply.send({
-        status: 'success',
-        provider,
-        message: `Connection test verified for provider ${provider}`,
-      });
-    }
-
     try {
-      const gateway = new AIGateway(byokService);
-      const adapter = gateway.getAdapter(provider);
+      const adapter = aiGateway.getAdapter(provider);
       if (!adapter) {
         return reply.status(400).send({ error: `Adapter for '${provider}' not registered` });
       }
@@ -697,6 +762,12 @@ export function buildApp(): FastifyInstance {
     return reply.status(201).send({ draft, artifact: media.artifact });
   });
 
+  app.get('/api/v1/multimodal/drafts', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { status } = req.query as { status?: string };
+    const drafts = await DraftReviewService.listDrafts(req.user!.userId, status);
+    return reply.send({ drafts });
+  });
+
   app.get('/api/v1/multimodal/drafts/:id', { preHandler: [requireAuth] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const draft = await DraftReviewService.getDraft(req.user!.userId, id);
@@ -726,39 +797,9 @@ export function buildApp(): FastifyInstance {
     return reply.send({ draft: discarded });
   });
 
-  // --- Integrations & Sync Routes (Blueprint §28.1) ---
+  // Wearable/device integrations are deferred per blueprint §27.2 — the ingestion
+  // tables remain for GDPR export/purge coverage of any historically imported data.
   PrivacyOrchestrator.registerModule(new IntegrationsPrivacyContract());
-
-  app.get('/api/v1/integrations/providers', { preHandler: [requireAuth] }, async (_req, reply) => {
-    return reply.send({ providers: IntegrationProviderSchema.options });
-  });
-
-  app.get('/api/v1/integrations/connections', { preHandler: [requireAuth] }, async (req, reply) => {
-    const connections = await IntegrationSyncService.getConnections(req.user!.userId);
-    return reply.send({ connections });
-  });
-
-  app.post('/api/v1/integrations/connect', { preHandler: [requireAuth] }, async (req, reply) => {
-    const { provider, scopes, metadata } = req.body as {
-      provider: IntegrationProvider;
-      scopes?: string[];
-      metadata?: Record<string, unknown>;
-    };
-    const connection = await IntegrationSyncService.connectProvider(req.user!.userId, provider, scopes, metadata);
-    return reply.status(201).send({ connection });
-  });
-
-  app.post('/api/v1/integrations/disconnect', { preHandler: [requireAuth] }, async (req, reply) => {
-    const { provider } = req.body as { provider: IntegrationProvider };
-    await IntegrationSyncService.disconnectProvider(req.user!.userId, provider);
-    return reply.send({ success: true });
-  });
-
-  app.post('/api/v1/integrations/sync', { preHandler: [requireAuth] }, async (req, reply) => {
-    const parsed = SyncBatchRequestSchema.parse(req.body);
-    const result = await IntegrationSyncService.ingestBatch(req.user!.userId, parsed, req.correlationId);
-    return reply.send(result);
-  });
 
   return app;
 }
