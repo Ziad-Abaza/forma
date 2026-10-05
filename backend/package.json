@@ -4,7 +4,7 @@
   "description": "Forma Backend Modular Monolith",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/copy-migrations.js",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "vitest run",
@@ -12,6 +12,7 @@
     "test:arch": "vitest run src/eval/architecture.test.ts",
     "migrate": "tsx src/core/database/migrate.ts",
     "start": "tsx src/index.ts",
+    "start:prod": "node dist/index.js",
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {

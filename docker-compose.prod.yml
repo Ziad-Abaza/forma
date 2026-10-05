@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: forma-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secure_root_pw}
+      POSTGRES_DB: ${POSTGRES_DB:-forma_prod}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-forma_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+    networks:
+      - forma-internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: forma-backend-prod
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_APP_USER:-forma_app}:${POSTGRES_APP_PASSWORD:-forma_secure_app_role_pw}@postgres:5432/${POSTGRES_DB:-forma_prod}
+      DATABASE_URL_MIGRATIONS: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_secure_root_pw}@postgres:5432/${POSTGRES_DB:-forma_prod}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-forma_prod_jwt_access_secret_minimum_32_characters!}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-forma_prod_jwt_refresh_secret_minimum_32_characters!}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AI_PRIMARY_MODEL: ${AI_PRIMARY_MODEL:-gemini-3.8-flash}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+    networks:
+      - forma-internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+networks:
+  forma-internal:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:

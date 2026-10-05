@@ -164,7 +164,7 @@ class SyncScreen extends ConsumerWidget {
             color: FormaTheme.surfaceCard,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: FormaTheme.primaryTeal.withOpacity(0.3)),
+              side: BorderSide(color: FormaTheme.primaryTeal.withValues(alpha: 0.3)),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -213,7 +213,7 @@ class SyncScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(14),
                 side: BorderSide(
                   color: device.isConnected
-                      ? FormaTheme.primaryTeal.withOpacity(0.4)
+                      ? FormaTheme.primaryTeal.withValues(alpha: 0.4)
                       : Colors.white10,
                 ),
               ),
@@ -225,8 +225,8 @@ class SyncScreen extends ConsumerWidget {
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: device.isConnected
-                            ? FormaTheme.primaryTeal.withOpacity(0.15)
-                            : Colors.white.withOpacity(0.05),
+                            ? FormaTheme.primaryTeal.withValues(alpha: 0.15)
+                            : Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(

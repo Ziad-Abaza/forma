@@ -30,6 +30,10 @@ export class PrivacyOrchestrator {
     }
   }
 
+  static getRegisteredModules(): ModulePrivacyContract[] {
+    return [...this.registeredModules];
+  }
+
   /**
    * Executes a portable export of all user data across all registered modules.
    * Excludes all secret tokens, passwords, and API keys.

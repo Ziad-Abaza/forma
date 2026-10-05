@@ -3,6 +3,8 @@ import cors from '@fastify/cors';
 import crypto from 'crypto';
 import { config } from './config/index.js';
 import { verifyJwt } from './core/security/index.js';
+import { checkDatabaseHealth } from './core/database/index.js';
+import { appLogger } from './core/logging/index.js';
 import { IdentityService } from './modules/identity/service.js';
 import { RegisterRequestSchema, LoginRequestSchema, RefreshTokenRequestSchema } from './modules/identity/contracts.js';
 import { MeasurementsService } from './modules/measurements/service.js';
@@ -54,6 +56,7 @@ declare module 'fastify' {
   interface FastifyRequest {
     user?: AuthenticatedUser;
     correlationId: string;
+    startTime: number;
   }
 }
 
@@ -68,9 +71,29 @@ export function buildApp(): FastifyInstance {
     credentials: true
   });
 
-  // Middleware: Attach correlation ID to every request
+  // Middleware: Attach correlation ID and start time to every request
   app.addHook('onRequest', async (req: FastifyRequest) => {
     req.correlationId = (req.headers['x-correlation-id'] as string) || crypto.randomUUID();
+    req.startTime = Date.now();
+  });
+
+  // Middleware: Structured request/response telemetry with automated PII redaction
+  app.addHook('onResponse', async (req: FastifyRequest, reply: FastifyReply) => {
+    const durationMs = Date.now() - (req.startTime || Date.now());
+    const meta = {
+      correlationId: req.correlationId,
+      method: req.method,
+      url: req.url,
+      statusCode: reply.statusCode,
+      durationMs,
+      userId: req.user?.userId
+    };
+
+    if (reply.statusCode >= 500) {
+      appLogger.error(`HTTP request completed with server error`, meta);
+    } else {
+      appLogger.info(`HTTP request completed`, meta);
+    }
   });
 
   // Authentication hook helper
@@ -92,15 +115,58 @@ export function buildApp(): FastifyInstance {
   // Global Error Handler
   app.setErrorHandler((error: Error & { statusCode?: number }, req, reply) => {
     const statusCode = error.statusCode || 400;
+    appLogger.error(`Unhandled request error: ${error.message}`, {
+      correlationId: req.correlationId,
+      statusCode,
+      stack: error.stack
+    });
     reply.status(statusCode).send({
       error: error.message || 'An unexpected error occurred',
       correlationId: req.correlationId
     });
   });
 
-  // Healthcheck route
+  // --- Observability & Health Probes (Blueprint §20, Gate 12) ---
   app.get('/health', async () => {
-    return { status: 'healthy', timestamp: new Date().toISOString() };
+    return {
+      status: 'healthy',
+      version: '1.0.0',
+      timestamp: new Date().toISOString()
+    };
+  });
+
+  app.get('/health/live', async () => {
+    return {
+      status: 'healthy',
+      uptimeSeconds: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString()
+    };
+  });
+
+  app.get('/health/ready', async (_req, reply) => {
+    const isDbReady = await checkDatabaseHealth();
+    if (!isDbReady) {
+      return reply.status(503).send({
+        status: 'unhealthy',
+        database: 'disconnected',
+        timestamp: new Date().toISOString()
+      });
+    }
+    return reply.status(200).send({
+      status: 'ready',
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  app.get('/metrics', async () => {
+    return {
+      status: 'operational',
+      environment: config.NODE_ENV,
+      uptimeSeconds: Math.floor(process.uptime()),
+      memory: process.memoryUsage(),
+      timestamp: new Date().toISOString()
+    };
   });
 
   // --- Identity & Auth Routes ---

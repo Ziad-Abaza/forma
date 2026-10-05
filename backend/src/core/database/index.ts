@@ -23,6 +23,20 @@ export async function closePool(): Promise<void> {
 }
 
 /**
+ * Checks database connectivity for readiness probes.
+ * Returns true if SELECT 1 succeeds within timeout, false otherwise.
+ */
+export async function checkDatabaseHealth(): Promise<boolean> {
+  try {
+    const pool = getPool();
+    const res = await pool.query('SELECT 1 AS alive');
+    return res.rows.length > 0 && res.rows[0].alive === 1;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Executes a callback within an isolated PostgreSQL transaction bound to the authenticated user's ID.
  * Sets `app.current_user_id` so that Row-Level Security policies are strictly enforced by the database.
  */

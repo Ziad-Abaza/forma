@@ -257,16 +257,67 @@ ${proposalsContextText}
     formattedPrompt += `User: ${userPrompt}\nForma:`;
 
     // 10. Execute generation through AI Gateway
-    const gatewayResult = await this.gateway.execute(
-      'conversational',
-      {
-        prompt: formattedPrompt,
-        systemInstruction,
-        temperature: 0.3,
-        maxTokens: 1024
-      },
-      userId
-    );
+    let gatewayResult;
+    try {
+      gatewayResult = await this.gateway.execute(
+        'conversational',
+        {
+          prompt: formattedPrompt,
+          systemInstruction,
+          temperature: 0.3,
+          maxTokens: 1024
+        },
+        userId
+      );
+    } catch (providerError: any) {
+      // Graceful degradation when AI provider is unavailable, timing out, or returning 5xx (Blueprint Gate 11)
+      const isArabic = /[\u0600-\u06FF]/.test(userPrompt);
+      const fallbackText = isArabic
+        ? 'أواجه حالياً صعوبة مؤقتة في الاتصال بخدمة الذكاء الاصطناعي. بياناتك الصحية وسجلاتك محفوظة بأمان تام. يرجى إعادة المحاولة بعد لحظات، أو استخدام لوحة التحكم لتسجيل قياساتك مباشرة.'
+        : 'I am currently experiencing temporary connectivity issues contacting the AI service. Your health metrics and records are completely safe. Please try again in a few moments, or record measurements directly via the dashboard.';
+
+      const assistantMessage = await this.saveMessage(userId, {
+        conversationId: conversation.id,
+        role: 'assistant',
+        content: fallbackText,
+        evidenceClaims: [],
+        proposals: [],
+        tokenCount: Math.ceil(fallbackText.length / 4),
+        safetyCategory: 'A'
+      });
+
+      await this.traceService.emitTrace({
+        userId,
+        correlationId,
+        provider: 'fallback',
+        modelId: 'degraded',
+        taskClass: 'conversational',
+        intentClass: 'guidance',
+        contextTier: 1,
+        contextManifest: {
+          tier: 1,
+          intentClass: 'guidance',
+          includedSections: ['fallback'],
+          excludedReasons: { provider_error: providerError.message || 'Provider degraded' },
+          recordCount: 0,
+          dataFreshness: 'none'
+        },
+        safetyCategory: 'A',
+        guardrailsTriggered: [],
+        outcome: 'degraded'
+      });
+
+      return {
+        conversationId: conversation.id,
+        userMessageId: userMessage.id,
+        assistantMessageId: assistantMessage.id,
+        content: fallbackText,
+        evidenceClaims: [],
+        proposals: [],
+        safetyCategory: 'A',
+        createdAt: assistantMessage.createdAt
+      };
+    }
 
     let rawText = gatewayResult.result.text;
 

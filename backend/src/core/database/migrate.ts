@@ -27,7 +27,9 @@ export async function runMigrations(): Promise<void> {
       );
     `);
 
-    const migrationsDir = path.join(__dirname, 'migrations');
+    const localDir = path.join(__dirname, 'migrations');
+    const srcDir = path.resolve(__dirname, '../../../src/core/database/migrations');
+    const migrationsDir = fs.existsSync(localDir) ? localDir : srcDir;
     const files = fs.readdirSync(migrationsDir)
       .filter(f => f.endsWith('.sql'))
       .sort();
