@@ -98,6 +98,60 @@ describe('Phase 5: Multimodal Image Intelligence & Vision Extraction Tests', { t
         MediaPipeline.ingestImage(userAId, fakePayloadBase64, 'image/jpeg')
       ).rejects.toThrow(/Image verification failed/);
     });
+
+    it('actually strips EXIF segments and records truthful isExifStripped metadata (HC-033)', async () => {
+      // Synthetic JPEG: SOI + APP1 Exif segment + EOI
+      const exifSegment = Buffer.concat([
+        Buffer.from([0xff, 0xe1, 0x00, 0x10]),
+        Buffer.from('Exif\0\0', 'latin1'),
+        Buffer.alloc(8, 0xab)
+      ]);
+      const jpegWithExif = Buffer.concat([
+        Buffer.from([0xff, 0xd8]),
+        exifSegment,
+        Buffer.from([0xff, 0xd9])
+      ]);
+
+      const media = await MediaPipeline.ingestImage(
+        userAId,
+        jpegWithExif.toString('base64'),
+        'image/jpeg',
+        'scale_display'
+      );
+
+      // Stored file contains no Exif marker — the claim is true
+      const stored = fs.readFileSync(media.artifact.storagePath);
+      expect(stored.includes('Exif')).toBe(false);
+      expect(stored.length).toBe(4); // SOI + EOI only
+      expect(media.artifact.metadata['isExifStripped']).toBe(true);
+      expect(media.artifact.byteSize).toBe(4);
+    });
+
+    it('strips PNG text/metadata chunks (tEXt, eXIf) from ingested images', async () => {
+      // Minimal PNG: signature + tEXt chunk + IEND
+      const pngSig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      const textData = Buffer.from('gps\0secret-location', 'latin1');
+      const textChunk = Buffer.concat([
+        Buffer.alloc(4),
+        Buffer.from('tEXt'),
+        textData,
+        Buffer.alloc(4)
+      ]);
+      textChunk.writeUInt32BE(textData.length, 0);
+      const iend = Buffer.concat([Buffer.alloc(4), Buffer.from('IEND'), Buffer.alloc(4)]);
+      const pngWithText = Buffer.concat([pngSig, textChunk, iend]);
+
+      const media = await MediaPipeline.ingestImage(
+        userAId,
+        pngWithText.toString('base64'),
+        'image/png',
+        'scale_display'
+      );
+
+      const stored = fs.readFileSync(media.artifact.storagePath);
+      expect(stored.includes('secret-location')).toBe(false);
+      expect(media.artifact.metadata['isExifStripped']).toBe(true);
+    });
   });
 
   describe('2. Scope Guardrail: Clinical Document Boundary (Blueprint §13.4)', () => {
