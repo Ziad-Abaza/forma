@@ -30,7 +30,13 @@ export class ContextPlanner {
       text.includes('how many calories') ||
       text.includes('calculate my bmr') ||
       text.includes('calculate my tdee') ||
-      text.includes('what is my bmi')
+      text.includes('calculate my') ||
+      text.includes('what is my bmi') ||
+      text.includes('احسب') ||
+      text.includes('حساب') ||
+      text.includes('كم سعرة') ||
+      text.includes('معدل الأيض') ||
+      text.includes('مؤشر كتلة الجسم')
     ) {
       return {
         intent: 'calculation',
@@ -44,7 +50,11 @@ export class ContextPlanner {
       text.includes('compare with') ||
       text.includes('last month') ||
       text.includes('trend over time') ||
-      text.includes('how much have i lost since')
+      text.includes('how much have i lost since') ||
+      text.includes('قارن') ||
+      text.includes('مقارنة') ||
+      text.includes('الشهر الماضي') ||
+      text.includes('تطور')
     ) {
       return {
         intent: 'comparison',
@@ -59,7 +69,11 @@ export class ContextPlanner {
       text.includes('my goal') ||
       text.includes('how am i doing') ||
       text.includes('what is my target') ||
-      text.includes('my progress')
+      text.includes('my progress') ||
+      text.includes('وزني الحالي') ||
+      text.includes('ما هو وزني') ||
+      text.includes('هدفي') ||
+      text.includes('تقدمي')
     ) {
       return {
         intent: 'data_lookup',

@@ -73,14 +73,20 @@ export class SafetyClassifier {
       }
     }
 
-    // Category B: Nutrition Guidance
+    // Category B: Nutrition & Metabolic Guidance
     if (
       text.includes('calorie') ||
       text.includes('protein') ||
       text.includes('carb') ||
       text.includes('macro') ||
       text.includes('diet') ||
-      text.includes('food')
+      text.includes('food') ||
+      text.includes('bmr') ||
+      text.includes('tdee') ||
+      text.includes('سعرة') ||
+      text.includes('بروتين') ||
+      text.includes('غذاء') ||
+      text.includes('أكل')
     ) {
       return {
         category: 'B',

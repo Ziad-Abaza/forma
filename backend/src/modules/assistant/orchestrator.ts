@@ -306,7 +306,7 @@ ${proposalsContextText}
 
     // 12. Extract and verify evidence claims against snapshot and tool data
     const evidenceClaims = EvidenceClaimVerifier.extractAndVerifyClaims(cleanText, {
-      snapshot: (contextBundle as any).manifest?.includedSections
+      snapshot: contextBundle.snapshot
     });
 
     // 13. Save assistant message

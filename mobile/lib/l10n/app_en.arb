@@ -109,5 +109,30 @@
   "editField": "Edit Value",
   "saveChanges": "Save Changes",
   "noFieldsToCommit": "No fields selected for commit",
-  "extractedMetricsTitle": "Extracted Metrics"
+  "extractedMetricsTitle": "Extracted Metrics",
+  "syncScreenTitle": "Connected Devices & Sync",
+  "healthConnect": "Health Connect",
+  "appleHealth": "Apple Health",
+  "garmin": "Garmin Connect",
+  "withings": "Withings Health Mate",
+  "oura": "Oura Ring",
+  "lastSynced": "Last synced: {time}",
+  "@lastSynced": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "syncNow": "Sync Now",
+  "syncing": "Syncing...",
+  "connectedStatus": "Connected",
+  "disconnectedStatus": "Disconnected",
+  "connect": "Connect",
+  "disconnect": "Disconnect",
+  "epistemicResolutionHeader": "Conflict Resolution & Provenance",
+  "epistemicResolutionDesc": "Direct device readings supersede manual assertions deterministically without loss of history.",
+  "privacyDataSection": "Data Privacy & Management",
+  "exportUserData": "Export Health Data (GDPR)",
+  "purgeAccount": "Delete Account & Purge Data",
+  "exportSuccess": "Data export generated successfully.",
+  "purgeConfirmation": "Are you sure? This permanently deletes all your health data across all services."
 }

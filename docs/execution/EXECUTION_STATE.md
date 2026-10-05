@@ -1,40 +1,46 @@
 # Forma Implementation — Persistent Execution State
 
-**Last Checkpoint Timestamp:** 2026-10-05T04:48:00+03:00  
-**Current Phase:** Phase 5 (Image & Multimodal Intelligence) — COMPLETED  
-**Next Phase:** Phase 6 (Wearables, Health Connect, Sync & Conflict Resolution)  
-**Status:** READY_FOR_PHASE_6_CONFIRMATION  
+**Last Checkpoint Timestamp:** 2026-10-05T05:13:00+03:00  
+**Current Phase:** Phase 6 (Security, Red-Team Hardening, Integrations Seams & AI Eval Hardening) — COMPLETED  
+**Current Milestone:** Phase 6 Final Verification & Quality Gates  
+**Current Task:** Awaiting user confirmation to proceed to Phase 7 (Production Hardening & Launch Readiness)  
+**Status:** COMPLETED (Awaiting Next Phase Confirmation)  
 
 ---
 
 ## 1. Execution Position & Resume Information
-- **Exact Resume Point:** Phase 5 completed and verified across all quality gates. Ready to begin Phase 6 (Health Connect / HealthKit data pipeline, sync engine, idempotent deduplication, and conflict resolution) upon user confirmation.
-- **Completed Modules in Phase 5:**
-  - `backend/src/core/database/migrations/008_multimodal_schema.sql` (Tables: `media_artifacts`, `extraction_drafts` with RLS).
-  - `backend/src/modules/multimodal/` (`pipeline.ts`, `extractor.ts`, `drafts.ts`, `contracts.ts`, `index.ts`).
-  - `backend/src/modules/ai/gateway/` (Extended with `inlineData` for Gemini vision payloads).
-  - `backend/src/eval/multimodal.test.ts` (11 unit/integration/RLS tests).
-  - `mobile/lib/presentation/screens/multimodal_review_screen.dart` (Adaptive review UI, field editor, retention toggle).
-  - `mobile/test/multimodal_review_widget_test.dart` (Widget tests, RTL Arabic parity).
-  - `docs/phases/phase-5-report.md`.
+- **Exact Resume Point:** Phase 6 is 100% completed, verified, and ready for commit. Next is Phase 7 (Production Hardening, Launch Readiness, Docker/Compose, CI verification, and Final Invariants audit).
+- **Completed in Phase 6:**
+  - Database Migrations 009 & 010 with Row Level Security enforced across 24 tables.
+  - Integrations Sync Engine with idempotent deduplication and deterministic epistemic conflict resolution (direct device measurements supersede manual assertions via supersession without silent overwrite).
+  - Fastify API endpoints for integrations management (`/api/v1/integrations/*`).
+  - Red-Team Adversarial Test Suite (`backend/src/eval/red_team.test.ts`) passing 7/7 (prompt injection, jailbreak, cross-user tampering, clinical calorie floors, content-free AI traces).
+  - End-to-End Privacy Verification (`backend/src/eval/privacy_e2e.test.ts`) passing 2/2 (GDPR export and cascading account purge across all 24 tables).
+  - AI Evaluation Matrix & Grounding Gate (`backend/src/eval/eval_matrix.test.ts`) passing 7/7 (golden evaluation dataset, zero-hallucination metric grounding, clean profile abstention).
+  - Flutter Devices & Sync Screen (`mobile/lib/presentation/screens/sync_screen.dart`) with full Arabic RTL / English LTR parity and 4/4 passing widget tests.
 
 ---
 
 ## 2. Checkpoint Ledger & Verification Evidence
 
 ### Last Verified Checkpoint:
-- **Phase 5 Verified:**
-  - **Backend Test Suite:** 13/13 test suites passing (113 tests in total across auth, measurements, goals, analytics, AI platform, assistant, multimodal).
-  - **Architecture Test Suite:** 4/4 tests passing (21 tables verified under PostgreSQL RLS with `FORCE ROW LEVEL SECURITY` and `forma_app` role isolation).
-  - **TypeScript Typecheck:** Clean compilation (`tsc --noEmit` exited with code 0).
-  - **Flutter Analysis:** Clean analysis (`dart analyze` reported 0 issues).
-  - **Flutter Tests:** 11/11 tests passing (`flutter test` across dashboard, assistant, localization, multimodal review).
-  - **Secret Scanner:** Clean scan (`scripts/secret-scan.js` scanned 168 files, 0 secrets found).
+- **Phase 6 Quality Gates Verified:**
+  - **Gate 1 (Safety Redirection):** PASS (emergency symptoms & disordered eating refused).
+  - **Gate 2 (Prompt Injection):** PASS (direct and indirect injection neutralized).
+  - **Gate 3 (Numeric Grounding):** PASS (strict context grounding; zero hallucinations; abstention when empty).
+  - **Gate 4 (Architectural Boundaries & RLS):** PASS (all 24 tables enforced under `forma_app`).
+  - **Gate 5 (Deterministic Calculation):** PASS (pure arithmetic; biological calorie floors).
+  - **Gate 6 (Integrations & Precedence):** PASS (idempotent hash deduplication; supersession without overwrite).
+  - **Gate 7 (Privacy Parity):** PASS (GDPR portable export & complete cascading purge).
+  - **Gate 8 (Bilingual Parity):** PASS (100% Arabic RTL / English LTR across mobile screens).
+  - **Gate 14 (AI Traces Scrubbing):** PASS (content-free telemetry; zero raw health content; zero secrets).
+- **Backend Test Suite:** 17 test files, 135 passed tests (100% PASS).
+- **Backend Typecheck:** `tsc --noEmit` clean (0 errors).
+- **Mobile Analyze & Tests:** `dart analyze` clean (0 errors, 0 warnings); `flutter test` 15 passed tests (100% PASS).
+- **Secret Scanning:** `node scripts/secret-scan.js` scanned 179 files (0 secrets found).
 
 ---
 
-## 3. Active Decisions & Quality Gates
-- **Extraction Gate (Gate 4):** Report and scale display extraction strictly against catalog types. Zero auto-saves; draft review is mandatory before any write to `observations`.
-- **Double Isolation Gate:** 21 tables under PostgreSQL RLS for non-superuser role `forma_app`.
-- **Privacy Parity Gate:** Portable GDPR export and cascading account purge across media artifacts, files, and extraction drafts. Raw source images optionally deleted upon commit while preserving provenance.
-- **Bilingual Parity Gate:** 100% Arabic RTL and English LTR message catalog parity verified in widget tests.
+## 3. Next Action
+- Commit Phase 6 implementation: `feat(sync-security): implement Phase 6 wearable sync seams, red-team hardening, and eval matrix`.
+- Await user confirmation before beginning Phase 7 (Production Hardening & Launch Readiness).

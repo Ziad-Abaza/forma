@@ -108,5 +108,30 @@
   "editField": "تعديل القيمة",
   "saveChanges": "حفظ التغييرات",
   "noFieldsToCommit": "لم يتم تحديد أي حقول للحفظ",
-  "extractedMetricsTitle": "المؤشرات المستخرجة"
+  "extractedMetricsTitle": "المؤشرات المستخرجة",
+  "syncScreenTitle": "الأجهزة المتصلة والمزامنة",
+  "healthConnect": "هيلث كونيكت",
+  "appleHealth": "آبل هيلث",
+  "garmin": "جارمن كونيكت",
+  "withings": "ويذينجز",
+  "oura": "أورا رينج",
+  "lastSynced": "آخر مزامنة: {time}",
+  "@lastSynced": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "syncNow": "مزامنة الآن",
+  "syncing": "جاري المزامنة...",
+  "connectedStatus": "متصل",
+  "disconnectedStatus": "غير متصل",
+  "connect": "ربط",
+  "disconnect": "إلغاء الربط",
+  "epistemicResolutionHeader": "فض التضارب ومصدر البيانات",
+  "epistemicResolutionDesc": "قراءات الأجهزة المباشرة تتفوق نظامياً على الإدخالات اليدوية دون فقدان السجل التاريخي.",
+  "privacyDataSection": "خصوصية البيانات وإدارتها",
+  "exportUserData": "تصدير البيانات الصحية (GDPR)",
+  "purgeAccount": "حذف الحساب ومسح البيانات",
+  "exportSuccess": "تم إنشاء تصدير البيانات بنجاح.",
+  "purgeConfirmation": "هل أنت متأكد؟ سيؤدي هذا إلى حذف كافة بياناتك الصحية نهائياً من جميع الخدمات."
 }

@@ -6,7 +6,7 @@ export interface GroundingContext {
 }
 
 export class EvidenceClaimVerifier {
-  private static readonly NUMERIC_CLAIM_REGEX = /(\b\d+(?:\.\d+)?\s*(?:kg|lbs?|cm|m|kcal|calories|bpm|%|steps|hours?|min)\b)/gi;
+  private static readonly NUMERIC_CLAIM_REGEX = /(\b\d+(?:\.\d+)?\s*(?:kg|lbs?|cm|m|kcal|calories|bpm|%|steps|hours?|min|كجم|كيلو|سم|سعرة)?\b)/gi;
 
   /**
    * Scans generated assistant response text, extracts claims and validates them

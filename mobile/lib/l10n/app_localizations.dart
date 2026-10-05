@@ -691,6 +691,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Extracted Metrics'**
   String get extractedMetricsTitle;
+
+  /// No description provided for @syncScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected Devices & Sync'**
+  String get syncScreenTitle;
+
+  /// No description provided for @healthConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Health Connect'**
+  String get healthConnect;
+
+  /// No description provided for @appleHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple Health'**
+  String get appleHealth;
+
+  /// No description provided for @garmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Garmin Connect'**
+  String get garmin;
+
+  /// No description provided for @withings.
+  ///
+  /// In en, this message translates to:
+  /// **'Withings Health Mate'**
+  String get withings;
+
+  /// No description provided for @oura.
+  ///
+  /// In en, this message translates to:
+  /// **'Oura Ring'**
+  String get oura;
+
+  /// No description provided for @lastSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Last synced: {time}'**
+  String lastSynced(String time);
+
+  /// No description provided for @syncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync Now'**
+  String get syncNow;
+
+  /// No description provided for @syncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing...'**
+  String get syncing;
+
+  /// No description provided for @connectedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get connectedStatus;
+
+  /// No description provided for @disconnectedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnected'**
+  String get disconnectedStatus;
+
+  /// No description provided for @connect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get connect;
+
+  /// No description provided for @disconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get disconnect;
+
+  /// No description provided for @epistemicResolutionHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Conflict Resolution & Provenance'**
+  String get epistemicResolutionHeader;
+
+  /// No description provided for @epistemicResolutionDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct device readings supersede manual assertions deterministically without loss of history.'**
+  String get epistemicResolutionDesc;
+
+  /// No description provided for @privacyDataSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Privacy & Management'**
+  String get privacyDataSection;
+
+  /// No description provided for @exportUserData.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Health Data (GDPR)'**
+  String get exportUserData;
+
+  /// No description provided for @purgeAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account & Purge Data'**
+  String get purgeAccount;
+
+  /// No description provided for @exportSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Data export generated successfully.'**
+  String get exportSuccess;
+
+  /// No description provided for @purgeConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure? This permanently deletes all your health data across all services.'**
+  String get purgeConfirmation;
 }
 
 class _AppLocalizationsDelegate

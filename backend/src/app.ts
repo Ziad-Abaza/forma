@@ -37,6 +37,12 @@ import {
   UpdateDraftFieldSchema,
   CommitDraftRequestSchema
 } from './modules/multimodal/index.js';
+import {
+  IntegrationSyncService,
+  IntegrationsPrivacyContract,
+  SyncBatchRequestSchema,
+  type IntegrationProvider
+} from './modules/integrations/index.js';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -455,6 +461,36 @@ export function buildApp(): FastifyInstance {
     const { id } = req.params as { id: string };
     const discarded = await DraftReviewService.discardDraft(req.user!.userId, id, req.correlationId);
     return reply.send({ draft: discarded });
+  });
+
+  // --- Integrations & Sync Routes (Blueprint §28.1) ---
+  PrivacyOrchestrator.registerModule(new IntegrationsPrivacyContract());
+
+  app.get('/api/v1/integrations/connections', { preHandler: [requireAuth] }, async (req, reply) => {
+    const connections = await IntegrationSyncService.getConnections(req.user!.userId);
+    return reply.send({ connections });
+  });
+
+  app.post('/api/v1/integrations/connect', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { provider, scopes, metadata } = req.body as {
+      provider: IntegrationProvider;
+      scopes?: string[];
+      metadata?: Record<string, unknown>;
+    };
+    const connection = await IntegrationSyncService.connectProvider(req.user!.userId, provider, scopes, metadata);
+    return reply.status(201).send({ connection });
+  });
+
+  app.post('/api/v1/integrations/disconnect', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { provider } = req.body as { provider: IntegrationProvider };
+    await IntegrationSyncService.disconnectProvider(req.user!.userId, provider);
+    return reply.send({ success: true });
+  });
+
+  app.post('/api/v1/integrations/sync', { preHandler: [requireAuth] }, async (req, reply) => {
+    const parsed = SyncBatchRequestSchema.parse(req.body);
+    const result = await IntegrationSyncService.ingestBatch(req.user!.userId, parsed, req.correlationId);
+    return reply.send(result);
   });
 
   return app;

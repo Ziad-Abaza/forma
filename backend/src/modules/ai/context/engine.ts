@@ -136,6 +136,7 @@ export class AIContextEngine {
       manifest,
       systemContextText: contextLines.join('\n'),
       isSufficient: true,
+      snapshot: sections
     };
   }
 }

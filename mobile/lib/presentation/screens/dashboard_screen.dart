@@ -5,6 +5,7 @@ import '../../core/providers.dart';
 import '../../core/theme.dart';
 
 import 'assistant_screen.dart';
+import 'sync_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -38,6 +39,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            key: const Key('sync_devices_button'),
+            tooltip: l10n.syncScreenTitle,
+            icon: const Icon(Icons.sync_outlined, color: FormaTheme.primaryTeal),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SyncScreen()),
+              );
+            },
+          ),
           IconButton(
             key: const Key('assistant_button'),
             tooltip: l10n.assistantTitle,

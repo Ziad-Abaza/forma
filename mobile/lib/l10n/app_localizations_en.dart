@@ -318,4 +318,68 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get extractedMetricsTitle => 'Extracted Metrics';
+
+  @override
+  String get syncScreenTitle => 'Connected Devices & Sync';
+
+  @override
+  String get healthConnect => 'Health Connect';
+
+  @override
+  String get appleHealth => 'Apple Health';
+
+  @override
+  String get garmin => 'Garmin Connect';
+
+  @override
+  String get withings => 'Withings Health Mate';
+
+  @override
+  String get oura => 'Oura Ring';
+
+  @override
+  String lastSynced(String time) {
+    return 'Last synced: $time';
+  }
+
+  @override
+  String get syncNow => 'Sync Now';
+
+  @override
+  String get syncing => 'Syncing...';
+
+  @override
+  String get connectedStatus => 'Connected';
+
+  @override
+  String get disconnectedStatus => 'Disconnected';
+
+  @override
+  String get connect => 'Connect';
+
+  @override
+  String get disconnect => 'Disconnect';
+
+  @override
+  String get epistemicResolutionHeader => 'Conflict Resolution & Provenance';
+
+  @override
+  String get epistemicResolutionDesc =>
+      'Direct device readings supersede manual assertions deterministically without loss of history.';
+
+  @override
+  String get privacyDataSection => 'Data Privacy & Management';
+
+  @override
+  String get exportUserData => 'Export Health Data (GDPR)';
+
+  @override
+  String get purgeAccount => 'Delete Account & Purge Data';
+
+  @override
+  String get exportSuccess => 'Data export generated successfully.';
+
+  @override
+  String get purgeConfirmation =>
+      'Are you sure? This permanently deletes all your health data across all services.';
 }

@@ -34,4 +34,5 @@ export interface ContextBundle {
   systemContextText: string;
   isSufficient: boolean;
   insufficiencyReason?: string | undefined;
+  snapshot?: any;
 }

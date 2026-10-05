@@ -318,4 +318,68 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get extractedMetricsTitle => 'المؤشرات المستخرجة';
+
+  @override
+  String get syncScreenTitle => 'الأجهزة المتصلة والمزامنة';
+
+  @override
+  String get healthConnect => 'هيلث كونيكت';
+
+  @override
+  String get appleHealth => 'آبل هيلث';
+
+  @override
+  String get garmin => 'جارمن كونيكت';
+
+  @override
+  String get withings => 'ويذينجز';
+
+  @override
+  String get oura => 'أورا رينج';
+
+  @override
+  String lastSynced(String time) {
+    return 'آخر مزامنة: $time';
+  }
+
+  @override
+  String get syncNow => 'مزامنة الآن';
+
+  @override
+  String get syncing => 'جاري المزامنة...';
+
+  @override
+  String get connectedStatus => 'متصل';
+
+  @override
+  String get disconnectedStatus => 'غير متصل';
+
+  @override
+  String get connect => 'ربط';
+
+  @override
+  String get disconnect => 'إلغاء الربط';
+
+  @override
+  String get epistemicResolutionHeader => 'فض التضارب ومصدر البيانات';
+
+  @override
+  String get epistemicResolutionDesc =>
+      'قراءات الأجهزة المباشرة تتفوق نظامياً على الإدخالات اليدوية دون فقدان السجل التاريخي.';
+
+  @override
+  String get privacyDataSection => 'خصوصية البيانات وإدارتها';
+
+  @override
+  String get exportUserData => 'تصدير البيانات الصحية (GDPR)';
+
+  @override
+  String get purgeAccount => 'حذف الحساب ومسح البيانات';
+
+  @override
+  String get exportSuccess => 'تم إنشاء تصدير البيانات بنجاح.';
+
+  @override
+  String get purgeConfirmation =>
+      'هل أنت متأكد؟ سيؤدي هذا إلى حذف كافة بياناتك الصحية نهائياً من جميع الخدمات.';
 }
