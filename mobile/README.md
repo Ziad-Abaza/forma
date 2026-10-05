@@ -1,4 +1,4 @@
-# forma_mobile
+# forma
 
 A new Flutter project.
 

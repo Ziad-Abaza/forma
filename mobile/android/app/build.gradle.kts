@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.forma.forma_mobile"
+    namespace = "com.forma.forma"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.forma.forma_mobile"
+        applicationId = "com.forma.forma"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

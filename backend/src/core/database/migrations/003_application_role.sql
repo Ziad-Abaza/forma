@@ -1,0 +1,15 @@
+-- Forma Database Migration 003: Create Non-Superuser Application Role for Strict RLS Enforcement
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'forma_app') THEN
+    CREATE ROLE forma_app WITH LOGIN PASSWORD 'forma_secure_app_role_pw';
+  END IF;
+END
+$$;
+
+GRANT USAGE ON SCHEMA public TO forma_app;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO forma_app;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO forma_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO forma_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO forma_app;
