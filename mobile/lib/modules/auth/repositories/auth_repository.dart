@@ -75,6 +75,9 @@ class AuthRepository {
     return authResp.user;
   }
 
+  /// Returns the authenticated user, null only when there is no session
+  /// (no token, or the server rejected it with 401). Network/server errors
+  /// propagate so callers can distinguish "logged out" from "unreachable".
   Future<UserModel?> getCurrentUser() async {
     final token = await tokenStorage.getAccessToken();
     if (token == null || token.isEmpty) return null;
@@ -85,8 +88,9 @@ class AuthRepository {
         return UserModel.fromJson(resp);
       }
       return null;
-    } catch (_) {
-      return null;
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) return null; // session truly invalid
+      rethrow; // server-side failure — not "no session"
     }
   }
 

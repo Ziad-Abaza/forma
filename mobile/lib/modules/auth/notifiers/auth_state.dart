@@ -62,8 +62,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       } else {
         state = const AuthState(status: AuthStatus.unauthenticated);
       }
-    } catch (_) {
-      state = const AuthState(status: AuthStatus.unauthenticated);
+    } catch (e) {
+      // Transient failure (network/server) — do not fabricate a logged-out
+      // state; surface the error so the UI can offer retry.
+      state = AuthState(
+        status: AuthStatus.error,
+        errorMessage: e is ApiException ? e.cleanMessage : 'Connection failed',
+      );
     }
   }
 
