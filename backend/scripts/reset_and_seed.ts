@@ -1,27 +1,51 @@
 import { Pool } from 'pg';
-import argon2 from 'argon2';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-const dbUrl = process.env.DATABASE_URL_MIGRATIONS || 'postgresql://postgres:postgrespassword@localhost:5432/forma_dev';
+/**
+ * Local-development reset & seed script.
+ *
+ * Safety contract:
+ *  - Requires DATABASE_URL_MIGRATIONS (schema-owner/superuser DSN). No fallback.
+ *  - Refuses to run when NODE_ENV=production.
+ *  - Requires FORMA_SEED_CONFIRM=RESET_LOCAL_DB so it can never fire accidentally.
+ *  - Seeds only clearly synthetic data (@forma.test domain, generated password
+ *    printed once to stdout, never committed).
+ */
 
-async function hashPassword(password: string): Promise<string> {
-  return argon2.hash(password, {
-    type: argon2.argon2id,
-    memoryCost: 65536,
-    timeCost: 3,
-    parallelism: 4
-  });
+const SEED_CONFIRM_VALUE = 'RESET_LOCAL_DB';
+const SEED_EMAIL = 'dev.user@forma.test';
+
+function assertSeedAllowed(): string {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('reset_and_seed.ts refuses to run when NODE_ENV=production.');
+  }
+  if (process.env.FORMA_SEED_CONFIRM !== SEED_CONFIRM_VALUE) {
+    throw new Error(
+      `Destructive seed requires FORMA_SEED_CONFIRM=${SEED_CONFIRM_VALUE} in the environment.`
+    );
+  }
+  const dbUrl = process.env.DATABASE_URL_MIGRATIONS;
+  if (!dbUrl || dbUrl.trim().length === 0) {
+    throw new Error('DATABASE_URL_MIGRATIONS is required. No fallback exists.');
+  }
+  return dbUrl;
 }
 
 async function main() {
+  const dbUrl = assertSeedAllowed();
+  const generatedPassword = crypto.randomBytes(18).toString('base64url');
+
+  const { hashPassword } = await import('../src/core/security/index.js');
+
   const pool = new Pool({ connectionString: dbUrl });
   const client = await pool.connect();
 
   try {
-    console.log('--- Starting Database Reset & Targeted Seeding ---');
+    console.log('--- Starting Database Reset & Synthetic Seeding ---');
 
     await client.query('BEGIN');
     await client.query("SET LOCAL app.allow_purge = 'true'");
@@ -62,224 +86,174 @@ async function main() {
     }
     console.log('All user and operational tables cleared successfully.');
 
-    // 2. Identity, Authentication & Consent
-    console.log('Inserting user: ziadabaza12345@gmail.com...');
-    const userRes = await client.query(`
+    // 2. Identity, Authentication & Consent (synthetic identity only)
+    console.log(`Inserting synthetic user: ${SEED_EMAIL}...`);
+    const userRes = await client.query(
+      `
       INSERT INTO users (
         id, email, role, locale, numeral_system, status, email_verified, created_at, updated_at
       ) VALUES (
-        gen_random_uuid(),
-        'ziadabaza12345@gmail.com',
-        'user',
-        'ar',
-        'western',
-        'active',
-        true,
-        '2026-07-15 00:00:00+00',
-        '2026-07-15 00:00:00+00'
+        gen_random_uuid(), $1, 'user', 'en', 'western', 'active', true, NOW(), NOW()
       ) RETURNING id
-    `);
+    `,
+      [SEED_EMAIL]
+    );
     const userId = userRes.rows[0].id;
     console.log(`User created with ID: ${userId}`);
 
-    // Create user credentials with a known password ('Password123!')
-    const pwdHash = await hashPassword('Password5536');
-    await client.query(`
+    const pwdHash = await hashPassword(generatedPassword);
+    await client.query(
+      `
       INSERT INTO credentials (user_id, password_hash, created_at, updated_at)
-      VALUES ($1, $2, '2026-07-15 00:00:00+00', '2026-07-15 00:00:00+00')
-    `, [userId, pwdHash]);
+      VALUES ($1, $2, NOW(), NOW())
+    `,
+      [userId, pwdHash]
+    );
 
-    // Create default consent
-    await client.query(`
-      INSERT INTO consents (user_id, policy_type, version, granted, granted_at)
-      VALUES ($1, 'privacy_policy', '1.0', true, '2026-07-15 00:00:00+00')
-    `, [userId]);
+    // Contract-correct consent records (policy types per identity/service.ts)
+    const consents = [
+      'terms_of_service',
+      'health_data_processing',
+      'ai_third_party_processing'
+    ];
+    for (const policyType of consents) {
+      await client.query(
+        `
+        INSERT INTO consents (user_id, policy_type, version, granted, granted_at)
+        VALUES ($1, $2, '1.0', true, NOW())
+      `,
+        [userId, policyType]
+      );
+    }
 
-    // 3. Profiles
-    console.log('Inserting profile...');
-    await client.query(`
+    // 3. Profiles (synthetic)
+    console.log('Inserting synthetic profile...');
+    await client.query(
+      `
       INSERT INTO profiles (
-        user_id,
-        date_of_birth,
-        sex_for_calculation,
-        height_cm,
-        activity_level,
-        experience_level,
-        constraints,
-        preferences,
-        created_at,
-        updated_at
+        user_id, date_of_birth, sex_for_calculation, height_cm,
+        activity_level, experience_level, constraints, preferences,
+        created_at, updated_at
       ) VALUES (
-        $1,
-        '2002-07-15',
-        'male',
-        180.00,
-        'sedentary',
-        'advanced',
-        ARRAY['night_shift_worker', 'extended_screen_time'],
-        '{"fasting_window": "17:00-01:00", "family_dinner": "17:00"}'::jsonb,
-        '2026-07-15 00:00:00+00',
-        '2026-07-15 00:00:00+00'
+        $1, '1990-01-01', 'male', 175.00, 'moderately_active', 'beginner',
+        '{}', '{}'::jsonb, NOW(), NOW()
       )
-    `, [userId]);
+    `,
+      [userId]
+    );
 
-    // Profile History
-    await client.query(`
+    await client.query(
+      `
       INSERT INTO profile_history (
         user_id, attribute_name, old_value, new_value, effective_from, actor
       ) VALUES (
-        $1,
-        'initial_profile',
-        null,
-        '{"height_cm": 180.00, "date_of_birth": "2002-07-15", "sex": "male", "activity_level": "sedentary"}'::jsonb,
-        '2026-07-15 00:00:00+00',
-        'system'
+        $1, 'initial_profile', null,
+        '{"height_cm": 175.00, "date_of_birth": "1990-01-01", "sex": "male", "activity_level": "moderately_active"}'::jsonb,
+        NOW(), 'system'
       )
-    `, [userId]);
+    `,
+      [userId]
+    );
 
-    // 4. Measurements & Append-Only Observations
-    console.log('Inserting provenance and observation (weight 85.00 kg)...');
-    const provRes = await client.query(`
+    // 4. Measurements & Append-Only Observations (contract-correct provenance enums)
+    console.log('Inserting provenance and synthetic observation (weight 80.00 kg)...');
+    const provRes = await client.query(
+      `
       INSERT INTO provenance_records (
         user_id, origin_type, epistemic_class, actor, method_version,
         confidence_score, review_state, observed_at, recorded_at, reviewed_at
       ) VALUES (
-        $1,
-        'manual',
-        'direct_measurement',
-        'user',
-        '1.0',
-        1.000,
-        'confirmed',
-        '2026-07-15 00:00:00+00',
-        '2026-07-15 00:00:00+00',
-        '2026-07-15 00:00:00+00'
+        $1, 'manual_entry', 'measured', 'user', '1.0', 1.000,
+        'user_reviewed', NOW(), NOW(), NOW()
       ) RETURNING id
-    `, [userId]);
+    `,
+      [userId]
+    );
     const provenanceId = provRes.rows[0].id;
 
-    const obsRes = await client.query(`
+    const obsRes = await client.query(
+      `
       INSERT INTO observations (
-        user_id,
-        type_code,
-        canonical_value,
-        canonical_unit,
-        original_value,
-        original_unit,
-        input_precision,
-        observed_at,
-        recorded_at,
-        time_zone,
-        provenance_id,
-        quality_flags,
-        status
+        user_id, type_code, canonical_value, canonical_unit,
+        original_value, original_unit, input_precision,
+        observed_at, recorded_at, time_zone, provenance_id, quality_flags, status
       ) VALUES (
-        $1,
-        'weight',
-        85.0000,
-        'kg',
-        85.0000,
-        'kg',
-        2,
-        '2026-07-15 00:00:00+00',
-        '2026-07-15 00:00:00+00',
-        'UTC',
-        $2,
-        '{}',
-        'active'
+        $1, 'weight', 80.0000, 'kg', 80.0000, 'kg', 2,
+        NOW(), NOW(), 'UTC', $2, '{}', 'active'
       ) RETURNING id
-    `, [userId, provenanceId]);
+    `,
+      [userId, provenanceId]
+    );
     const observationId = obsRes.rows[0].id;
     console.log(`Observation created with ID: ${observationId}`);
 
-    // 5. Goals & Analytical Projections
-    console.log('Inserting goal and goal_version (weight loss to 70 kg)...');
-    const goalRes = await client.query(`
+    // 5. Goals & Analytical Projections (within engine safe-rate bounds)
+    console.log('Inserting goal and goal_version (synthetic weight loss to 75 kg)...');
+    const goalRes = await client.query(
+      `
       INSERT INTO goals (
         user_id, goal_type, target_metric_type_code, is_primary, status, created_at, updated_at
       ) VALUES (
-        $1,
-        'weight_loss',
-        'weight',
-        true,
-        'active',
-        '2026-07-15 00:00:00+00',
-        '2026-07-15 00:00:00+00'
+        $1, 'weight_loss', 'weight', true, 'active', NOW(), NOW()
       ) RETURNING id
-    `, [userId]);
+    `,
+      [userId]
+    );
     const goalId = goalRes.rows[0].id;
 
-    await client.query(`
+    await client.query(
+      `
       INSERT INTO goal_versions (
-        goal_id,
-        user_id,
-        version,
-        target_value,
-        starting_value,
-        weekly_rate,
-        start_date,
-        target_date,
-        rationale,
-        created_at
+        goal_id, user_id, version, target_value, starting_value,
+        weekly_rate, start_date, target_date, rationale, created_at
       ) VALUES (
-        $1,
-        $2,
-        1,
-        70.0000,
-        85.0000,
-        -1.2500,
-        '2026-07-15',
-        '2026-10-15',
-        'Rapid deficit execution to hit 70kg threshold. Muscle memory leveraged for lean mass retention.',
-        '2026-07-15 00:00:00+00'
+        $1, $2, 1, 75.0000, 80.0000, -0.5000,
+        CURRENT_DATE, CURRENT_DATE + INTERVAL '10 weeks',
+        'Synthetic seed goal within safe-rate guardrails.', NOW()
       )
-    `, [goalId, userId]);
+    `,
+      [goalId, userId]
+    );
 
-    // 6. Conversational Assistant Memories
-    console.log('Inserting assistant memories...');
+    // 6. Synthetic assistant memories
+    console.log('Inserting synthetic assistant memories...');
     const memories = [
-      {
-        category: 'constraint',
-        key: 'compliance_rules',
-        value: 'Zero compromise protocol. Rejects cheat meals and skipped workouts entirely.'
-      },
-      {
-        category: 'routine',
-        key: 'fasting_schedule',
-        value: 'Intermittent fasting adjusted to 17:00 - 01:00 to align with 17:00 family dinner and late-night work.'
-      },
       {
         category: 'preference',
         key: 'training_parameters',
-        value: 'Prefers PPL or Upper/Lower splits. Incorporates specific intensity techniques: lateral deltoid supersets and bicep drop sets.'
+        value: 'Prefers standard beginner full-body routines. Synthetic seed value.'
       },
       {
-        category: 'fact',
-        key: 'professional_lifestyle',
-        value: 'Full-Stack Software Engineer (Laravel/Node.js/Redis) with high cognitive load and extremely low baseline physical movement.'
+        category: 'routine',
+        key: 'meal_timing',
+        value: 'Synthetic seed routine: regular meal timing, no fasting window.'
       }
     ];
 
     for (const mem of memories) {
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO assistant_memories (
           user_id, category, key, value, confidence, source, is_active, created_at, updated_at
-        ) VALUES (
-          $1, $2, $3, $4, 1.0, 'user_specified', true, '2026-07-15 00:00:00+00', '2026-07-15 00:00:00+00'
-        )
-      `, [userId, mem.category, mem.key, mem.value]);
+        ) VALUES ($1, $2, $3, $4, 1.0, 'user_specified', true, NOW(), NOW())
+      `,
+        [userId, mem.category, mem.key, mem.value]
+      );
     }
 
     // 7. Audit Log of database initialization
-    await client.query(`
+    await client.query(
+      `
       INSERT INTO audit_logs (
         user_id, actor_type, action, entity_type, entity_id, correlation_id, status, metadata, created_at
       ) VALUES (
-        $1::uuid, 'system', 'SEED_CUSTOM_DATA', 'user', $2, 'init-seed-custom', 'SUCCESS',
-        '{"note": "Initialized profile, baseline weight observation, goal, and memories"}'::jsonb,
+        $1::uuid, 'system', 'SEED_SYNTHETIC_DATA', 'user', $2, 'init-seed-synthetic', 'SUCCESS',
+        '{"note": "Initialized synthetic profile, baseline observation, goal, and memories"}'::jsonb,
         NOW()
       )
-    `, [userId, userId]);
+    `,
+      [userId, userId]
+    );
 
     await client.query('COMMIT');
     console.log('Database transaction successfully committed.');
@@ -293,7 +267,8 @@ async function main() {
 
     console.log('\n=== Database reset & seeding finished successfully ===');
     console.log(`User ID: ${userId}`);
-    console.log(`Email: ziadabaza12345@gmail.com`);
+    console.log(`Email: ${SEED_EMAIL}`);
+    console.log(`Generated password (shown once, not stored in source): ${generatedPassword}`);
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Failed to reset and seed database:', err);
@@ -306,4 +281,7 @@ async function main() {
   }
 }
 
-main().catch(() => process.exit(1));
+main().catch((err) => {
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+});
