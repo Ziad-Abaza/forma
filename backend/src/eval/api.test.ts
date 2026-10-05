@@ -379,11 +379,14 @@ describe('Fastify HTTP API End-to-End Tests', () => {
     const creds = JSON.parse(configWithCredRes.body).credentials;
     expect(creds.some((c: any) => c.provider === 'google')).toBe(true);
 
-    // 5. DELETE /api/v1/ai/credentials/:provider
+    // 5. DELETE /api/v1/ai/credentials/:provider (with application/json header to ensure empty body parser compatibility)
     const deleteCredRes = await app.inject({
       method: 'DELETE',
       url: '/api/v1/ai/credentials/google',
-      headers: { authorization: `Bearer ${userAToken}` },
+      headers: {
+        authorization: `Bearer ${userAToken}`,
+        'content-type': 'application/json',
+      },
     });
     expect(deleteCredRes.statusCode).toBe(200);
     expect(JSON.parse(deleteCredRes.body).success).toBe(true);

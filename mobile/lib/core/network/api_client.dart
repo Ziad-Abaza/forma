@@ -80,11 +80,14 @@ class ApiClient {
 
   String get baseUrl => getBaseUrl();
 
-  Future<Map<String, String>> _buildHeaders({bool includeAuth = true}) async {
+  Future<Map<String, String>> _buildHeaders({bool includeAuth = true, bool hasBody = false}) async {
     final headers = <String, String>{
-      'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
+
+    if (hasBody) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (includeAuth) {
       final token = await tokenStorage.getAccessToken();
@@ -98,7 +101,7 @@ class ApiClient {
   Future<dynamic> get(String path, {Map<String, dynamic>? queryParameters, bool requireAuth = true}) async {
     return _sendWithRetry(() async {
       final uri = _buildUri(path, queryParameters);
-      final headers = await _buildHeaders(includeAuth: requireAuth);
+      final headers = await _buildHeaders(includeAuth: requireAuth, hasBody: false);
       return await _httpClient.get(uri, headers: headers);
     }, requireAuth: requireAuth);
   }
@@ -106,7 +109,7 @@ class ApiClient {
   Future<dynamic> post(String path, {dynamic body, bool requireAuth = true}) async {
     return _sendWithRetry(() async {
       final uri = _buildUri(path);
-      final headers = await _buildHeaders(includeAuth: requireAuth);
+      final headers = await _buildHeaders(includeAuth: requireAuth, hasBody: body != null);
       final encoded = body != null ? jsonEncode(body) : null;
       return await _httpClient.post(uri, headers: headers, body: encoded);
     }, requireAuth: requireAuth);
@@ -115,7 +118,7 @@ class ApiClient {
   Future<dynamic> put(String path, {dynamic body, bool requireAuth = true}) async {
     return _sendWithRetry(() async {
       final uri = _buildUri(path);
-      final headers = await _buildHeaders(includeAuth: requireAuth);
+      final headers = await _buildHeaders(includeAuth: requireAuth, hasBody: body != null);
       final encoded = body != null ? jsonEncode(body) : null;
       return await _httpClient.put(uri, headers: headers, body: encoded);
     }, requireAuth: requireAuth);
@@ -124,16 +127,24 @@ class ApiClient {
   Future<dynamic> patch(String path, {dynamic body, bool requireAuth = true}) async {
     return _sendWithRetry(() async {
       final uri = _buildUri(path);
-      final headers = await _buildHeaders(includeAuth: requireAuth);
+      final headers = await _buildHeaders(includeAuth: requireAuth, hasBody: body != null);
       final encoded = body != null ? jsonEncode(body) : null;
       return await _httpClient.patch(uri, headers: headers, body: encoded);
     }, requireAuth: requireAuth);
   }
 
-  Future<dynamic> delete(String path, {bool requireAuth = true}) async {
+  Future<dynamic> delete(String path, {dynamic body, bool requireAuth = true}) async {
     return _sendWithRetry(() async {
       final uri = _buildUri(path);
-      final headers = await _buildHeaders(includeAuth: requireAuth);
+      final headers = await _buildHeaders(includeAuth: requireAuth, hasBody: body != null);
+      final encoded = body != null ? jsonEncode(body) : null;
+      if (encoded != null) {
+        final req = http.Request('DELETE', uri);
+        req.headers.addAll(headers);
+        req.body = encoded;
+        final streamed = await _httpClient.send(req);
+        return await http.Response.fromStream(streamed);
+      }
       return await _httpClient.delete(uri, headers: headers);
     }, requireAuth: requireAuth);
   }

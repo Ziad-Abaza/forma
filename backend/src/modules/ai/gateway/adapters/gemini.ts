@@ -23,14 +23,12 @@ export class GeminiAdapter implements AIProviderAdapter {
       throw new Error('GEMINI_API_KEY is not configured and no custom key provided');
     }
 
-    const resolvedModel = (modelId === 'gemini-3.8-flash' || !modelId)
-      ? (process.env.GEMINI_MODEL || 'gemini-1.5-flash')
+    const resolvedModel = (!modelId || modelId === 'gemini-1.5-flash')
+      ? (process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite')
       : modelId;
 
-    const isBearer = apiKey.startsWith('AQ.') || apiKey.startsWith('ya29.');
-    const endpoint = isBearer
-      ? `${this.baseUrl}/models/${resolvedModel}:generateContent`
-      : `${this.baseUrl}/models/${resolvedModel}:generateContent?key=${apiKey}`;
+    const isBearer = apiKey.startsWith('ya29.');
+    const endpoint = `${this.baseUrl}/models/${resolvedModel}:generateContent`;
 
     const contents: Array<Record<string, unknown>> = [];
 
@@ -108,7 +106,9 @@ export class GeminiAdapter implements AIProviderAdapter {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(isBearer ? { Authorization: `Bearer ${apiKey}` } : {})
+      ...(isBearer
+        ? { Authorization: `Bearer ${apiKey}` }
+        : { 'x-goog-api-key': apiKey }),
     };
 
     const response = await fetch(endpoint, {
@@ -121,6 +121,11 @@ export class GeminiAdapter implements AIProviderAdapter {
       const errText = await response.text();
       // Mask any API key if present in error message
       const sanitized = errText.replace(/key=[^&\s]+/g, 'key=[REDACTED]');
+      if (sanitized.includes('API_KEY_SERVICE_BLOCKED')) {
+        throw new Error(
+          `Gemini API Error [${response.status}] (API_KEY_SERVICE_BLOCKED): The API key is blocked for Generative Language API. Ensure 'Generative Language API' is enabled in Google Cloud Console with no restricting API scope, or create a key directly at https://aistudio.google.com/app/apikey. Details: ${sanitized}`
+        );
+      }
       throw new Error(`Gemini API Error [${response.status}]: ${sanitized}`);
     }
 

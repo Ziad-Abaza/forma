@@ -3,6 +3,21 @@ import { ModelDefinition, TaskClass } from './types.js';
 export class ModelRegistry {
   private static readonly models: Map<string, ModelDefinition> = new Map([
     [
+      'gemini-flash-latest',
+      {
+        id: 'gemini-flash-latest',
+        provider: 'google',
+        displayName: 'Google Gemini Flash Latest',
+        capabilities: ['text', 'vision', 'structured_output', 'tool_calling'],
+        contextWindow: 1048576,
+        maxOutputTokens: 8192,
+        inputCostPerMillionUsd: 0.075,
+        outputCostPerMillionUsd: 0.3,
+        supportedLanguages: ['en', 'ar'],
+        evalStatus: 'approved',
+      },
+    ],
+    [
       'gemini-1.5-flash',
       {
         id: 'gemini-1.5-flash',
@@ -93,6 +108,21 @@ export class ModelRegistry {
       },
     ],
     [
+      'gemini-3.5-flash-lite',
+      {
+        id: 'gemini-3.5-flash-lite',
+        provider: 'google',
+        displayName: 'Google Gemini 3.5 Flash Lite',
+        capabilities: ['text', 'vision', 'structured_output', 'tool_calling'],
+        contextWindow: 1048576,
+        maxOutputTokens: 8192,
+        inputCostPerMillionUsd: 0.075,
+        outputCostPerMillionUsd: 0.3,
+        supportedLanguages: ['en', 'ar'],
+        evalStatus: 'approved',
+      },
+    ],
+    [
       'forma-secondary-text-v1',
       {
         id: 'forma-secondary-text-v1',
@@ -111,13 +141,13 @@ export class ModelRegistry {
 
   private static readonly taskDefaultModels: Record<TaskClass, string> = {
     calculation: 'deterministic', // handled without LLM!
-    intent_classification: 'gemini-1.5-flash',
-    conversational: 'gemini-1.5-flash',
-    general_qa: 'gemini-1.5-flash',
-    structured_analysis: 'gemini-1.5-flash',
-    complex_analysis: 'gemini-1.5-flash',
-    vision_extraction: 'gemini-1.5-flash',
-    summarization: 'gemini-1.5-flash',
+    intent_classification: 'gemini-3.5-flash-lite',
+    conversational: 'gemini-3.5-flash-lite',
+    general_qa: 'gemini-3.5-flash-lite',
+    structured_analysis: 'gemini-3.5-flash-lite',
+    complex_analysis: 'gemini-3.5-flash-lite',
+    vision_extraction: 'gemini-3.5-flash-lite',
+    summarization: 'gemini-3.5-flash-lite',
     embedding: 'text-embedding-004',
   };
 

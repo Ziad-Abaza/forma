@@ -81,6 +81,20 @@ export function buildApp(): FastifyInstance {
     credentials: true
   });
 
+  // Support empty JSON bodies gracefully (e.g. DELETE or bodyless requests with application/json header)
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    if (!body || (typeof body === 'string' && body.trim().length === 0)) {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(body as string));
+    } catch (err: any) {
+      err.statusCode = 400;
+      done(err, undefined);
+    }
+  });
+
   // Middleware: Attach correlation ID and start time to every request
   app.addHook('onRequest', async (req: FastifyRequest) => {
     req.correlationId = (req.headers['x-correlation-id'] as string) || crypto.randomUUID();

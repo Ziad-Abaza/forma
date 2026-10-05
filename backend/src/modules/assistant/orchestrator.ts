@@ -271,11 +271,11 @@ ${proposalsContextText}
         userId
       );
     } catch (providerError: any) {
-      // Graceful degradation when AI provider is unavailable, timing out, or returning 5xx (Blueprint Gate 11)
+      // Graceful error reporting when AI provider encounters authentication or connectivity failure (Blueprint Gate 11)
       const isArabic = /[\u0600-\u06FF]/.test(userPrompt);
       const fallbackText = isArabic
-        ? 'أواجه حالياً صعوبة مؤقتة في الاتصال بخدمة الذكاء الاصطناعي. بياناتك الصحية وسجلاتك محفوظة بأمان تام. يرجى إعادة المحاولة بعد لحظات، أو استخدام لوحة التحكم لتسجيل قياساتك مباشرة.'
-        : 'I am currently experiencing temporary connectivity issues contacting the AI service. Your health metrics and records are completely safe. Please try again in a few moments, or record measurements directly via the dashboard.';
+        ? `أواجه حالياً صعوبة مؤقتة في الاتصال بمزود الذكاء الاصطناعي: ${providerError.message || providerError}. بياناتك وسجلاتك محفوظة بأمان. يرجى التحقق من إعدادات المفتاح في الإعدادات.`
+        : `I am currently experiencing connectivity issues contacting the AI service: ${providerError.message || providerError}. Your health metrics are safe. Please check your API key in Settings -> AI Provider.`;
 
       const assistantMessage = await this.saveMessage(userId, {
         conversationId: conversation.id,

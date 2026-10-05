@@ -77,11 +77,37 @@ export class AIGateway {
     let selectedModel = targetModel.id;
     let selectedProvider = targetModel.provider;
 
-    if (adapter && (await adapter.isAvailable() || Boolean(targetApiKey))) {
-      try {
-        finalResult = await adapter.generateText(targetModel.id, options, targetApiKey);
-      } catch (err: any) {
-        // Fallback to secondary or default provider
+    if (userId) {
+      if (!targetApiKey) {
+        throw new Error(
+          `No AI credential configured for provider '${targetModel.provider}'. Please configure your API key in Settings -> AI Provider.`
+        );
+      }
+      if (!adapter) {
+        throw new Error(`AI adapter for provider '${targetModel.provider}' is not registered`);
+      }
+
+      // User-owned AI flow: NO SILENT FALLBACK (Blueprint §10, ADR-018)
+      // When a user configures their own provider, any error from Google/OpenAI must be reported directly.
+      finalResult = await adapter.generateText(targetModel.id, options, targetApiKey);
+    } else {
+      // System/automated test flow without authenticated user context
+      if (adapter && (await adapter.isAvailable() || Boolean(targetApiKey))) {
+        try {
+          finalResult = await adapter.generateText(targetModel.id, options, targetApiKey);
+        } catch (err: any) {
+          // Fallback to secondary provider in non-user system test mode
+          const fallbackAdapter = this.adapters.get('secondary');
+          if (fallbackAdapter && (await fallbackAdapter.isAvailable())) {
+            fallbackUsed = true;
+            selectedModel = 'forma-secondary-text-v1';
+            selectedProvider = 'secondary';
+            finalResult = await fallbackAdapter.generateText(selectedModel, options);
+          } else {
+            throw err;
+          }
+        }
+      } else {
         const fallbackAdapter = this.adapters.get('secondary');
         if (fallbackAdapter && (await fallbackAdapter.isAvailable())) {
           fallbackUsed = true;
@@ -89,21 +115,10 @@ export class AIGateway {
           selectedProvider = 'secondary';
           finalResult = await fallbackAdapter.generateText(selectedModel, options);
         } else {
-          throw err;
+          throw new Error(
+            `No configured AI provider adapter available for '${targetModel.provider}'. Please configure an API key in Settings.`
+          );
         }
-      }
-    } else {
-      // Primary adapter not available; try secondary fallback
-      const fallbackAdapter = this.adapters.get('secondary');
-      if (fallbackAdapter && (await fallbackAdapter.isAvailable())) {
-        fallbackUsed = true;
-        selectedModel = 'forma-secondary-text-v1';
-        selectedProvider = 'secondary';
-        finalResult = await fallbackAdapter.generateText(selectedModel, options);
-      } else {
-        throw new Error(
-          `No configured AI provider adapter available for '${targetModel.provider}'. Please configure an API key in Settings.`
-        );
       }
     }
 
