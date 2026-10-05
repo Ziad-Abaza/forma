@@ -4,6 +4,8 @@ import '../../l10n/app_localizations.dart';
 import '../../core/providers.dart';
 import '../../core/theme.dart';
 
+import 'assistant_screen.dart';
+
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
@@ -36,6 +38,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            key: const Key('assistant_button'),
+            tooltip: l10n.assistantTitle,
+            icon: const Icon(Icons.smart_toy_outlined, color: FormaTheme.primaryTeal),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AssistantScreen()),
+              );
+            },
+          ),
           TextButton.icon(
             key: const Key('language_toggle_button'),
             onPressed: () {
@@ -58,6 +71,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           const SizedBox(width: 8),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        key: const Key('assistant_fab'),
+        backgroundColor: FormaTheme.primaryTeal,
+        foregroundColor: Colors.black,
+        icon: const Icon(Icons.smart_toy_outlined),
+        label: Text(l10n.assistantTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AssistantScreen()),
+          );
+        },
       ),
       body: SafeArea(
         child: SingleChildScrollView(

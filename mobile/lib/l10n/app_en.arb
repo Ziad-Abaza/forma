@@ -69,5 +69,28 @@
   "insufficientTrendData": "Need at least 3 points across 4+ days for a trend rate.",
   "anomalyTitle": "Measurement Alert",
   "anomalyJump": "Unusual weight change detected within 24 hours.",
-  "anomalyUnit": "Possible unit confusion (lbs vs kg). Please review."
+  "anomalyUnit": "Possible unit confusion (lbs vs kg). Please review.",
+  "assistantTitle": "Forma Assistant",
+  "assistantSubtitle": "Evidence-grounded wellness companion",
+  "chatInputPlaceholder": "Ask anything or log weight...",
+  "send": "Send",
+  "actionProposed": "Action Proposed",
+  "confirmAction": "Confirm",
+  "declineAction": "Decline",
+  "actionConfirmed": "Confirmed & Executed",
+  "actionDeclined": "Declined",
+  "actionExpired": "Expired",
+  "evidenceBadgeRetrieved": "Retrieved",
+  "evidenceBadgeCalculated": "Calculated",
+  "evidenceBadgeEstimated": "Estimated",
+  "evidenceBadgeInferred": "Inferred",
+  "evidenceBadgeRecommended": "Recommended",
+  "safetyEmergencyTitle": "Health & Safety Notice",
+  "newChat": "New Conversation",
+  "actionReceiptId": "Receipt ID: {id}",
+  "@actionReceiptId": {
+    "placeholders": {
+      "id": { "type": "String" }
+    }
+  }
 }

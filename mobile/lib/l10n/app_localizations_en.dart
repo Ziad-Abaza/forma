@@ -222,4 +222,60 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get anomalyUnit =>
       'Possible unit confusion (lbs vs kg). Please review.';
+
+  @override
+  String get assistantTitle => 'Forma Assistant';
+
+  @override
+  String get assistantSubtitle => 'Evidence-grounded wellness companion';
+
+  @override
+  String get chatInputPlaceholder => 'Ask anything or log weight...';
+
+  @override
+  String get send => 'Send';
+
+  @override
+  String get actionProposed => 'Action Proposed';
+
+  @override
+  String get confirmAction => 'Confirm';
+
+  @override
+  String get declineAction => 'Decline';
+
+  @override
+  String get actionConfirmed => 'Confirmed & Executed';
+
+  @override
+  String get actionDeclined => 'Declined';
+
+  @override
+  String get actionExpired => 'Expired';
+
+  @override
+  String get evidenceBadgeRetrieved => 'Retrieved';
+
+  @override
+  String get evidenceBadgeCalculated => 'Calculated';
+
+  @override
+  String get evidenceBadgeEstimated => 'Estimated';
+
+  @override
+  String get evidenceBadgeInferred => 'Inferred';
+
+  @override
+  String get evidenceBadgeRecommended => 'Recommended';
+
+  @override
+  String get safetyEmergencyTitle => 'Health & Safety Notice';
+
+  @override
+  String get newChat => 'New Conversation';
+
+  @override
+  String actionReceiptId(String id) {
+    return 'Receipt ID: $id';
+  }
 }

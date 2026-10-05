@@ -19,6 +19,15 @@ import { GoalsService } from './modules/goals/service.js';
 import { CreateGoalRequestSchema, UpdateGoalVersionRequestSchema } from './modules/goals/contracts.js';
 import { CalculationEngine } from './modules/calculations/engine.js';
 import { AnalyticsService } from './modules/analytics/service.js';
+import {
+  AssistantOrchestrator,
+  ActionProposalEngine,
+  AssistantMemoryService,
+  AssistantPrivacyContract,
+  ChatRequestSchema,
+  ConfirmProposalSchema,
+  SaveMemorySchema
+} from './modules/assistant/index.js';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -297,6 +306,92 @@ export function buildApp(): FastifyInstance {
     const windowDays = query.windowDays ? Number(query.windowDays) : 30;
     const trend = await analyticsService.getTrend(req.user!.userId, typeCode, windowDays);
     return reply.send(trend);
+  });
+
+  // --- Assistant & Controlled Actions Routes (Blueprint §10, §11, §12) ---
+  const assistantOrchestrator = new AssistantOrchestrator();
+  PrivacyOrchestrator.registerModule(new AssistantPrivacyContract());
+
+  app.post('/api/v1/assistant/chat', { preHandler: [requireAuth] }, async (req, reply) => {
+    const parsed = ChatRequestSchema.parse(req.body);
+    const userId = req.user!.userId;
+
+    if (parsed.stream) {
+      reply.raw.setHeader('Content-Type', 'text/event-stream');
+      reply.raw.setHeader('Cache-Control', 'no-cache');
+      reply.raw.setHeader('Connection', 'keep-alive');
+      reply.raw.setHeader('Access-Control-Allow-Origin', '*');
+
+      try {
+        for await (const event of assistantOrchestrator.chatStream(userId, parsed, req.correlationId)) {
+          reply.raw.write(`event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`);
+        }
+      } catch (err: any) {
+        reply.raw.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+      } finally {
+        reply.raw.end();
+      }
+      return;
+    }
+
+    const result = await assistantOrchestrator.chat(userId, parsed, req.correlationId);
+    return reply.send(result);
+  });
+
+  app.get('/api/v1/assistant/conversations', { preHandler: [requireAuth] }, async (req, reply) => {
+    const list = await assistantOrchestrator.listConversations(req.user!.userId);
+    return reply.send({ conversations: list });
+  });
+
+  app.get('/api/v1/assistant/conversations/:id', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const conv = await assistantOrchestrator.getConversation(req.user!.userId, id);
+    if (!conv) {
+      return reply.status(404).send({ error: 'Conversation not found' });
+    }
+    return reply.send(conv);
+  });
+
+  app.delete('/api/v1/assistant/conversations/:id', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const deleted = await assistantOrchestrator.deleteConversation(req.user!.userId, id);
+    return reply.send({ success: deleted });
+  });
+
+  app.post('/api/v1/assistant/proposals/:id/confirm', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const parsed = ConfirmProposalSchema.parse(req.body || {});
+    const result = await ActionProposalEngine.confirmProposal(
+      req.user!.userId,
+      id,
+      req.correlationId,
+      parsed.idempotencyKey
+    );
+    return reply.send(result);
+  });
+
+  app.post('/api/v1/assistant/proposals/:id/decline', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const proposal = await ActionProposalEngine.declineProposal(req.user!.userId, id, req.correlationId);
+    return reply.send({ proposal });
+  });
+
+  app.get('/api/v1/assistant/memories', { preHandler: [requireAuth] }, async (req, reply) => {
+    const query = req.query as { category?: string };
+    const memories = await AssistantMemoryService.getMemories(req.user!.userId, query.category);
+    return reply.send({ memories });
+  });
+
+  app.post('/api/v1/assistant/memories', { preHandler: [requireAuth] }, async (req, reply) => {
+    const parsed = SaveMemorySchema.parse(req.body);
+    const memory = await AssistantMemoryService.saveMemory(req.user!.userId, parsed, undefined, 'user_explicit');
+    return reply.status(201).send({ memory });
+  });
+
+  app.delete('/api/v1/assistant/memories/:id', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const deleted = await AssistantMemoryService.deleteMemory(req.user!.userId, id);
+    return reply.send({ success: deleted });
   });
 
   return app;

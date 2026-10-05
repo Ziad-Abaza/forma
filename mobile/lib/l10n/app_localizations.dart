@@ -511,6 +511,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Possible unit confusion (lbs vs kg). Please review.'**
   String get anomalyUnit;
+
+  /// No description provided for @assistantTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forma Assistant'**
+  String get assistantTitle;
+
+  /// No description provided for @assistantSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Evidence-grounded wellness companion'**
+  String get assistantSubtitle;
+
+  /// No description provided for @chatInputPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask anything or log weight...'**
+  String get chatInputPlaceholder;
+
+  /// No description provided for @send.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get send;
+
+  /// No description provided for @actionProposed.
+  ///
+  /// In en, this message translates to:
+  /// **'Action Proposed'**
+  String get actionProposed;
+
+  /// No description provided for @confirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirmAction;
+
+  /// No description provided for @declineAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get declineAction;
+
+  /// No description provided for @actionConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed & Executed'**
+  String get actionConfirmed;
+
+  /// No description provided for @actionDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get actionDeclined;
+
+  /// No description provided for @actionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get actionExpired;
+
+  /// No description provided for @evidenceBadgeRetrieved.
+  ///
+  /// In en, this message translates to:
+  /// **'Retrieved'**
+  String get evidenceBadgeRetrieved;
+
+  /// No description provided for @evidenceBadgeCalculated.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculated'**
+  String get evidenceBadgeCalculated;
+
+  /// No description provided for @evidenceBadgeEstimated.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated'**
+  String get evidenceBadgeEstimated;
+
+  /// No description provided for @evidenceBadgeInferred.
+  ///
+  /// In en, this message translates to:
+  /// **'Inferred'**
+  String get evidenceBadgeInferred;
+
+  /// No description provided for @evidenceBadgeRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get evidenceBadgeRecommended;
+
+  /// No description provided for @safetyEmergencyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Health & Safety Notice'**
+  String get safetyEmergencyTitle;
+
+  /// No description provided for @newChat.
+  ///
+  /// In en, this message translates to:
+  /// **'New Conversation'**
+  String get newChat;
+
+  /// No description provided for @actionReceiptId.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt ID: {id}'**
+  String actionReceiptId(String id);
 }
 
 class _AppLocalizationsDelegate

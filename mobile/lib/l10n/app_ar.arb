@@ -68,5 +68,28 @@
   "insufficientTrendData": "يلزم ٣ قياسات على الأقل عبر ٤ أيام لاحتساب معدل المسار.",
   "anomalyTitle": "تنبيه بخصوص القياس",
   "anomalyJump": "تم رصد تغير غير معتاد في الوزن خلال ٢٤ ساعة.",
-  "anomalyUnit": "اشتباه في خطأ بالوحدة (باوند مقابل كجم). يرجى المراجعة."
+  "anomalyUnit": "اشتباه في خطأ بالوحدة (باوند مقابل كجم). يرجى المراجعة.",
+  "assistantTitle": "مساعد فورما",
+  "assistantSubtitle": "مساعدك الصحي الموثق بالأدلة",
+  "chatInputPlaceholder": "اسأل عن صحتك أو سجل وزنك...",
+  "send": "إرسال",
+  "actionProposed": "إجراء مقترح",
+  "confirmAction": "تأكيد",
+  "declineAction": "رفض",
+  "actionConfirmed": "تم التأكيد والتنفيذ",
+  "actionDeclined": "تم الرفض",
+  "actionExpired": "منتهي الصلاحية",
+  "evidenceBadgeRetrieved": "مسترجع",
+  "evidenceBadgeCalculated": "محسوب",
+  "evidenceBadgeEstimated": "تقديري",
+  "evidenceBadgeInferred": "مستنتج",
+  "evidenceBadgeRecommended": "موصى به",
+  "safetyEmergencyTitle": "تنبيه صحي وأمان",
+  "newChat": "محادثة جديدة",
+  "actionReceiptId": "معرف الإيصال: {id}",
+  "@actionReceiptId": {
+    "placeholders": {
+      "id": { "type": "String" }
+    }
+  }
 }

@@ -222,4 +222,60 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get anomalyUnit =>
       'اشتباه في خطأ بالوحدة (باوند مقابل كجم). يرجى المراجعة.';
+
+  @override
+  String get assistantTitle => 'مساعد فورما';
+
+  @override
+  String get assistantSubtitle => 'مساعدك الصحي الموثق بالأدلة';
+
+  @override
+  String get chatInputPlaceholder => 'اسأل عن صحتك أو سجل وزنك...';
+
+  @override
+  String get send => 'إرسال';
+
+  @override
+  String get actionProposed => 'إجراء مقترح';
+
+  @override
+  String get confirmAction => 'تأكيد';
+
+  @override
+  String get declineAction => 'رفض';
+
+  @override
+  String get actionConfirmed => 'تم التأكيد والتنفيذ';
+
+  @override
+  String get actionDeclined => 'تم الرفض';
+
+  @override
+  String get actionExpired => 'منتهي الصلاحية';
+
+  @override
+  String get evidenceBadgeRetrieved => 'مسترجع';
+
+  @override
+  String get evidenceBadgeCalculated => 'محسوب';
+
+  @override
+  String get evidenceBadgeEstimated => 'تقديري';
+
+  @override
+  String get evidenceBadgeInferred => 'مستنتج';
+
+  @override
+  String get evidenceBadgeRecommended => 'موصى به';
+
+  @override
+  String get safetyEmergencyTitle => 'تنبيه صحي وأمان';
+
+  @override
+  String get newChat => 'محادثة جديدة';
+
+  @override
+  String actionReceiptId(String id) {
+    return 'معرف الإيصال: $id';
+  }
 }
