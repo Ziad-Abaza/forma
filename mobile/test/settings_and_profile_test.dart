@@ -306,5 +306,61 @@ void main() {
       expect(find.text('الملف الشخصي'), findsOneWidget);
       expect(find.text('الخصوصية وملكية البيانات'), findsOneWidget);
     });
+
+    testWidgets('renders SettingsScreen on narrow 320px screen in Arabic RTL without overflow', (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final mockClient = MockHttpForSettings();
+      final storage = TokenStorage();
+      await storage.saveTokens(
+        accessToken: 'valid-test-token',
+        refreshToken: 'valid-refresh-token',
+        userId: 'user-test-123',
+        email: 'test@forma.local',
+      );
+
+      final apiClient = ApiClient(
+        getBaseUrl: () => 'http://localhost:3000',
+        tokenStorage: storage,
+        httpClient: mockClient,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tokenStorageProvider.overrideWithValue(storage),
+            apiClientProvider.overrideWithValue(apiClient),
+            localeProvider.overrideWith((ref) => const Locale('ar')),
+            numeralSystemProvider.overrideWith((ref) => 'eastern_arabic'),
+            authStateProvider.overrideWith((ref) {
+              return AuthNotifier(ref, ref.watch(authRepositoryProvider))
+                ..state = const AuthState(
+                  status: AuthStatus.authenticated,
+                  user: UserModel(
+                    id: 'user-test-123',
+                    email: 'test@forma.local',
+                    role: 'user',
+                    locale: 'ar',
+                    numeralSystem: 'eastern_arabic',
+                    emailVerified: true,
+                  ),
+                );
+            }),
+          ],
+          child: MaterialApp(
+            locale: const Locale('ar'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: FormaTheme.darkTheme(const Locale('ar')),
+            home: const SettingsScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
   });
 }

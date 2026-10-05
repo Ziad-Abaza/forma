@@ -385,6 +385,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             children: [
                               // Provider selection
                               DropdownButtonFormField<String>(
+                                isExpanded: true,
                                 initialValue: config.availableProviders.contains(_selectedProvider)
                                     ? _selectedProvider
                                     : config.availableProviders.firstOrNull ?? 'google',

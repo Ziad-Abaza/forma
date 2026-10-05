@@ -14,7 +14,8 @@
     "start": "tsx src/index.ts",
     "start:prod": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "sync-local-ip": "tsx scripts/sync-local-ip.ts"
+    "sync-local-ip": "tsx scripts/sync-local-ip.ts",
+    "seed": "tsx scripts/reset_and_seed.ts"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",

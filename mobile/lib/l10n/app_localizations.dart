@@ -937,6 +937,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Data Provenance'**
   String get provenanceTitle;
+
+  /// No description provided for @invalidDateFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Format: YYYY-MM-DD'**
+  String get invalidDateFormat;
+
+  /// No description provided for @invalidHeightRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Height must be between 80 and 260 cm'**
+  String get invalidHeightRange;
+
+  /// No description provided for @consentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please accept the Terms of Service and Health Data Consent.'**
+  String get consentRequired;
+
+  /// No description provided for @selectDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select date'**
+  String get selectDate;
 }
 
 class _AppLocalizationsDelegate

@@ -805,9 +805,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 DropdownButtonFormField<String>(
                   key: const Key('measurement_type_dropdown'),
                   initialValue: selectedType,
+                  isExpanded: true,
+                  dropdownColor: FormaTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(10),
                   decoration: const InputDecoration(labelText: 'Type'),
                   items: catalogTypes.map((t) {
-                    return DropdownMenuItem(value: t['code']!, child: Text(t['label']!));
+                    return DropdownMenuItem(
+                      value: t['code']!,
+                      child: Text(t['label']!, overflow: TextOverflow.ellipsis),
+                    );
                   }).toList(),
                   onChanged: (val) {
                     if (val != null) {
@@ -985,12 +991,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                initialValue: selectedKind,
+                value: selectedKind,
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Report Type'),
                 items: const [
-                  DropdownMenuItem(value: 'body_composition_report', child: Text('Body Composition Report (InBody)')),
-                  DropdownMenuItem(value: 'scale_display', child: Text('Smart Scale Display')),
-                  DropdownMenuItem(value: 'tape_measurement_sheet', child: Text('Circumference Measurement Sheet')),
+                  DropdownMenuItem(value: 'body_composition_report', child: Text('Body Composition Report (InBody)', overflow: TextOverflow.ellipsis)),
+                  DropdownMenuItem(value: 'scale_display', child: Text('Smart Scale Display', overflow: TextOverflow.ellipsis)),
+                  DropdownMenuItem(value: 'tape_measurement_sheet', child: Text('Circumference Measurement Sheet', overflow: TextOverflow.ellipsis)),
                 ],
                 onChanged: (val) {
                   if (val != null) setDialogState(() => selectedKind = val);
@@ -1112,11 +1119,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                initialValue: goalType,
+                value: goalType,
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Goal Type'),
                 items: [
-                  DropdownMenuItem(value: 'weight_loss', child: Text(l10n.goalWeightLoss)),
-                  DropdownMenuItem(value: 'weight_gain', child: Text(l10n.goalMuscleGain)),
+                  DropdownMenuItem(value: 'weight_loss', child: Text(l10n.goalWeightLoss, overflow: TextOverflow.ellipsis)),
+                  DropdownMenuItem(value: 'weight_gain', child: Text(l10n.goalMuscleGain, overflow: TextOverflow.ellipsis)),
                 ],
                 onChanged: (val) {
                   if (val != null) setDialogState(() => goalType = val);

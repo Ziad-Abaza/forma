@@ -449,4 +449,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get provenanceTitle => 'مصدر وموثوقية البيانات';
+
+  @override
+  String get invalidDateFormat => 'صيغة التاريخ: YYYY-MM-DD';
+
+  @override
+  String get invalidHeightRange => 'يجب أن يكون الطول بين 80 و 260 سم';
+
+  @override
+  String get consentRequired => 'يرجى الموافقة على شروط الخدمة وبيانات الصحة.';
+
+  @override
+  String get selectDate => 'اختر التاريخ';
 }

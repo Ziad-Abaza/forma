@@ -51,10 +51,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               'assets/logo.png',
               width: 24,
               height: 24,
+              cacheWidth: 72,
+              cacheHeight: 72,
               errorBuilder: (_, _, _) => const Icon(Icons.fitness_center, color: FormaTheme.primaryTeal),
             ),
             const SizedBox(width: 8),
-            Text(l10n.appTitle),
+            Flexible(
+              child: Text(
+                l10n.appTitle,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         actions: [

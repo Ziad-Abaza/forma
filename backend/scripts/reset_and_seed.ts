@@ -293,7 +293,7 @@ async function main() {
 
     console.log('\n=== Database reset & seeding finished successfully ===');
     console.log(`User ID: ${userId}`);
-    console.log(`Email: ziad.hassan.engineer@system.local`);
+    console.log(`Email: ziadabaza12345@gmail.com`);
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Failed to reset and seed database:', err);
@@ -301,6 +301,8 @@ async function main() {
   } finally {
     client.release();
     await pool.end();
+    const { closePool } = await import('../src/core/database/index.js');
+    await closePool();
   }
 }
 

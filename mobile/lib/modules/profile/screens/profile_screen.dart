@@ -215,14 +215,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             DropdownButtonFormField<String>(
                               key: const Key('profile_sex_dropdown'),
                               initialValue: _sex,
+                              isExpanded: true,
+                              dropdownColor: FormaTheme.surfaceElevated,
+                              borderRadius: BorderRadius.circular(10),
                               decoration: const InputDecoration(
                                 labelText: 'Sex for Calculation',
                                 prefixIcon: Icon(Icons.wc, color: FormaTheme.primaryTeal),
                               ),
                               items: const [
-                                DropdownMenuItem(value: 'male', child: Text('Male')),
-                                DropdownMenuItem(value: 'female', child: Text('Female')),
-                                DropdownMenuItem(value: 'unspecified', child: Text('Unspecified')),
+                                DropdownMenuItem(value: 'male', child: Text('Male', overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'female', child: Text('Female', overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'unspecified', child: Text('Unspecified', overflow: TextOverflow.ellipsis)),
                               ],
                               onChanged: (val) {
                                 if (val != null) setState(() => _sex = val);
@@ -234,16 +237,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             DropdownButtonFormField<String>(
                               key: const Key('profile_activity_dropdown'),
                               initialValue: _activity,
+                              isExpanded: true,
+                              dropdownColor: FormaTheme.surfaceElevated,
+                              borderRadius: BorderRadius.circular(10),
                               decoration: const InputDecoration(
                                 labelText: 'Physical Activity Level',
                                 prefixIcon: Icon(Icons.directions_run, color: FormaTheme.primaryTeal),
                               ),
                               items: const [
-                                DropdownMenuItem(value: 'sedentary', child: Text('Sedentary (Little/no exercise)')),
-                                DropdownMenuItem(value: 'lightly_active', child: Text('Lightly Active (1-3 days/wk)')),
-                                DropdownMenuItem(value: 'moderately_active', child: Text('Moderately Active (3-5 days/wk)')),
-                                DropdownMenuItem(value: 'very_active', child: Text('Very Active (6-7 days/wk)')),
-                                DropdownMenuItem(value: 'extra_active', child: Text('Extra Active (Hard training)')),
+                                DropdownMenuItem(value: 'sedentary', child: Text('Sedentary (Little/no exercise)', overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'lightly_active', child: Text('Lightly Active (1-3 days/wk)', overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'moderately_active', child: Text('Moderately Active (3-5 days/wk)', overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'very_active', child: Text('Very Active (6-7 days/wk)', overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'extra_active', child: Text('Extra Active (Hard training)', overflow: TextOverflow.ellipsis)),
                               ],
                               onChanged: (val) {
                                 if (val != null) setState(() => _activity = val);

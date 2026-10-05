@@ -448,4 +448,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get provenanceTitle => 'Data Provenance';
+
+  @override
+  String get invalidDateFormat => 'Format: YYYY-MM-DD';
+
+  @override
+  String get invalidHeightRange => 'Height must be between 80 and 260 cm';
+
+  @override
+  String get consentRequired =>
+      'Please accept the Terms of Service and Health Data Consent.';
+
+  @override
+  String get selectDate => 'Select date';
 }

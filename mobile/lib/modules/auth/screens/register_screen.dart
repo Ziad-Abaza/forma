@@ -48,13 +48,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
+  Future<void> _pickDate(BuildContext context) async {
+    final current = DateTime.tryParse(_dobController.text.trim()) ?? DateTime(1995, 1, 1);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      final y = picked.year.toString().padLeft(4, '0');
+      final m = picked.month.toString().padLeft(2, '0');
+      final d = picked.day.toString().padLeft(2, '0');
+      setState(() {
+        _dobController.text = '$y-$m-$d';
+      });
+    }
+  }
+
   void _submit(AppLocalizations l10n) {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (!_termsConsent || !_healthConsent) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.termsConsent),
+          content: Text(l10n.consentRequired),
           backgroundColor: FormaTheme.criticalCrimson,
         ),
       );
@@ -94,37 +112,48 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/logo.png',
-              width: 24,
-              height: 24,
-              cacheWidth: 72,
-              cacheHeight: 72,
-              errorBuilder: (_, _, _) => const Icon(Icons.fitness_center, color: FormaTheme.primaryTeal),
-            ),
-            const SizedBox(width: 8),
-            Text(l10n.register),
-          ],
+        titleSpacing: 12,
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: AlignmentDirectional.centerStart,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/logo.png',
+                width: 24,
+                height: 24,
+                cacheWidth: 72,
+                cacheHeight: 72,
+                errorBuilder: (_, _, _) => const Icon(Icons.fitness_center, color: FormaTheme.primaryTeal),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                l10n.register,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
         actions: [
-          TextButton.icon(
-            key: const Key('register_language_toggle_button'),
-            onPressed: () {
-              if (currentLocale.languageCode == 'en') {
-                updateAppLocale(ref, const Locale('ar'));
-                updateAppNumeralSystem(ref, 'eastern_arabic');
-              } else {
-                updateAppLocale(ref, const Locale('en'));
-                updateAppNumeralSystem(ref, 'western');
-              }
-            },
-            icon: const Icon(Icons.language, color: FormaTheme.primaryTeal, size: 18),
-            label: Text(
-              currentLocale.languageCode == 'en' ? 'العربية' : 'English',
-              style: const TextStyle(color: FormaTheme.primaryTeal, fontWeight: FontWeight.bold),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: TextButton.icon(
+              key: const Key('register_language_toggle_button'),
+              onPressed: () {
+                if (currentLocale.languageCode == 'en') {
+                  updateAppLocale(ref, const Locale('ar'));
+                  updateAppNumeralSystem(ref, 'eastern_arabic');
+                } else {
+                  updateAppLocale(ref, const Locale('en'));
+                  updateAppNumeralSystem(ref, 'western');
+                }
+              },
+              icon: const Icon(Icons.language, color: FormaTheme.primaryTeal, size: 18),
+              label: Text(
+                currentLocale.languageCode == 'en' ? 'العربية' : 'English',
+                style: const TextStyle(color: FormaTheme.primaryTeal, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -237,11 +266,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       decoration: InputDecoration(
                         labelText: '${l10n.dateOfBirth} (YYYY-MM-DD)',
                         prefixIcon: const Icon(Icons.calendar_today_outlined, color: FormaTheme.primaryTeal),
+                        suffixIcon: IconButton(
+                          key: const Key('register_dob_picker_button'),
+                          icon: const Icon(Icons.edit_calendar_outlined, color: FormaTheme.primaryTeal),
+                          tooltip: l10n.selectDate,
+                          onPressed: () => _pickDate(context),
+                        ),
                       ),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) return l10n.fillAllFields;
                         if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(val.trim())) {
-                          return 'Format: YYYY-MM-DD';
+                          return l10n.invalidDateFormat;
                         }
                         if (_isUnderage(val.trim())) {
                           return l10n.ageGateError;
@@ -251,44 +286,84 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            key: const Key('register_height_field'),
-                            controller: _heightController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: InputDecoration(
-                              labelText: '${l10n.height} (cm)',
-                              prefixIcon: const Icon(Icons.height, color: FormaTheme.primaryTeal),
-                            ),
-                            validator: (val) {
-                              if (val == null || val.isEmpty) return l10n.fillAllFields;
-                              final n = double.tryParse(val);
-                              if (n == null || n < 80 || n > 260) return '80 - 260 cm';
-                              return null;
-                            },
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isTwoColumn = constraints.maxWidth >= 500;
+
+                        final heightField = TextFormField(
+                          key: const Key('register_height_field'),
+                          controller: _heightController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: '${l10n.height} (cm)',
+                            prefixIcon: const Icon(Icons.height, color: FormaTheme.primaryTeal),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            key: const Key('register_sex_dropdown'),
-                            initialValue: _sexForCalculation,
-                            decoration: InputDecoration(
-                              labelText: l10n.sexForCalculation,
+                          validator: (val) {
+                            if (val == null || val.isEmpty) return l10n.fillAllFields;
+                            final n = double.tryParse(val);
+                            if (n == null || n < 80 || n > 260) return l10n.invalidHeightRange;
+                            return null;
+                          },
+                        );
+
+                        final sexField = DropdownButtonFormField<String>(
+                          key: const Key('register_sex_dropdown'),
+                          initialValue: _sexForCalculation,
+                          isExpanded: true,
+                          dropdownColor: FormaTheme.surfaceElevated,
+                          borderRadius: BorderRadius.circular(10),
+                          elevation: 4,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: FormaTheme.primaryTeal),
+                          decoration: InputDecoration(
+                            labelText: l10n.sexForCalculation,
+                            prefixIcon: const Icon(Icons.wc, color: FormaTheme.primaryTeal),
+                          ),
+                          selectedItemBuilder: (BuildContext context) {
+                            return [
+                              _buildDropdownSelectedValue(context, l10n.sexMale, Icons.male),
+                              _buildDropdownSelectedValue(context, l10n.sexFemale, Icons.female),
+                              _buildDropdownSelectedValue(context, l10n.sexUnspecified, Icons.person_outline),
+                            ];
+                          },
+                          items: [
+                            DropdownMenuItem(
+                              value: 'male',
+                              child: _buildDropdownMenuItem(context, l10n.sexMale, Icons.male, _sexForCalculation == 'male'),
                             ),
-                            items: [
-                              DropdownMenuItem(value: 'male', child: Text(l10n.sexMale)),
-                              DropdownMenuItem(value: 'female', child: Text(l10n.sexFemale)),
-                              DropdownMenuItem(value: 'unspecified', child: Text(l10n.sexUnspecified)),
+                            DropdownMenuItem(
+                              value: 'female',
+                              child: _buildDropdownMenuItem(context, l10n.sexFemale, Icons.female, _sexForCalculation == 'female'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'unspecified',
+                              child: _buildDropdownMenuItem(context, l10n.sexUnspecified, Icons.person_outline, _sexForCalculation == 'unspecified'),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setState(() => _sexForCalculation = val);
+                          },
+                        );
+
+                        if (!isTwoColumn) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              heightField,
+                              const SizedBox(height: 14),
+                              sexField,
                             ],
-                            onChanged: (val) {
-                              if (val != null) setState(() => _sexForCalculation = val);
-                            },
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: heightField),
+                            const SizedBox(width: 12),
+                            Expanded(child: sexField),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 20),
 

@@ -155,5 +155,9 @@
   "privacyControls": "Privacy & Data Ownership",
   "privacyControlsDescription": "Manage your health data, export machine-readable copies, or purge your account.",
   "extractReport": "Extract Report",
-  "provenanceTitle": "Data Provenance"
+  "provenanceTitle": "Data Provenance",
+  "invalidDateFormat": "Format: YYYY-MM-DD",
+  "invalidHeightRange": "Height must be between 80 and 260 cm",
+  "consentRequired": "Please accept the Terms of Service and Health Data Consent.",
+  "selectDate": "Select date"
 }

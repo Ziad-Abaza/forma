@@ -154,5 +154,9 @@
   "privacyControls": "الخصوصية وملكية البيانات",
   "privacyControlsDescription": "تحكم في بياناتك الصحية، واستخرج نسخة منها، أو احذف حسابك نهائياً.",
   "extractReport": "استخراج التقرير",
-  "provenanceTitle": "مصدر وموثوقية البيانات"
+  "provenanceTitle": "مصدر وموثوقية البيانات",
+  "invalidDateFormat": "صيغة التاريخ: YYYY-MM-DD",
+  "invalidHeightRange": "يجب أن يكون الطول بين 80 و 260 سم",
+  "consentRequired": "يرجى الموافقة على شروط الخدمة وبيانات الصحة.",
+  "selectDate": "اختر التاريخ"
 }
