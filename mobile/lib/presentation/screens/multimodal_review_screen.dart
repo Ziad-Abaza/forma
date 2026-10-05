@@ -298,7 +298,7 @@ class MultimodalReviewScreen extends ConsumerWidget {
                   if (onDiscard != null) onDiscard!();
                   Navigator.of(context).maybePop();
                 },
-                child: const Text('OK'),
+                child: Text(l10n.ok),
               ),
             ],
           ),
@@ -356,7 +356,7 @@ class MultimodalReviewScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).maybePop(),
-                  child: const Text('Done'),
+                  child: Text(l10n.done),
                 ),
               ],
             ),
@@ -763,7 +763,7 @@ class MultimodalReviewScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               key: const Key('save_field_button'),

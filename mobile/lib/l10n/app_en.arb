@@ -1,7 +1,9 @@
 {
   "@@locale": "en",
   "appTitle": "Forma",
-  "@appTitle": { "description": "The title of the application" },
+  "@appTitle": {
+    "description": "The title of the application"
+  },
   "tagline": "AI-Powered Personal Health & Wellness Companion",
   "login": "Log In",
   "register": "Create Account",
@@ -89,7 +91,9 @@
   "actionReceiptId": "Receipt ID: {id}",
   "@actionReceiptId": {
     "placeholders": {
-      "id": { "type": "String" }
+      "id": {
+        "type": "String"
+      }
     }
   },
   "multimodalReviewTitle": "Review Extracted Data",
@@ -101,7 +105,9 @@
   "fieldConfidence": "Confidence: {score}%",
   "@fieldConfidence": {
     "placeholders": {
-      "score": { "type": "int" }
+      "score": {
+        "type": "int"
+      }
     }
   },
   "discardDraft": "Discard Draft",
@@ -234,19 +240,25 @@
   "projectedCompletionDate": "Target Date: {date}",
   "@projectedCompletionDate": {
     "placeholders": {
-      "date": { "type": "String" }
+      "date": {
+        "type": "String"
+      }
     }
   },
   "remainingToTarget": "Remaining: {diff} kg",
   "@remainingToTarget": {
     "placeholders": {
-      "diff": { "type": "String" }
+      "diff": {
+        "type": "String"
+      }
     }
   },
   "deltaChange": "Change: {delta} kg",
   "@deltaChange": {
     "placeholders": {
-      "delta": { "type": "String" }
+      "delta": {
+        "type": "String"
+      }
     }
   },
   "weightAndCompositionSection": "Weight & Body Composition",
@@ -318,7 +330,121 @@
   "memorySaveFailed": "Couldn't save memory: {error}",
   "@memorySaveFailed": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
-  }
+  },
+  "ok": "OK",
+  "done": "Done",
+  "setPrimaryGoal": "Set Primary Goal",
+  "managePrimaryGoal": "Manage Primary Goal",
+  "measurementRecorded": "Measurement recorded successfully",
+  "measurementCorrected": "Measurement corrected successfully",
+  "correctionFailed": "Correction failed: {error}",
+  "@correctionFailed": {
+    "description": "correctionFailed",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "observationVoided": "Observation voided successfully",
+  "voidFailed": "Failed to void: {error}",
+  "@voidFailed": {
+    "description": "voidFailed",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "metricLabel": "Metric: {code}",
+  "@metricLabel": {
+    "description": "metricLabel",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "canonicalValueLabel": "Canonical Value: {value} {unit}",
+  "@canonicalValueLabel": {
+    "description": "canonicalValueLabel",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "epistemicClassLabel": "Epistemic Class: {cls}",
+  "@epistemicClassLabel": {
+    "description": "epistemicClassLabel",
+    "placeholders": {
+      "cls": {
+        "type": "String"
+      }
+    }
+  },
+  "observedAtLabel": "Observed At: {ts}",
+  "@observedAtLabel": {
+    "description": "observedAtLabel",
+    "placeholders": {
+      "ts": {
+        "type": "String"
+      }
+    }
+  },
+  "observationIdLabel": "Observation ID: {id}...",
+  "@observationIdLabel": {
+    "description": "observationIdLabel",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "originTypeLabel": "Origin Type: {v}",
+  "@originTypeLabel": {
+    "description": "originTypeLabel",
+    "placeholders": {
+      "v": {
+        "type": "String"
+      }
+    }
+  },
+  "docTypeBodyComposition": "Body Composition Report (InBody)",
+  "docTypeScaleDisplay": "Smart Scale Display",
+  "docTypeTapeSheet": "Circumference Measurement Sheet",
+  "extractionFailedMsg": "Extraction failed: {error}",
+  "@extractionFailedMsg": {
+    "description": "extractionFailedMsg",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "goalCreated": "Goal created successfully",
+  "activeGoalNotFound": "Active goal ID not found",
+  "goalAdjustTarget": "Adjust Target / New Version",
+  "goalMarkCompleted": "Mark as Completed",
+  "goalArchive": "Archive Goal",
+  "goalUpdated": "Goal updated successfully",
+  "goalUpdateFailed": "Failed to update goal: {error}",
+  "@goalUpdateFailed": {
+    "description": "goalUpdateFailed",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signOutConfirmBody": "Are you sure you want to sign out of your account?",
+  "appendOnlyNote": "Append-only record integrity: To correct a mistaken entry, void this observation.",
+  "action": "Action"
 }

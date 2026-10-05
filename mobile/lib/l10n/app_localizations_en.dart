@@ -963,4 +963,113 @@ class AppLocalizationsEn extends AppLocalizations {
   String memorySaveFailed(String error) {
     return 'Couldn\'t save memory: $error';
   }
+
+  @override
+  String get ok => 'OK';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get setPrimaryGoal => 'Set Primary Goal';
+
+  @override
+  String get managePrimaryGoal => 'Manage Primary Goal';
+
+  @override
+  String get measurementRecorded => 'Measurement recorded successfully';
+
+  @override
+  String get measurementCorrected => 'Measurement corrected successfully';
+
+  @override
+  String correctionFailed(String error) {
+    return 'Correction failed: $error';
+  }
+
+  @override
+  String get observationVoided => 'Observation voided successfully';
+
+  @override
+  String voidFailed(String error) {
+    return 'Failed to void: $error';
+  }
+
+  @override
+  String metricLabel(String code) {
+    return 'Metric: $code';
+  }
+
+  @override
+  String canonicalValueLabel(String value, String unit) {
+    return 'Canonical Value: $value $unit';
+  }
+
+  @override
+  String epistemicClassLabel(String cls) {
+    return 'Epistemic Class: $cls';
+  }
+
+  @override
+  String observedAtLabel(String ts) {
+    return 'Observed At: $ts';
+  }
+
+  @override
+  String observationIdLabel(String id) {
+    return 'Observation ID: $id...';
+  }
+
+  @override
+  String originTypeLabel(String v) {
+    return 'Origin Type: $v';
+  }
+
+  @override
+  String get docTypeBodyComposition => 'Body Composition Report (InBody)';
+
+  @override
+  String get docTypeScaleDisplay => 'Smart Scale Display';
+
+  @override
+  String get docTypeTapeSheet => 'Circumference Measurement Sheet';
+
+  @override
+  String extractionFailedMsg(String error) {
+    return 'Extraction failed: $error';
+  }
+
+  @override
+  String get goalCreated => 'Goal created successfully';
+
+  @override
+  String get activeGoalNotFound => 'Active goal ID not found';
+
+  @override
+  String get goalAdjustTarget => 'Adjust Target / New Version';
+
+  @override
+  String get goalMarkCompleted => 'Mark as Completed';
+
+  @override
+  String get goalArchive => 'Archive Goal';
+
+  @override
+  String get goalUpdated => 'Goal updated successfully';
+
+  @override
+  String goalUpdateFailed(String error) {
+    return 'Failed to update goal: $error';
+  }
+
+  @override
+  String get signOutConfirmBody =>
+      'Are you sure you want to sign out of your account?';
+
+  @override
+  String get appendOnlyNote =>
+      'Append-only record integrity: To correct a mistaken entry, void this observation.';
+
+  @override
+  String get action => 'Action';
 }

@@ -431,7 +431,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ElevatedButton.icon(
                 key: const Key('set_goal_button'),
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Set Primary Goal'),
+                label: Text(l10n.setPrimaryGoal),
                 onPressed: () => _showSetGoalDialog(context, l10n, snapshot),
               ),
             ],
@@ -1326,8 +1326,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ref.invalidate(dashboardSnapshotProvider);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Measurement recorded successfully'),
+                      SnackBar(
+                        content: Text(l10n.measurementRecorded),
                         backgroundColor: FormaTheme.successGreen,
                       ),
                     );
@@ -1367,19 +1367,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Metric: ${m.typeCode}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(l10n.metricLabel(m.typeCode), style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
-              Text('Canonical Value: ${formatNumeralString(m.canonicalValue.toStringAsFixed(2), numeralSystem)} ${m.canonicalUnit}'),
+              Text(l10n.canonicalValueLabel(formatNumeralString(m.canonicalValue.toStringAsFixed(2), numeralSystem), m.canonicalUnit)),
               const SizedBox(height: 6),
-              Text('Epistemic Class: ${(m.epistemicClass ?? 'unknown').toUpperCase()}', style: const TextStyle(color: FormaTheme.primaryTeal)),
+              Text(l10n.epistemicClassLabel((m.epistemicClass ?? 'unknown').toUpperCase()), style: const TextStyle(color: FormaTheme.primaryTeal)),
               const SizedBox(height: 6),
-              Text('Observed At: ${m.observedAt}'),
+              Text(l10n.observedAtLabel(m.observedAt)),
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 8),
-              const Text(
-                'Append-only record integrity: To correct a mistaken entry, void this observation.',
-                style: TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+              Text(
+                l10n.appendOnlyNote,
+                style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
               ),
             ],
           ),
@@ -1416,8 +1416,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ref.invalidate(dashboardSnapshotProvider);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Observation voided successfully'),
+                      SnackBar(
+                        content: Text(l10n.observationVoided),
                         backgroundColor: FormaTheme.successGreen,
                       ),
                     );
@@ -1427,7 +1427,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Failed to void: $e'),
+                      content: Text(l10n.voidFailed(e.toString())),
                       backgroundColor: FormaTheme.criticalCrimson,
                     ),
                   );
@@ -1497,10 +1497,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     dropdownColor: FormaTheme.surfaceElevated,
                     borderRadius: BorderRadius.circular(10),
                     decoration: InputDecoration(labelText: l10n.reportType),
-                    items: const [
-                      DropdownMenuItem(value: 'body_composition_report', child: Text('Body Composition Report (InBody)', overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem(value: 'scale_display', child: Text('Smart Scale Display', overflow: TextOverflow.ellipsis)),
-                      DropdownMenuItem(value: 'tape_measurement_sheet', child: Text('Circumference Measurement Sheet', overflow: TextOverflow.ellipsis)),
+                    items: [
+                      DropdownMenuItem(value: 'body_composition_report', child: Text(l10n.docTypeBodyComposition, overflow: TextOverflow.ellipsis)),
+                      DropdownMenuItem(value: 'scale_display', child: Text(l10n.docTypeScaleDisplay, overflow: TextOverflow.ellipsis)),
+                      DropdownMenuItem(value: 'tape_measurement_sheet', child: Text(l10n.docTypeTapeSheet, overflow: TextOverflow.ellipsis)),
                     ],
                     onChanged: (val) {
                       if (val != null) setDialogState(() => selectedKind = val);
@@ -1586,7 +1586,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         if (ctx.mounted) {
                           ScaffoldMessenger.of(ctx).showSnackBar(
                             SnackBar(
-                              content: Text('Extraction failed: $err'),
+                              content: Text(l10n.extractionFailedMsg(err.toString())),
                               backgroundColor: FormaTheme.criticalCrimson,
                             ),
                           );
@@ -1750,7 +1750,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     } catch (e) {
                                       if (mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('$e'), backgroundColor: FormaTheme.criticalCrimson),
+                                          SnackBar(content: Text(formatApiErrorMessage(e)), backgroundColor: FormaTheme.criticalCrimson),
                                         );
                                       }
                                     }
@@ -1931,7 +1931,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: FormaTheme.surfaceCard,
-          title: const Text('Set Primary Goal'),
+          title: Text(l10n.setPrimaryGoal),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1992,8 +1992,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ref.invalidate(dashboardSnapshotProvider);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Goal created successfully'),
+                      SnackBar(
+                        content: Text(l10n.goalCreated),
                         backgroundColor: FormaTheme.successGreen,
                       ),
                     );
@@ -2021,8 +2021,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final goalId = snapshot.goalId;
     if (goalId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Active goal ID not found'),
+        SnackBar(
+          content: Text(l10n.activeGoalNotFound),
           backgroundColor: FormaTheme.warningAmber,
         ),
       );
@@ -2040,7 +2040,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: FormaTheme.surfaceCard,
-          title: const Text('Manage Primary Goal'),
+          title: Text(l10n.managePrimaryGoal),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -2051,11 +2051,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   isExpanded: true,
                   dropdownColor: FormaTheme.surfaceElevated,
                   borderRadius: BorderRadius.circular(10),
-                  decoration: const InputDecoration(labelText: 'Action'),
-                  items: const [
-                    DropdownMenuItem(value: 'new_version', child: Text('Adjust Target / New Version')),
-                    DropdownMenuItem(value: 'status_complete', child: Text('Mark as Completed')),
-                    DropdownMenuItem(value: 'status_archive', child: Text('Archive Goal')),
+                  decoration: InputDecoration(labelText: l10n.action),
+                  items: [
+                    DropdownMenuItem(value: 'new_version', child: Text(l10n.goalAdjustTarget)),
+                    DropdownMenuItem(value: 'status_complete', child: Text(l10n.goalMarkCompleted)),
+                    DropdownMenuItem(value: 'status_archive', child: Text(l10n.goalArchive)),
                   ],
                   onChanged: (val) {
                     if (val != null) setDialogState(() => selectedAction = val);
@@ -2119,8 +2119,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ref.invalidate(dashboardSnapshotProvider);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Goal updated successfully'),
+                      SnackBar(
+                        content: Text(l10n.goalUpdated),
                         backgroundColor: FormaTheme.successGreen,
                       ),
                     );
@@ -2129,7 +2129,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Failed to update goal: $e'),
+                        content: Text(l10n.goalUpdateFailed(e.toString())),
                         backgroundColor: FormaTheme.criticalCrimson,
                       ),
                     );
@@ -2150,7 +2150,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: FormaTheme.surfaceCard,
         title: Text(l10n.logout),
-        content: const Text('Are you sure you want to sign out of your account?'),
+        content: Text(l10n.signOutConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),

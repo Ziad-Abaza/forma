@@ -1837,6 +1837,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save memory: {error}'**
   String memorySaveFailed(String error);
+
+  /// No description provided for @ok.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ok;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @setPrimaryGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Primary Goal'**
+  String get setPrimaryGoal;
+
+  /// No description provided for @managePrimaryGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Primary Goal'**
+  String get managePrimaryGoal;
+
+  /// No description provided for @measurementRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Measurement recorded successfully'**
+  String get measurementRecorded;
+
+  /// No description provided for @measurementCorrected.
+  ///
+  /// In en, this message translates to:
+  /// **'Measurement corrected successfully'**
+  String get measurementCorrected;
+
+  /// correctionFailed
+  ///
+  /// In en, this message translates to:
+  /// **'Correction failed: {error}'**
+  String correctionFailed(String error);
+
+  /// No description provided for @observationVoided.
+  ///
+  /// In en, this message translates to:
+  /// **'Observation voided successfully'**
+  String get observationVoided;
+
+  /// voidFailed
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to void: {error}'**
+  String voidFailed(String error);
+
+  /// metricLabel
+  ///
+  /// In en, this message translates to:
+  /// **'Metric: {code}'**
+  String metricLabel(String code);
+
+  /// canonicalValueLabel
+  ///
+  /// In en, this message translates to:
+  /// **'Canonical Value: {value} {unit}'**
+  String canonicalValueLabel(String value, String unit);
+
+  /// epistemicClassLabel
+  ///
+  /// In en, this message translates to:
+  /// **'Epistemic Class: {cls}'**
+  String epistemicClassLabel(String cls);
+
+  /// observedAtLabel
+  ///
+  /// In en, this message translates to:
+  /// **'Observed At: {ts}'**
+  String observedAtLabel(String ts);
+
+  /// observationIdLabel
+  ///
+  /// In en, this message translates to:
+  /// **'Observation ID: {id}...'**
+  String observationIdLabel(String id);
+
+  /// originTypeLabel
+  ///
+  /// In en, this message translates to:
+  /// **'Origin Type: {v}'**
+  String originTypeLabel(String v);
+
+  /// No description provided for @docTypeBodyComposition.
+  ///
+  /// In en, this message translates to:
+  /// **'Body Composition Report (InBody)'**
+  String get docTypeBodyComposition;
+
+  /// No description provided for @docTypeScaleDisplay.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart Scale Display'**
+  String get docTypeScaleDisplay;
+
+  /// No description provided for @docTypeTapeSheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Circumference Measurement Sheet'**
+  String get docTypeTapeSheet;
+
+  /// extractionFailedMsg
+  ///
+  /// In en, this message translates to:
+  /// **'Extraction failed: {error}'**
+  String extractionFailedMsg(String error);
+
+  /// No description provided for @goalCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal created successfully'**
+  String get goalCreated;
+
+  /// No description provided for @activeGoalNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Active goal ID not found'**
+  String get activeGoalNotFound;
+
+  /// No description provided for @goalAdjustTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust Target / New Version'**
+  String get goalAdjustTarget;
+
+  /// No description provided for @goalMarkCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as Completed'**
+  String get goalMarkCompleted;
+
+  /// No description provided for @goalArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive Goal'**
+  String get goalArchive;
+
+  /// No description provided for @goalUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal updated successfully'**
+  String get goalUpdated;
+
+  /// goalUpdateFailed
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update goal: {error}'**
+  String goalUpdateFailed(String error);
+
+  /// No description provided for @signOutConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to sign out of your account?'**
+  String get signOutConfirmBody;
+
+  /// No description provided for @appendOnlyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Append-only record integrity: To correct a mistaken entry, void this observation.'**
+  String get appendOnlyNote;
+
+  /// No description provided for @action.
+  ///
+  /// In en, this message translates to:
+  /// **'Action'**
+  String get action;
 }
 
 class _AppLocalizationsDelegate

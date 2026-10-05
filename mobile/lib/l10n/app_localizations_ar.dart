@@ -961,4 +961,113 @@ class AppLocalizationsAr extends AppLocalizations {
   String memorySaveFailed(String error) {
     return 'تعذر حفظ الذاكرة: $error';
   }
+
+  @override
+  String get ok => 'حسنًا';
+
+  @override
+  String get done => 'تم';
+
+  @override
+  String get setPrimaryGoal => 'تعيين الهدف الأساسي';
+
+  @override
+  String get managePrimaryGoal => 'إدارة الهدف الأساسي';
+
+  @override
+  String get measurementRecorded => 'تم تسجيل القياس بنجاح';
+
+  @override
+  String get measurementCorrected => 'تم تصحيح القياس بنجاح';
+
+  @override
+  String correctionFailed(String error) {
+    return 'فشل التصحيح: $error';
+  }
+
+  @override
+  String get observationVoided => 'تم إبطال السجل بنجاح';
+
+  @override
+  String voidFailed(String error) {
+    return 'فشل الإبطال: $error';
+  }
+
+  @override
+  String metricLabel(String code) {
+    return 'المقياس: $code';
+  }
+
+  @override
+  String canonicalValueLabel(String value, String unit) {
+    return 'القيمة القياسية: $value $unit';
+  }
+
+  @override
+  String epistemicClassLabel(String cls) {
+    return 'الفئة المعرفية: $cls';
+  }
+
+  @override
+  String observedAtLabel(String ts) {
+    return 'وقت الملاحظة: $ts';
+  }
+
+  @override
+  String observationIdLabel(String id) {
+    return 'معرّف السجل: $id...';
+  }
+
+  @override
+  String originTypeLabel(String v) {
+    return 'نوع المصدر: $v';
+  }
+
+  @override
+  String get docTypeBodyComposition => 'تقرير تكوين الجسم (InBody)';
+
+  @override
+  String get docTypeScaleDisplay => 'شاشة الميزان الذكي';
+
+  @override
+  String get docTypeTapeSheet => 'ورقة قياسات المحيطات';
+
+  @override
+  String extractionFailedMsg(String error) {
+    return 'فشل الاستخراج: $error';
+  }
+
+  @override
+  String get goalCreated => 'تم إنشاء الهدف بنجاح';
+
+  @override
+  String get activeGoalNotFound => 'لم يتم العثور على الهدف النشط';
+
+  @override
+  String get goalAdjustTarget => 'تعديل الهدف / إصدار جديد';
+
+  @override
+  String get goalMarkCompleted => 'وضع علامة مكتمل';
+
+  @override
+  String get goalArchive => 'أرشفة الهدف';
+
+  @override
+  String get goalUpdated => 'تم تحديث الهدف بنجاح';
+
+  @override
+  String goalUpdateFailed(String error) {
+    return 'فشل تحديث الهدف: $error';
+  }
+
+  @override
+  String get signOutConfirmBody =>
+      'هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟';
+
+  @override
+  String get appendOnlyNote =>
+      'سلامة السجل الإلحاقي: لتصحيح إدخال خاطئ، أبطل هذه الملاحظة.';
+
+  @override
+  String get action => 'الإجراء';
 }

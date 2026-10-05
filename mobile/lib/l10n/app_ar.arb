@@ -88,7 +88,9 @@
   "actionReceiptId": "معرف الإيصال: {id}",
   "@actionReceiptId": {
     "placeholders": {
-      "id": { "type": "String" }
+      "id": {
+        "type": "String"
+      }
     }
   },
   "multimodalReviewTitle": "مراجعة البيانات المستخرجة",
@@ -100,7 +102,9 @@
   "fieldConfidence": "مستوى الدقة: {score}٪",
   "@fieldConfidence": {
     "placeholders": {
-      "score": { "type": "int" }
+      "score": {
+        "type": "int"
+      }
     }
   },
   "discardDraft": "تجاهل المسودة",
@@ -299,5 +303,117 @@
   "memoryCategoryConstraint": "قيد",
   "deleteMemoryConfirm": "هل تريد حذف هذه الذاكرة؟",
   "memorySaved": "تم حفظ الذاكرة",
-  "memorySaveFailed": "تعذر حفظ الذاكرة: {error}"
+  "memorySaveFailed": "تعذر حفظ الذاكرة: {error}",
+  "ok": "حسنًا",
+  "done": "تم",
+  "setPrimaryGoal": "تعيين الهدف الأساسي",
+  "managePrimaryGoal": "إدارة الهدف الأساسي",
+  "measurementRecorded": "تم تسجيل القياس بنجاح",
+  "measurementCorrected": "تم تصحيح القياس بنجاح",
+  "correctionFailed": "فشل التصحيح: {error}",
+  "@correctionFailed": {
+    "description": "correctionFailed",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "observationVoided": "تم إبطال السجل بنجاح",
+  "voidFailed": "فشل الإبطال: {error}",
+  "@voidFailed": {
+    "description": "voidFailed",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "metricLabel": "المقياس: {code}",
+  "@metricLabel": {
+    "description": "metricLabel",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "canonicalValueLabel": "القيمة القياسية: {value} {unit}",
+  "@canonicalValueLabel": {
+    "description": "canonicalValueLabel",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "epistemicClassLabel": "الفئة المعرفية: {cls}",
+  "@epistemicClassLabel": {
+    "description": "epistemicClassLabel",
+    "placeholders": {
+      "cls": {
+        "type": "String"
+      }
+    }
+  },
+  "observedAtLabel": "وقت الملاحظة: {ts}",
+  "@observedAtLabel": {
+    "description": "observedAtLabel",
+    "placeholders": {
+      "ts": {
+        "type": "String"
+      }
+    }
+  },
+  "observationIdLabel": "معرّف السجل: {id}...",
+  "@observationIdLabel": {
+    "description": "observationIdLabel",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "originTypeLabel": "نوع المصدر: {v}",
+  "@originTypeLabel": {
+    "description": "originTypeLabel",
+    "placeholders": {
+      "v": {
+        "type": "String"
+      }
+    }
+  },
+  "docTypeBodyComposition": "تقرير تكوين الجسم (InBody)",
+  "docTypeScaleDisplay": "شاشة الميزان الذكي",
+  "docTypeTapeSheet": "ورقة قياسات المحيطات",
+  "extractionFailedMsg": "فشل الاستخراج: {error}",
+  "@extractionFailedMsg": {
+    "description": "extractionFailedMsg",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "goalCreated": "تم إنشاء الهدف بنجاح",
+  "activeGoalNotFound": "لم يتم العثور على الهدف النشط",
+  "goalAdjustTarget": "تعديل الهدف / إصدار جديد",
+  "goalMarkCompleted": "وضع علامة مكتمل",
+  "goalArchive": "أرشفة الهدف",
+  "goalUpdated": "تم تحديث الهدف بنجاح",
+  "goalUpdateFailed": "فشل تحديث الهدف: {error}",
+  "@goalUpdateFailed": {
+    "description": "goalUpdateFailed",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "signOutConfirmBody": "هل أنت متأكد أنك تريد تسجيل الخروج من حسابك؟",
+  "appendOnlyNote": "سلامة السجل الإلحاقي: لتصحيح إدخال خاطئ، أبطل هذه الملاحظة.",
+  "action": "الإجراء"
 }

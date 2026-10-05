@@ -126,8 +126,8 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
                 await _loadObservations();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Measurement corrected successfully'),
+                    SnackBar(
+                      content: Text(l10n.measurementCorrected),
                       backgroundColor: FormaTheme.successGreen,
                     ),
                   );
@@ -136,7 +136,7 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Correction failed: $e'),
+                      content: Text(l10n.correctionFailed(e.toString())),
                       backgroundColor: FormaTheme.criticalCrimson,
                     ),
                   );
@@ -192,8 +192,8 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
                 await _loadObservations();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Observation voided successfully'),
+                    SnackBar(
+                      content: Text(l10n.observationVoided),
                       backgroundColor: FormaTheme.successGreen,
                     ),
                   );
@@ -202,7 +202,7 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Failed to void: $e'),
+                      content: Text(l10n.voidFailed(e.toString())),
                       backgroundColor: FormaTheme.criticalCrimson,
                     ),
                   );
@@ -247,11 +247,11 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Observation ID: ${obs.id.substring(0, 8)}...'),
+            Text(l10n.observationIdLabel(obs.id.substring(0, 8))),
             const SizedBox(height: 6),
-            Text('Epistemic Class: ${(prov?['epistemic_class'] as String? ?? obs.epistemicClass ?? 'unknown').toUpperCase()}'),
+            Text(l10n.epistemicClassLabel(((prov?['epistemic_class'] as String?) ?? obs.epistemicClass ?? 'unknown').toUpperCase())),
             const SizedBox(height: 6),
-            Text('Origin Type: ${prov?['origin_type'] ?? 'unknown'}'),
+            Text(l10n.originTypeLabel((prov?['origin_type'] as String?) ?? 'unknown')),
             const SizedBox(height: 6),
             Text('Actor: ${prov?['actor'] ?? 'unknown'}'),
             const SizedBox(height: 6),
