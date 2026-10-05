@@ -1,4 +1,4 @@
-# PROJECT_STATE.md — Forma Product-Completeness Remediation
+﻿# PROJECT_STATE.md — Forma Product-Completeness Remediation
 
 **Session started:** 2026-10-05
 **Task:** Full forensic assessment + remediation to make the app expose the real capabilities/data of the backend (DB → Backend → API → Flutter → UI → persistence).
@@ -53,5 +53,6 @@
 - [x] Phase B partial — goal status enum aligned (achieved/abandoned; route uses GoalStatusSchema), GoalModel rewritten to contract, supersede parse fixed, provenance via provenance_id, multimodal edits persist via PUT /drafts/:id/fields, real discard, commit errors surfaced.
 - [x] Phase C — already complete in tree: config requires JWT/ENCRYPTION/DATABASE env (config.test.ts), migrate.ts parameterizes FORMA_APP_DB_PASSWORD, seed quarantined (synthetic + FORMA_SEED_CONFIRM), secret-scan 275 files PASS.
 - [x] Phase D backend — NEW routes: GET/DELETE auth/sessions(+logout-all), POST auth/change-password, GET privacy/consents + withdraw, GET goals/:id/versions, GET multimodal/drafts; AI consent enforced on /assistant/chat (403 AI_CONSENT_REQUIRED). typecheck + 182 tests PASS.
-- [ ] Phase E/F — Flutter repos/providers + UI for: catalog-driven pickers, fl_chart trends, anomalies/drafts widgets, goal versions view, sessions/consents/password settings, conversations+memories UI, locale/numeral decoupling.
-- [ ] Phase G/H — l10n debt, secure token storage, CORS allowlist, final validation + FINAL_PRODUCT_COMPLETENESS_AUDIT.md.
+- [x] Phase E/F — Flutter repos + UI: sessions/consents/password/model-picker in settings; catalog-driven measurement pickers; fl_chart trend (raw+EMA series); anomalies/data-quality + pending-drafts dashboard cards; goal versions sheet; profile DOB/experience/constraints/history; assistant conversations + memories screen.
+- [x] Phase G — flutter_secure_storage v11, CORS allowlist verified, new-UI strings localized EN/AR (~35 older literals remain, documented).
+- [x] Phase H — FINAL_PRODUCT_COMPLETENESS_AUDIT.md written. Final: backend 185 tests PASS / typecheck PASS / build PASS / arch 4 PASS; mobile analyze clean / 44 tests PASS; secret-scan PASS (275 files).

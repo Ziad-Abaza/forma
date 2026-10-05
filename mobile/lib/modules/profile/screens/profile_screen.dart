@@ -447,11 +447,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 prefixIcon: Icon(Icons.directions_run, color: FormaTheme.primaryTeal),
                               ),
                               items: [
-                                DropdownMenuItem(value: 'sedentary', child: Text('Sedentary (Little/no exercise)', overflow: TextOverflow.ellipsis)),
-                                DropdownMenuItem(value: 'lightly_active', child: Text('Lightly Active (1-3 days/wk)', overflow: TextOverflow.ellipsis)),
-                                DropdownMenuItem(value: 'moderately_active', child: Text('Moderately Active (3-5 days/wk)', overflow: TextOverflow.ellipsis)),
-                                DropdownMenuItem(value: 'very_active', child: Text('Very Active (6-7 days/wk)', overflow: TextOverflow.ellipsis)),
-                                DropdownMenuItem(value: 'extra_active', child: Text('Extra Active (Hard training)', overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'sedentary', child: Text(l10n.activitySedentary, overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'lightly_active', child: Text(l10n.activityLightly, overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'moderately_active', child: Text(l10n.activityModerately, overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'very_active', child: Text(l10n.activityVery, overflow: TextOverflow.ellipsis)),
+                                DropdownMenuItem(value: 'extra_active', child: Text(l10n.activityExtra, overflow: TextOverflow.ellipsis)),
                               ],
                               onChanged: (val) {
                                 if (val != null) setState(() => _activity = val);

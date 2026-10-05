@@ -25,12 +25,12 @@ class SessionInfo {
   /// Short human summary of device_info, e.g. "android • pixel_8".
   /// Returns empty string when nothing useful is present.
   String get deviceSummary {
-    final parts = <String>[
-      deviceInfo['platform'],
-      deviceInfo['device'],
-      deviceInfo['model'],
-      deviceInfo['os'],
-      deviceInfo['browser'],
+    final parts = <String?>[
+      deviceInfo['platform']?.toString(),
+      deviceInfo['device']?.toString(),
+      deviceInfo['model']?.toString(),
+      deviceInfo['os']?.toString(),
+      deviceInfo['browser']?.toString(),
     ]
         .whereType<String>()
         .map((s) => s.trim())
