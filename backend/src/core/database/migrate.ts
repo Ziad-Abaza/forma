@@ -16,6 +16,9 @@ export async function runMigrations(): Promise<void> {
   const client = await pool.connect();
 
   try {
+    // Acquire session-level advisory lock to serialize concurrent test migration runners
+    await client.query('SELECT pg_advisory_lock(987654321)');
+
     console.log('Beginning database migrations...');
     await client.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -48,11 +51,17 @@ export async function runMigrations(): Promise<void> {
 
     console.log('All migrations applied successfully.');
   } catch (error) {
-    await client.query('ROLLBACK');
+    try {
+      await client.query('ROLLBACK');
+    } catch {}
     console.error('Migration failed:', error);
     throw error;
   } finally {
+    try {
+      await client.query('SELECT pg_advisory_unlock(987654321)');
+    } catch {}
     client.release();
+    await pool.end();
   }
 }
 

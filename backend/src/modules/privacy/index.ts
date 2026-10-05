@@ -292,10 +292,49 @@ export const AnalyticsPrivacyContract: ModulePrivacyContract = {
   }
 };
 
-// Register Phase 1 and Phase 2 modules
+// 6. AI Platform Traces & Credentials Privacy Contract
+export const AITracesPrivacyContract: ModulePrivacyContract = {
+  moduleName: 'ai_traces',
+  async exportData(userId: string): Promise<ExportPayload> {
+    return await withUserContext(userId, async (client) => {
+      const traces = await client.query(
+        'SELECT id, correlation_id, provider, model_id, task_class, intent_class, context_tier, context_manifest, safety_category, created_at FROM ai_traces WHERE user_id = $1 ORDER BY created_at ASC',
+        [userId]
+      );
+      const creds = await client.query(
+        'SELECT id, provider, key_fingerprint, is_active, created_at FROM user_ai_credentials WHERE user_id = $1',
+        [userId]
+      );
+      return {
+        module: 'ai_traces',
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
+        data: {
+          traces: traces.rows,
+          byokCredentials: creds.rows,
+        },
+      };
+    });
+  },
+  async purgeUserData(userId: string): Promise<DeletionResult> {
+    return await withPurgeContext(userId, async (client) => {
+      const t = await client.query('DELETE FROM ai_traces WHERE user_id = $1', [userId]);
+      const c = await client.query('DELETE FROM user_ai_credentials WHERE user_id = $1', [userId]);
+      return {
+        module: 'ai_traces',
+        recordsDeleted: (t.rowCount || 0) + (c.rowCount || 0),
+        success: true,
+      };
+    });
+  },
+};
+
+// Register Phase 1, Phase 2, and Phase 3 modules
 PrivacyOrchestrator.registerModule(IdentityPrivacyContract);
 PrivacyOrchestrator.registerModule(ProfilePrivacyContract);
 PrivacyOrchestrator.registerModule(MeasurementsPrivacyContract);
 PrivacyOrchestrator.registerModule(GoalsPrivacyContract);
 PrivacyOrchestrator.registerModule(AnalyticsPrivacyContract);
+PrivacyOrchestrator.registerModule(AITracesPrivacyContract);
+
 

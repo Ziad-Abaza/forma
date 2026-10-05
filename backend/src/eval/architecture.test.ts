@@ -23,7 +23,7 @@ describe('Architectural Invariant Tests', () => {
 
   it('Invariant 12: Domain modules MUST NOT import any AI provider SDK', () => {
     const PROHIBITED_AI_SDKS = ['@google/generative-ai', 'openai', '@anthropic-ai/sdk', '@mistralai/mistralai'];
-    const domainFiles = allSourceFiles.filter(f => f.includes('modules' + path.sep) && !f.includes('ai-gateway'));
+    const domainFiles = allSourceFiles.filter(f => f.includes('modules' + path.sep) && !f.includes(path.join('modules', 'ai')));
 
     for (const f of domainFiles) {
       const content = fs.readFileSync(f, 'utf8');
@@ -60,7 +60,8 @@ describe('Architectural Invariant Tests', () => {
     const expectedRlsTables = [
       'users', 'credentials', 'sessions', 'consents', 'profiles',
       'observations', 'provenance_records', 'audit_logs',
-      'goals', 'goal_versions', 'health_snapshots', 'metric_rollups', 'anomaly_flags'
+      'goals', 'goal_versions', 'health_snapshots', 'metric_rollups', 'anomaly_flags',
+      'ai_traces', 'user_ai_credentials'
     ];
 
     for (const table of expectedRlsTables) {

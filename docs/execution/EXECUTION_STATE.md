@@ -1,42 +1,46 @@
 # Forma Implementation — Persistent Execution State
 
-**Last Checkpoint Timestamp:** 2026-10-05T04:10:00+03:00  
-**Current Phase:** Phase 2 (Measurements, Goals, Calculations, Snapshot & Dashboard)  
-**Current Milestone:** Phase 2 Complete — Verified & Ready for Gate Check  
-**Current Task:** Phase 2 Verification & Review Stop  
-**Current Subtask:** Awaiting User Confirmation for Phase 3  
+**Last Checkpoint Timestamp:** 2026-10-05T04:22:00+03:00  
+**Current Phase:** Phase 3 (AI Context & Provider Infrastructure)  
+**Current Milestone:** Phase 3 Complete — Verified & Ready for Gate Check  
+**Current Task:** Phase 3 Verification & Review Stop  
+**Current Subtask:** Awaiting User Confirmation for Phase 4  
 **Status:** COMPLETED_AWAITING_CONFIRMATION
 
 ---
 
 ## 1. Execution Position & Resume Information
-- **Exact Resume Point:** Phase 2 completed and fully verified across all backend calculations, PostgreSQL RLS, analytics engine, snapshot reconciliation, Flutter dashboard UI, and bilingual localization tests. Ready to proceed to Phase 3 (AI Platform, Conversational Agent & Extraction) upon user confirmation.
-- **Files/Modules Completed in Phase 2:**
-  - `backend/src/core/database/migrations/005_phase2_schema.sql` (Goals, Goal Versions, Snapshots, Metric Rollups, Anomaly Flags)
-  - `backend/src/modules/calculations/engine.ts` (Pure versioned formulas: BMI, BMR, TDEE, Calorie Targets with clinical floors & guardrails, Macros, Projections)
-  - `backend/src/modules/goals/` (Versioned goals, target timelines, dynamic progress tracking, privacy export/purge)
-  - `backend/src/modules/analytics/` (Noise-robust 7d EMA trends, anomaly detection, Health Snapshot derivation with lineage watermarking)
-  - `backend/src/modules/privacy/` (Export & Purge contracts updated for Goals and Analytics)
-  - `backend/src/app.ts` (Fastify routes for goals, calculations, snapshot, trends)
-  - `mobile/lib/l10n/app_en.arb` & `mobile/lib/l10n/app_ar.arb` (100% parity across Phase 2 keys)
-  - `mobile/lib/presentation/screens/dashboard_screen.dart` (Epistemic badges, goal progress, noise-robust trends, energy targets, health records)
-  - `mobile/test/localization_test.dart` (Bilingual verification, RTL/LTR switching, numeral system translation)
+- **Exact Resume Point:** Phase 3 completed and fully verified across all AI Gateway adapters, model registry, BYOK secret custody, tool execution engine, AI Context Engine, data budgets, content-free traceability, and evaluation harness. Ready to proceed to Phase 4 (AI Assistant, Multi-Turn Memory, Streaming & Controlled Actions) upon user confirmation.
+- **Files/Modules Completed in Phase 3:**
+  - `backend/src/modules/ai/gateway/` (Multi-provider gateway, ModelRegistry, live GeminiAdapter, SecondaryProviderAdapter, BYOKService)
+  - `backend/src/modules/ai/tools/` (ToolRegistry, ToolExecutor, definitions for snapshot, observations, calculations, goals, trends)
+  - `backend/src/modules/ai/context/` (ContextPlanner, AIContextEngine, ContextManifest, Sufficiency Checker)
+  - `backend/src/modules/ai/budget/` (AIBudgetEnforcer, budget profiles: minimal, standard, deep_analysis)
+  - `backend/src/modules/ai/traces/` (AITraceService, content-free logging, privacy export/purge)
+  - `backend/src/modules/ai/safety/` (SafetyClassifier with Categories A/B/C/D and emergency redirect)
+  - `backend/src/core/database/migrations/006_ai_traces_schema.sql` (`ai_traces` and `user_ai_credentials` with RLS)
+  - `backend/src/eval/golden/personas.ts` (Versioned synthetic persona evaluation dataset)
+  - `backend/src/eval/ai_platform.test.ts` (20 integration tests verifying platform invariants)
+  - `docs/adr/0003-ai-gateway-tool-execution-and-context-engine.md` (ADR-0003)
+  - `docs/adr/0004-periodic-digests-decision-gate.md` (ADR-0004)
+  - `docs/phases/phase-3-plan.md` & `docs/phases/phase-3-report.md`
 
 ---
 
 ## 2. Checkpoint Ledger & Verification Evidence
 
 ### Last Verified Checkpoint:
-- **Database Migrations Verified:** Migration 005 applied cleanly to `forma_dev` and `forma_test` under PostgreSQL 18.6 with full RLS and `forma_app` non-superuser security grants.
-- **Deterministic Calculation Engine Verified:** 13/13 unit tests pass covering WHO BMI criteria, Mifflin-St Jeor & Katch-McArdle BMR, PAL-based TDEE, clinical deficit limits (floors: 1,200 kcal female, 1,500 kcal male, max deficit 25%), special population safety blocks (pregnancy/eating disorders refuse deficits), macronutrient distribution, and weight projection with safe weekly rate guardrail.
-- **Versioned Goals Module Verified:** 5/5 integration tests pass covering goal creation, versioning, dynamic progress calculation against append-only observations, RLS cross-user isolation, and privacy export/purge.
-- **Analytics & Health Snapshot Engine Verified:** 7/7 integration tests pass covering 7-day EMA noise-robust trend smoothing, sufficiency validation (>=3 points over >=4 days), anomaly detection (implausible >3 kg jumps flagged without deleting raw observations), snapshot derivation from pure source facts, lineage watermarking (`source_data_watermark`), and zero-drift snapshot reconciliation.
-- **Fastify API Routes & Privacy Orchestrator Verified:** 14/14 E2E API tests pass covering authentication, observations, profile, goals, calculations, snapshot retrieval, and cascading account purge.
-- **Mobile Bilingual UI & Localization Verified:** `dart analyze` passes with 0 issues. `flutter test` passes 2/2 tests verifying English LTR layout, Arabic RTL layout switching, epistemic badges, and Eastern Arabic digit translation.
-- **Secret Scanning & Security Verified:** 126 files scanned, 0 secrets detected. Architecture test suite confirms RLS enabled on all 13 domain tables and 0 AI SDK imports in domain modules.
+- **Database Migrations Verified:** Migrations 001–006 applied cleanly to `forma_dev` and `forma_test` under PostgreSQL 18.6 with advisory locks, full RLS on all 15 tables, and `forma_app` non-superuser role grants.
+- **AI Gateway Multi-Provider Verified:** Live Google Gemini adapter connects to `gemini-3.8-flash`; secondary text adapter operates independently; zero AI invariant on calculation tasks verified; fallback chain verified on primary outage.
+- **BYOK Secret Custody Verified:** AES-256-GCM encryption/decryption round-trip verified, provider allowlist enforced, masked fingerprints generated, and per-request credential resolution under PostgreSQL RLS verified.
+- **Tool Registry & Secure Executor Verified:** Identity injected strictly server-side; any LLM-supplied user IDs removed; permission classes enforced; deterministic WHO BMI and Mifflin-St Jeor TDEE calculations verified; snapshot retrieval verified.
+- **AI Context Engine & Minimization Verified:** Tier 0 planning supplies 0 user records for general educational queries; Tier 1 context compacts verified health snapshot; sufficiency gating detects missing weight records and returns explicit guidance without spending tokens.
+- **AI Data Budget Enforcement Verified:** Runtime counters halt runaway loops when tool calls, sequential rounds, or tokens exceed configured budget ceilings.
+- **Content-Free Traceability Verified:** Operations emit traces to PostgreSQL `ai_traces` containing metadata, manifests, versions, and safety categories without user prompts or health values; privacy export and purge contracts verified.
+- **Safety Classification & Golden Harness Verified:** Acute symptoms and disordered eating trigger Category D emergency redirect; all 5 golden test cases pass.
 
 ### Verification Results Summary:
-1. `npm test` (Backend Vitest): **10 test files passed (66/66 tests PASS)**
+1. `npm test` (Backend Vitest): **11 test files passed (86/86 tests PASS)**
    - `src/core/units/units.test.ts`: 6 passed
    - `src/eval/architecture.test.ts`: 4 passed
    - `src/modules/calculations/engine.test.ts`: 13 passed
@@ -47,15 +51,18 @@
    - `src/modules/goals/goals.test.ts`: 5 passed
    - `src/modules/analytics/snapshot.test.ts`: 7 passed
    - `src/eval/api.test.ts`: 14 passed
+   - `src/eval/ai_platform.test.ts`: 20 passed
 2. `npm run test:arch` (Architecture Guardrails): **1 test file passed (4/4 tests PASS)**
 3. `npm run typecheck` (TypeScript Strict Mode): **0 errors (clean)**
-4. `node scripts/secret-scan.js`: **126 files scanned, 0 secrets found (PASS)**
+4. `node scripts/secret-scan.js`: **147 files scanned, 0 secrets found (PASS)**
 5. `dart analyze` (Flutter/Dart): **No issues found! (0 errors/warnings)**
 6. `flutter test` (Flutter Unit/Widget/Localization): **2 passed (100% PASS)**
 
 ### Active ADRs:
 - `docs/adr/0001-repository-structure-monorepo.md` (Monorepo architecture)
 - `docs/adr/0002-gemini-model-discovery-and-selection.md` (Gemini model discovery & selection)
+- `docs/adr/0003-ai-gateway-tool-execution-and-context-engine.md` (AI Gateway, Tool Registry, Context Engine)
+- `docs/adr/0004-periodic-digests-decision-gate.md` (Periodic Digests Deferral Decision Gate)
 
 ---
 
@@ -98,18 +105,34 @@
 - [x] Mobile ARB localization catalogs updated with 100% key parity for Phase 2 terms (`app_en.arb`, `app_ar.arb`).
 - [x] Mobile dashboard widgets implemented with epistemic class badges (`[MEASURED]`, `[CALCULATED]`, `[ESTIMATED]`, `[ASSERTED]`), goal progress, noise-robust trends, energy targets, and health records.
 - [x] Bilingual test verifying dynamic RTL/LTR switching and Eastern Arabic numeral translation.
-- [x] All 66 backend tests, 4 architecture invariant tests, strict typecheck, secret scan, dart analyze, and flutter test suites passing.
+- [x] Phase 2 completion report (`docs/phases/phase-2-report.md`) verified and committed.
 
-### Pending Tasks (Phase 3 — Awaiting Confirmation):
-- [ ] Phase 3: AI Assistant, Grounding, Multi-Turn Memory & Structured Extraction
-- [ ] Phase 3 Gate 4: Assistant multi-turn memory & grounding
-- [ ] Phase 3 Gate 5: Structured extraction & validation pipeline
+### Completed & Verified Tasks (Phase 3):
+- [x] Phase 3 plan created (`docs/phases/phase-3-plan.md`).
+- [x] Database migration 006 applied (`ai_traces`, `user_ai_credentials`) with full PostgreSQL RLS and advisory lock concurrency.
+- [x] AI Gateway implemented with multi-provider abstraction (`AIProviderAdapter`), ModelRegistry, live Google Gemini adapter, and secondary fallback adapter.
+- [x] BYOK encrypted key custody implemented with AES-256-GCM, allowlist validation, key fingerprinting, and per-request credential resolution under PostgreSQL RLS.
+- [x] Tool Registry and secure ToolExecutor implemented with strict schemas, permission classes (`read-only`, `safe-write`, `sensitive-write`, `destructive`), server-injected identity, and untrusted data wrapping.
+- [x] Standard read tools implemented: `get_health_snapshot`, `query_observations`, `get_calculated_metrics`, `get_goals_progress`, `get_trends`.
+- [x] Tiered AI Context Engine implemented (Tiers 0–4) with deterministic intent planning, context minimization, content-free manifests, and sufficiency gating.
+- [x] AI Data Budget runtime enforcer implemented with configurable profiles (`minimal`, `standard`, `deep_analysis`) preventing runaway loops and cost spikes.
+- [x] AI Traceability implemented via `AITraceService` storing content-free manifests and telemetry in PostgreSQL table `ai_traces` under RLS, integrated into `PrivacyOrchestrator`.
+- [x] SafetyClassifier implemented enforcing Blueprint §10.6.1 response modes (Categories A/B/C/D with emergency redirect on acute symptoms or extreme restriction).
+- [x] Evaluation harness v1 with versioned golden personas (`GOLDEN_EVALUATION_DATASET`) and 20 integration tests (`ai_platform.test.ts`) passing against live PostgreSQL.
+- [x] ADR-0003 and ADR-0004 recorded.
+- [x] Phase 3 completion report (`docs/phases/phase-3-report.md`) verified and committed.
+
+### Pending Tasks (Phase 4 — Awaiting Confirmation):
+- [ ] Phase 4: Conversational Assistant, Multi-Turn Memory, Streaming & Controlled Actions
+- [ ] Phase 4 Gate: Propose → Confirm → Commit protocol with Action Receipts
+- [ ] Phase 4 Gate: Anti-hallucination evidence claim labeling (`[Retrieved]`, `[Calculated]`, `[Estimated]`, `[Inferred]`, `[Recommended]`)
 
 ---
 
 ## 4. Architectural State & Invariant Check
-- **Zero AI in Core Computations:** Architecture test confirms zero imports of AI SDKs across all calculation, measurement, and analytics modules.
-- **Double Isolation & RLS:** Verified across all 13 domain tables.
-- **Append-Only Immutability:** Verified; raw measurements are never mutated or deleted by calculation or analytics modules.
-- **Epistemic Labeling:** Explicitly differentiated across all API contracts and Flutter presentation widgets.
+- **Zero AI in Core Computations:** Architecture test confirms zero imports of AI SDKs across all domain modules.
+- **Double Isolation & RLS:** Verified across all 15 PostgreSQL tables.
+- **Append-Only Immutability:** Verified; raw measurements are never mutated or deleted by AI or analytics modules.
+- **Server Identity Injection:** Verified; tool executor strictly removes client-provided user IDs and injects authenticated session context.
+- **Content-Free Traceability:** Verified; `ai_traces` records manifest and metadata without storing prompts or health values.
 - **Bilingual Completeness:** 100% string coverage in Arabic and English catalogs with RTL/LTR directional verification.
