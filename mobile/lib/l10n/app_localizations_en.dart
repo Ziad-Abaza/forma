@@ -461,4 +461,105 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectDate => 'Select date';
+
+  @override
+  String get appLanguageTitle => 'App Language';
+
+  @override
+  String get digitsTitle => 'Digits';
+
+  @override
+  String get digitsWestern => 'Western (1, 2, 3)';
+
+  @override
+  String get digitsEasternArabic => 'Eastern Arabic (١, ٢, ٣)';
+
+  @override
+  String get healthProfileSubtitle =>
+      'Height, age, biological sex, activity level';
+
+  @override
+  String get aiProviderConfigTitle => 'AI Companion & Provider Configuration';
+
+  @override
+  String get aiProviderConfigDescription =>
+      'Configure system models or bring your own API key (BYOK) stored under client-side write-only encryption.';
+
+  @override
+  String aiConfigLoadError(Object error) {
+    return 'Unable to load AI config: $error';
+  }
+
+  @override
+  String get activeAiProvider => 'Active AI Provider';
+
+  @override
+  String get storedCredentialsTitle =>
+      'Stored Provider Credentials (Encrypted):';
+
+  @override
+  String credentialFingerprint(Object fingerprint) {
+    return 'Fingerprint: $fingerprint (AES-256-GCM)';
+  }
+
+  @override
+  String enterCustomApiKey(Object provider) {
+    return 'Enter Custom API Key for $provider';
+  }
+
+  @override
+  String get testConnection => 'Test Connection';
+
+  @override
+  String get saveKey => 'Save Key';
+
+  @override
+  String connectionVerified(Object provider) {
+    return 'Connection to $provider verified successfully';
+  }
+
+  @override
+  String get connectionFailed => 'Connection test failed';
+
+  @override
+  String get apiKeyTooShort => 'API key must be at least 8 characters long';
+
+  @override
+  String apiKeySaved(Object provider) {
+    return 'API key securely encrypted and stored for $provider';
+  }
+
+  @override
+  String credentialRevoked(Object provider) {
+    return 'Credential for $provider revoked and erased';
+  }
+
+  @override
+  String get exportJsonCopied => 'Export JSON copied to clipboard';
+
+  @override
+  String get copyJson => 'Copy JSON';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String exportFailed(Object error) {
+    return 'Export failed: $error';
+  }
+
+  @override
+  String get exportSubtitle => 'Machine-readable portable JSON format';
+
+  @override
+  String get purgeAccountSubtitle =>
+      'Irreversibly purge all personal records, models and media';
+
+  @override
+  String purgeFailed(Object error) {
+    return 'Account purge failed: $error';
+  }
+
+  @override
+  String get signedInAs => 'Signed In As';
 }

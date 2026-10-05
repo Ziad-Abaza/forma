@@ -33,6 +33,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _testConnection() async {
+    final l10n = AppLocalizations.of(context)!;
     final key = _apiKeyController.text.trim();
     setState(() {
       _isTestingKey = true;
@@ -47,8 +48,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       setState(() {
         _testSuccess = success;
         _testStatusMessage = success
-            ? 'Connection to $_selectedProvider verified successfully'
-            : 'Connection test failed';
+            ? l10n.connectionVerified(_selectedProvider)
+            : l10n.connectionFailed;
       });
     } catch (e) {
       setState(() {
@@ -61,11 +62,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _saveKey() async {
+    final l10n = AppLocalizations.of(context)!;
     final key = _apiKeyController.text.trim();
     if (key.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('API key must be at least 8 characters long'),
+        SnackBar(
+          content: Text(l10n.apiKeyTooShort),
           backgroundColor: FormaTheme.criticalCrimson,
         ),
       );
@@ -84,7 +86,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('API key securely encrypted and stored for $_selectedProvider'),
+            content: Text(l10n.apiKeySaved(_selectedProvider)),
             backgroundColor: FormaTheme.successGreen,
           ),
         );
@@ -104,13 +106,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _deleteKey(String provider) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await ref.read(aiConfigRepositoryProvider).deleteCredential(provider);
       ref.invalidate(aiConfigProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Credential for $provider revoked and erased'),
+            content: Text(l10n.credentialRevoked(provider)),
             backgroundColor: FormaTheme.successGreen,
           ),
         );
@@ -162,14 +165,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: jsonString));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Export JSON copied to clipboard')),
+                    SnackBar(content: Text(l10n.exportJsonCopied)),
                   );
                 },
-                child: const Text('Copy JSON'),
+                child: Text(l10n.copyJson),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Close'),
+                child: Text(l10n.close),
               ),
             ],
           ),
@@ -180,7 +183,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Export failed: $e'),
+            content: Text(l10n.exportFailed(e.toString())),
             backgroundColor: FormaTheme.criticalCrimson,
           ),
         );
@@ -216,7 +219,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Account purge failed: $e'),
+                      content: Text(l10n.purgeFailed(e.toString())),
                       backgroundColor: FormaTheme.criticalCrimson,
                     ),
                   );
@@ -278,9 +281,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         children: [
                           const Icon(Icons.language, color: FormaTheme.primaryTeal),
                           const SizedBox(width: 8),
-                          Text(
-                            l10n.language,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          Expanded(
+                            child: Text(
+                              l10n.language,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -332,8 +337,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: ListTile(
                   leading: const Icon(Icons.person_outline, color: FormaTheme.primaryTeal),
                   title: Text(l10n.profile, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Height, age, biological sex, activity level'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: FormaTheme.textSecondary),
+                  subtitle: Text(l10n.healthProfileSubtitle),
+                  trailing: Icon(
+                    Directionality.of(context) == TextDirection.rtl
+                        ? Icons.arrow_back_ios_new
+                        : Icons.arrow_forward_ios,
+                    size: 16,
+                    color: FormaTheme.textSecondary,
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -355,9 +366,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         children: [
                           const Icon(Icons.psychology_outlined, color: FormaTheme.primaryTeal),
                           const SizedBox(width: 8),
-                          const Text(
-                            'AI Companion & Provider Configuration',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          const Expanded(
+                            child: Text(
+                              'AI Companion & Provider Configuration',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -466,7 +479,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 const SizedBox(height: 12),
                               ],
 
-                              Row(
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 8,
                                 children: [
                                   OutlinedButton.icon(
                                     key: const Key('test_ai_connection_button'),
@@ -476,7 +491,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
                                         : const Text('Test Connection'),
                                   ),
-                                  const SizedBox(width: 12),
                                   ElevatedButton.icon(
                                     key: const Key('save_ai_key_button'),
                                     onPressed: _isSavingKey ? null : _saveKey,
@@ -508,9 +522,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         children: [
                           const Icon(Icons.shield_outlined, color: FormaTheme.primaryTeal),
                           const SizedBox(width: 8),
-                          Text(
-                            l10n.privacyControls,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          Expanded(
+                            child: Text(
+                              l10n.privacyControls,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -526,10 +542,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         leading: const Icon(Icons.download_outlined, color: FormaTheme.primaryTeal),
                         title: Text(l10n.exportUserData, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: const Text('Machine-readable portable JSON format'),
-                        trailing: ElevatedButton(
+                      ),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: ElevatedButton(
                           key: const Key('settings_export_button'),
                           onPressed: () => _showExportDataDialog(l10n),
-                          child: Text(l10n.exportUserData),
+                          child: Text(l10n.exportData),
                         ),
                       ),
                       const Divider(color: FormaTheme.borderSubtle),
@@ -542,14 +561,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           style: const TextStyle(color: FormaTheme.criticalCrimson, fontWeight: FontWeight.bold),
                         ),
                         subtitle: const Text('Irreversibly purge all personal records, models and media'),
-                        trailing: OutlinedButton(
+                      ),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: OutlinedButton(
                           key: const Key('settings_delete_account_button'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: FormaTheme.criticalCrimson,
                             side: const BorderSide(color: FormaTheme.criticalCrimson),
                           ),
                           onPressed: () => _confirmDeleteAccount(l10n),
-                          child: Text(l10n.purgeAccount),
+                          child: Text(l10n.deleteAccount),
                         ),
                       ),
                     ],

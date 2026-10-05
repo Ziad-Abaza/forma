@@ -461,4 +461,105 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get selectDate => 'اختر التاريخ';
+
+  @override
+  String get appLanguageTitle => 'لغة التطبيق';
+
+  @override
+  String get digitsTitle => 'الأرقام';
+
+  @override
+  String get digitsWestern => 'الأرقام الغربية (1، 2، 3)';
+
+  @override
+  String get digitsEasternArabic => 'الأرقام العربية الشرقية (١، ٢، ٣)';
+
+  @override
+  String get healthProfileSubtitle =>
+      'الطول، العمر، الجنس البيولوجي، مستوى النشاط';
+
+  @override
+  String get aiProviderConfigTitle => 'المساعد الذكي وإعدادات المزود';
+
+  @override
+  String get aiProviderConfigDescription =>
+      'قم بإعداد نماذج النظام أو أحضر مفتاح API الخاص بك (BYOK) المحفوظ بتشفير كتابة فقط على جهازك.';
+
+  @override
+  String aiConfigLoadError(Object error) {
+    return 'تعذر تحميل إعدادات الذكاء الاصطناعي: $error';
+  }
+
+  @override
+  String get activeAiProvider => 'مزود الذكاء الاصطناعي النشط';
+
+  @override
+  String get storedCredentialsTitle => 'بيانات اعتماد المزود المخزنة (مشفرة):';
+
+  @override
+  String credentialFingerprint(Object fingerprint) {
+    return 'البصمة: $fingerprint (AES-256-GCM)';
+  }
+
+  @override
+  String enterCustomApiKey(Object provider) {
+    return 'أدخل مفتاح API المخصص لـ $provider';
+  }
+
+  @override
+  String get testConnection => 'اختبار الاتصال';
+
+  @override
+  String get saveKey => 'حفظ المفتاح';
+
+  @override
+  String connectionVerified(Object provider) {
+    return 'تم التحقق من الاتصال بـ $provider بنجاح';
+  }
+
+  @override
+  String get connectionFailed => 'فشل اختبار الاتصال';
+
+  @override
+  String get apiKeyTooShort =>
+      'يجب أن يكون مفتاح API مكوناً من 8 أحرف على الأقل';
+
+  @override
+  String apiKeySaved(Object provider) {
+    return 'تم تشفير مفتاح API وتخزينه بأمان لـ $provider';
+  }
+
+  @override
+  String credentialRevoked(Object provider) {
+    return 'تم إلغاء بيانات اعتماد $provider وحذفها';
+  }
+
+  @override
+  String get exportJsonCopied => 'تم نسخ بيانات JSON المصدرة إلى الحافظة';
+
+  @override
+  String get copyJson => 'نسخ JSON';
+
+  @override
+  String get close => 'إغلاق';
+
+  @override
+  String exportFailed(Object error) {
+    return 'فشل التصدير: $error';
+  }
+
+  @override
+  String get exportSubtitle => 'تنسيق JSON محمول قابل للقراءة آلياً';
+
+  @override
+  String get purgeAccountSubtitle =>
+      'يمسح جميع السجلات الشخصية والنماذج والوسائط بشكل لا رجعة فيه';
+
+  @override
+  String purgeFailed(Object error) {
+    return 'فشل حذف الحساب: $error';
+  }
+
+  @override
+  String get signedInAs => 'تم تسجيل الدخول باسم';
 }

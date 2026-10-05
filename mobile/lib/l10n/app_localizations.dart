@@ -961,6 +961,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select date'**
   String get selectDate;
+
+  /// No description provided for @appLanguageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App Language'**
+  String get appLanguageTitle;
+
+  /// No description provided for @digitsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Digits'**
+  String get digitsTitle;
+
+  /// No description provided for @digitsWestern.
+  ///
+  /// In en, this message translates to:
+  /// **'Western (1, 2, 3)'**
+  String get digitsWestern;
+
+  /// No description provided for @digitsEasternArabic.
+  ///
+  /// In en, this message translates to:
+  /// **'Eastern Arabic (١, ٢, ٣)'**
+  String get digitsEasternArabic;
+
+  /// No description provided for @healthProfileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Height, age, biological sex, activity level'**
+  String get healthProfileSubtitle;
+
+  /// No description provided for @aiProviderConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Companion & Provider Configuration'**
+  String get aiProviderConfigTitle;
+
+  /// No description provided for @aiProviderConfigDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure system models or bring your own API key (BYOK) stored under client-side write-only encryption.'**
+  String get aiProviderConfigDescription;
+
+  /// No description provided for @aiConfigLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load AI config: {error}'**
+  String aiConfigLoadError(Object error);
+
+  /// No description provided for @activeAiProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Active AI Provider'**
+  String get activeAiProvider;
+
+  /// No description provided for @storedCredentialsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stored Provider Credentials (Encrypted):'**
+  String get storedCredentialsTitle;
+
+  /// No description provided for @credentialFingerprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint: {fingerprint} (AES-256-GCM)'**
+  String credentialFingerprint(Object fingerprint);
+
+  /// No description provided for @enterCustomApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Custom API Key for {provider}'**
+  String enterCustomApiKey(Object provider);
+
+  /// No description provided for @testConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Connection'**
+  String get testConnection;
+
+  /// No description provided for @saveKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Key'**
+  String get saveKey;
+
+  /// No description provided for @connectionVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection to {provider} verified successfully'**
+  String connectionVerified(Object provider);
+
+  /// No description provided for @connectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection test failed'**
+  String get connectionFailed;
+
+  /// No description provided for @apiKeyTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'API key must be at least 8 characters long'**
+  String get apiKeyTooShort;
+
+  /// No description provided for @apiKeySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'API key securely encrypted and stored for {provider}'**
+  String apiKeySaved(Object provider);
+
+  /// No description provided for @credentialRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'Credential for {provider} revoked and erased'**
+  String credentialRevoked(Object provider);
+
+  /// No description provided for @exportJsonCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Export JSON copied to clipboard'**
+  String get exportJsonCopied;
+
+  /// No description provided for @copyJson.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy JSON'**
+  String get copyJson;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: {error}'**
+  String exportFailed(Object error);
+
+  /// No description provided for @exportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Machine-readable portable JSON format'**
+  String get exportSubtitle;
+
+  /// No description provided for @purgeAccountSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Irreversibly purge all personal records, models and media'**
+  String get purgeAccountSubtitle;
+
+  /// No description provided for @purgeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Account purge failed: {error}'**
+  String purgeFailed(Object error);
+
+  /// No description provided for @signedInAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed In As'**
+  String get signedInAs;
 }
 
 class _AppLocalizationsDelegate
