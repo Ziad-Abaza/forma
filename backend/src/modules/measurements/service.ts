@@ -1,4 +1,4 @@
-import { withUserContext, withSystemContext } from '../../core/database/index.js';
+﻿import { withUserContext, withSystemContext } from '../../core/database/index.js';
 import { normalizeToCanonical } from '../../core/units/index.js';
 import { AuditService } from '../audit/index.js';
 import {
@@ -14,6 +14,9 @@ import {
   type VoidObservationRequest,
   type QueryObservationsFilter
 } from './contracts.js';
+
+/** Version of the recording method stamped on provenance records. */
+export const RECORDING_METHOD_VERSION = '1.0.0';
 
 export interface ObservationWithProvenance {
   observation: ObservationRecord;
@@ -76,7 +79,7 @@ export class MeasurementsService {
         originType: req.originType,
         epistemicClass: req.epistemicClass,
         actor: req.actor,
-        methodVersion: '1.0.0',
+        methodVersion: RECORDING_METHOD_VERSION,
         confidenceScore: req.confidenceScore,
         sourceArtifactId: req.sourceArtifactId,
         reviewState: req.reviewState,
@@ -157,7 +160,7 @@ export class MeasurementsService {
         originType: 'user_correction',
         epistemicClass: 'measured',
         actor: 'user',
-        methodVersion: '1.0.0',
+        methodVersion: RECORDING_METHOD_VERSION,
         confidenceScore: 1.0,
         reviewState: 'user_corrected',
         observedAt

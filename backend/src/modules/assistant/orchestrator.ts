@@ -656,10 +656,19 @@ export class AssistantOrchestrator {
         }
       }
 
-      // Generate title from initial prompt
-      const title = initialPrompt
+      // Generate title from the initial prompt; fall back to a title in the
+      // user's own locale rather than an English literal for Arabic users.
+      let title = initialPrompt
         ? initialPrompt.slice(0, 40) + (initialPrompt.length > 40 ? '...' : '')
-        : 'New Conversation';
+        : undefined;
+      if (!title) {
+        const localeRes = await client.query(
+          `SELECT locale FROM users WHERE id = $1`,
+          [userId]
+        );
+        const locale = localeRes.rows[0]?.locale;
+        title = locale === 'ar' ? 'محادثة جديدة' : 'New Conversation';
+      }
 
       const res = await client.query(
         `INSERT INTO conversations (user_id, title, metadata)

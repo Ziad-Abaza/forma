@@ -37,12 +37,13 @@ class LocalServerDiscovery {
   }
 
   /// Discovers the backend IPv4 address on the current local Wi-Fi subnet.
+  /// Development-only: LAN probing never runs in release/profile builds.
   static Future<String?> discoverBackendIp({
     int port = 3000,
     Duration probeTimeout = const Duration(milliseconds: 600),
     int maxSubnetScan = 50,
   }) async {
-    if (kIsWeb) return null;
+    if (kIsWeb || !kDebugMode) return null;
 
     try {
       final interfaces = await NetworkInterface.list(
@@ -74,24 +75,28 @@ class LocalServerDiscovery {
         }
       }
     } catch (e) {
-      debugPrint('[LocalServerDiscovery] Discovery error: $e');
+      if (kDebugMode) debugPrint('[LocalServerDiscovery] Discovery error: $e');
     }
 
     return null;
   }
 
   /// Automatically discovers and applies the local server IP if in LOCAL_SERVER mode and current URL fails.
+  /// Development-only: no network probing in release/profile builds.
   static Future<void> autoDiscoverAndApply(ProviderContainer container) async {
+    if (kIsWeb || !kDebugMode) return;
     final config = container.read(envConfigProvider);
     if (!config.isLocalServer) return;
 
     final isCurrentlyHealthy = await isFormaBackendHealthy(config.apiBaseUrl);
     if (isCurrentlyHealthy) return;
 
-    debugPrint('[LocalServerDiscovery] Current backend URL (${config.apiBaseUrl}) not reachable. Probing local network...');
+    if (kDebugMode) {
+      debugPrint('[LocalServerDiscovery] Current backend URL (${config.apiBaseUrl}) not reachable. Probing local network...');
+    }
     final discoveredIp = await discoverBackendIp();
     if (discoveredIp != null) {
-      debugPrint('[LocalServerDiscovery] Found local Forma backend at: $discoveredIp');
+      if (kDebugMode) debugPrint('[LocalServerDiscovery] Found local Forma backend at: $discoveredIp');
       container.read(envConfigProvider.notifier).updateLocalIp(discoveredIp);
     }
   }

@@ -81,9 +81,18 @@ class EnvConfig {
       }
     }
 
+    final effectiveEnvironment = environment ?? rawEnv;
+    // Production traffic must be TLS — never silently run cleartext API calls.
+    if (effectiveEnvironment == 'production' &&
+        effectiveBaseUrl.startsWith('http://')) {
+      throw ArgumentError(
+        'API_BASE_URL must use https:// in production (got "$effectiveBaseUrl")',
+      );
+    }
+
     return EnvConfig(
       apiBaseUrl: effectiveBaseUrl,
-      environment: environment ?? rawEnv,
+      environment: effectiveEnvironment,
       apiTimeoutMs: apiTimeoutMs ?? rawTimeout,
       enableAnalyticsLogs: enableAnalyticsLogs ?? rawAnalyticsLogs,
       isLocalServer: effectiveLocalServer,

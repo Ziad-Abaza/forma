@@ -69,7 +69,7 @@
   "anomalyTitle": "تنبيه بخصوص القياس",
   "anomalyJump": "تم رصد تغير غير معتاد في الوزن خلال ٢٤ ساعة.",
   "anomalyUnit": "اشتباه في خطأ بالوحدة (باوند مقابل كجم). يرجى المراجعة.",
-  "assistantTitle": "مساعد فورما",
+  "assistantTitle": "مساعد Forma",
   "assistantSubtitle": "مساعدك الصحي الموثق بالأدلة",
   "chatInputPlaceholder": "اسأل عن صحتك أو سجل وزنك...",
   "send": "إرسال",

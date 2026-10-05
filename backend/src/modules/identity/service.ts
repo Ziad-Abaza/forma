@@ -1,5 +1,6 @@
-import crypto from 'crypto';
+﻿import crypto from 'crypto';
 import { withSystemContext } from '../../core/database/index.js';
+import { config } from '../../config/index.js';
 import {
   hashPassword,
   verifyPassword,
@@ -96,7 +97,7 @@ export class IdentityService {
       const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role });
       const familyId = crypto.randomUUID();
       const refreshTokenHash = hashToken(tokens.refreshToken);
-      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      const expiresAt = new Date(Date.now() + config.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000); 
 
       await IdentityRepository.createSession(client, {
         userId: user.id,
@@ -188,7 +189,7 @@ export class IdentityService {
       const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role });
       const familyId = crypto.randomUUID();
       const refreshTokenHash = hashToken(tokens.refreshToken);
-      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + config.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
 
       await IdentityRepository.createSession(client, {
         userId: user.id,
@@ -289,7 +290,7 @@ export class IdentityService {
       // Issue new token pair preserving the familyId
       const tokens = generateTokenPair({ userId: user.id, email: user.email, role: user.role });
       const newRefreshTokenHash = hashToken(tokens.refreshToken);
-      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + config.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
 
       await IdentityRepository.createSession(client, {
         userId: user.id,

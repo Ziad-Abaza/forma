@@ -184,6 +184,16 @@ export function buildApp(deps: AppDependencies = {}): FastifyInstance {
           ? 'Request validation failed'
           : error.message || 'An unexpected error occurred';
 
+    // Stable machine-readable code so clients never string-match messages.
+    const code =
+      statusCode >= 500
+        ? 'INTERNAL_ERROR'
+        : isZod
+          ? 'VALIDATION_FAILED'
+          : typeof error.code === 'string' && /^[A-Z][A-Z0-9_]{2,}$/.test(error.code)
+            ? error.code
+            : 'BAD_REQUEST';
+
     appLogger.error(`Unhandled request error: ${error.message}`, {
       correlationId: req.correlationId,
       statusCode,
@@ -192,6 +202,7 @@ export function buildApp(deps: AppDependencies = {}): FastifyInstance {
 
     reply.status(statusCode).send({
       error: clientError,
+      code,
       ...(error instanceof ZodError
         ? { details: error.issues.map((i: z.ZodIssue) => ({ path: i.path.join('.'), code: i.code })) }
         : {}),

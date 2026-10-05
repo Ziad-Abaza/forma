@@ -17,9 +17,9 @@ export interface AuthTokens {
 export async function hashPassword(password: string): Promise<string> {
   return argon2.hash(password, {
     type: argon2.argon2id,
-    memoryCost: 65536, // 64 MB
-    timeCost: 3,
-    parallelism: 4
+    memoryCost: config.ARGON2_MEMORY_COST_KIB,
+    timeCost: config.ARGON2_TIME_COST,
+    parallelism: config.ARGON2_PARALLELISM
   });
 }
 
@@ -101,7 +101,7 @@ export function verifyJwt(token: string, secret: string): TokenPayload {
 }
 
 export function generateTokenPair(payload: TokenPayload): AuthTokens {
-  const ACCESS_TOKEN_TTL = 900; // 15 minutes
+  const ACCESS_TOKEN_TTL = config.JWT_ACCESS_TTL_SECONDS;
   const accessToken = signJwt(payload, config.JWT_ACCESS_SECRET, ACCESS_TOKEN_TTL);
   const refreshToken = generateSecureRandomToken(32);
 

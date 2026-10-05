@@ -32,13 +32,16 @@ function resolveMigrationSql(fileName: string, rawSql: string): string {
   return rawSql.split(APP_ROLE_PASSWORD_PLACEHOLDER).join(appRolePassword.replaceAll("'", "''"));
 }
 
+/** Fixed advisory-lock key that serializes all migration runners for this app. */
+export const MIGRATION_ADVISORY_LOCK_KEY = 987654321;
+
 export async function runMigrations(): Promise<void> {
   const pool = getMigrationPool();
   const client = await pool.connect();
 
   try {
     // Acquire session-level advisory lock to serialize concurrent test migration runners
-    await client.query('SELECT pg_advisory_lock(987654321)');
+    await client.query(`SELECT pg_advisory_lock(${MIGRATION_ADVISORY_LOCK_KEY})`);
 
     console.log('Beginning database migrations...');
     await client.query(`
@@ -86,7 +89,7 @@ export async function runMigrations(): Promise<void> {
     throw error;
   } finally {
     try {
-      await client.query('SELECT pg_advisory_unlock(987654321)');
+      await client.query(`SELECT pg_advisory_unlock(${MIGRATION_ADVISORY_LOCK_KEY})`);
     } catch {}
     client.release();
     await pool.end();

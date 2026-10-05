@@ -6,17 +6,26 @@ export interface DataPoint {
 }
 
 export class TrendEngine {
+  /** Minimum observations required before a slope/rate can be trusted. */
+  static readonly MIN_TREND_POINTS = 3;
+  /** Minimum day-span across points — regression over a narrower window is noise. */
+  static readonly MIN_TREND_SPAN_DAYS = 4;
+  /** EMA smoothing horizon: 7-day equivalent smoothing for body metrics. */
+  static readonly EMA_SPAN_DAYS = 7;
+  /** Default reporting window when a caller supplies none. */
+  static readonly DEFAULT_WINDOW_DAYS = 30;
+
   /**
    * Computes noise-robust trend and rate of change for a metric over a defined time window.
    * Invariants:
-   * - Requires at least 3 data points spanning at least 4 days for slope estimation.
-   * - Uses a 7-day rolling window / weighted average to filter high-frequency noise.
+   * - Requires at least MIN_TREND_POINTS data points spanning at least MIN_TREND_SPAN_DAYS.
+   * - Uses an EMA_SPAN_DAYS-day weighted average to filter high-frequency noise.
    * - No silent extrapolation over data voids.
    */
   public static calculateTrend(
     typeCode: string,
     points: DataPoint[],
-    windowDays: number = 30
+    windowDays: number = TrendEngine.DEFAULT_WINDOW_DAYS
   ): TrendAnalysis {
     if (!points || points.length === 0) {
       return {
@@ -43,7 +52,7 @@ export class TrendEngine {
       value: p.value
     }));
 
-    const alpha = 2 / (7 + 1); // 7-day EMA smoothing
+    const alpha = 2 / (TrendEngine.EMA_SPAN_DAYS + 1);
     let ema = sorted[0]!.value;
     const smoothedSeries = [{ observedAt: first.observedAt.toISOString(), value: ema }];
     for (let i = 1; i < sorted.length; i++) {
@@ -54,8 +63,8 @@ export class TrendEngine {
       });
     }
 
-    // If fewer than 3 points or spanning less than 4 days, report insufficiency for rate/slope
-    if (count < 3 || timespanDays < 4) {
+    // Below the minimum point/span bounds, report insufficiency for rate/slope.
+    if (count < TrendEngine.MIN_TREND_POINTS || timespanDays < TrendEngine.MIN_TREND_SPAN_DAYS) {
       return {
         typeCode,
         windowDays,
@@ -66,7 +75,7 @@ export class TrendEngine {
         series: rawSeries,
         smoothedSeries,
         sufficiency: 'insufficient',
-        reason: `Insufficient data points (${count}) or timespan (${Math.round(timespanDays)} days). Need at least 3 points across 4+ days for a trend rate.`
+        reason: `Insufficient data points (${count}) or timespan (${Math.round(timespanDays)} days). Need at least ${TrendEngine.MIN_TREND_POINTS} points across ${TrendEngine.MIN_TREND_SPAN_DAYS}+ days for a trend rate.`
       };
     }
 

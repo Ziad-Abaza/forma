@@ -32,7 +32,16 @@ const configSchema = z.object({
   SECONDARY_AI_BASE_URL: z.string().url().optional(),
   SECONDARY_AI_API_KEY: z.string().optional(),
   CORS_ORIGINS: z.string().optional(),
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info')
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  /** Access-token lifetime in seconds. Default 15 minutes. */
+  JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  /** Refresh-token session lifetime in days. Default 30 days. */
+  SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  /** Argon2id memory cost in KiB. Default 64 MiB. */
+  ARGON2_MEMORY_COST_KIB: z.coerce.number().int().min(8192).default(65536),
+  /** Argon2id iteration count. */
+  ARGON2_TIME_COST: z.coerce.number().int().min(1).default(3),
+  ARGON2_PARALLELISM: z.coerce.number().int().min(1).max(16).default(4)
 });
 
 type ParsedConfig = z.infer<typeof configSchema>;

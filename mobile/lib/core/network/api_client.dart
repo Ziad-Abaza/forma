@@ -8,11 +8,15 @@ class ApiException implements Exception {
   final int statusCode;
   final String message;
   final dynamic details;
+  /// Stable machine-readable backend error code (e.g. 'VALIDATION_FAILED').
+  /// Clients should branch on this, never on message substrings.
+  final String? code;
 
   ApiException({
     required this.statusCode,
     required this.message,
     this.details,
+    this.code,
   });
 
   /// User-friendly clean error message suitable for displaying on UI.
@@ -167,7 +171,19 @@ class ApiClient {
     final response = await _httpClient.send(request);
     if (response.statusCode >= 400) {
       final errorBody = await response.stream.bytesToString();
-      throw ApiException(statusCode: response.statusCode, message: errorBody);
+      String message = errorBody;
+      String? code;
+      try {
+        final decoded = jsonDecode(errorBody);
+        if (decoded is Map) {
+          if (decoded['error'] != null) message = decoded['error'].toString();
+          if (decoded['code'] is String) code = decoded['code'] as String;
+        }
+      } catch (_) {}
+      if (response.statusCode == 401) {
+        throw UnauthorizedException(message: message);
+      }
+      throw ApiException(statusCode: response.statusCode, message: message, code: code);
     }
 
     yield* response.stream
@@ -295,7 +311,7 @@ class ApiClient {
         return null;
       }
     } catch (err) {
-      debugPrint('[ApiClient] Token refresh failed: $err');
+      if (kDebugMode) debugPrint('[ApiClient] Token refresh failed: $err');
       _notifyQueue(null);
       return null;
     } finally {
@@ -328,6 +344,10 @@ class ApiClient {
         ? decoded['error'].toString()
         : 'HTTP Error ${response.statusCode}';
 
+    final code = (decoded is Map && decoded['code'] is String)
+        ? decoded['code'] as String
+        : null;
+
     if (response.statusCode == 401) {
       throw UnauthorizedException(message: message);
     }
@@ -336,6 +356,7 @@ class ApiClient {
       statusCode: response.statusCode,
       message: message,
       details: decoded,
+      code: code,
     );
   }
 }

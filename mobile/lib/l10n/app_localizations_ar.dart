@@ -224,7 +224,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'اشتباه في خطأ بالوحدة (باوند مقابل كجم). يرجى المراجعة.';
 
   @override
-  String get assistantTitle => 'مساعد فورما';
+  String get assistantTitle => 'مساعد Forma';
 
   @override
   String get assistantSubtitle => 'مساعدك الصحي الموثق بالأدلة';
