@@ -56,6 +56,37 @@ Forma is architected according to the [Product Architecture Blueprint (v1.1)](do
    flutter run
    ```
 
+### Local Network Development (Physical Devices on Same Wi-Fi)
+
+To run the backend as a local server accessible by a physical phone on the same Wi-Fi network:
+
+1. **Enable Local Server Mode:**
+   In `backend/.env`, set:
+   ```env
+   LOCAL_SERVER=true
+   ```
+   Or set the environment variable:
+   ```bash
+   $env:LOCAL_SERVER="true"   # PowerShell
+   export LOCAL_SERVER=true    # Linux / macOS
+   ```
+
+2. **Start the Backend:**
+   ```bash
+   cd backend
+   npm run dev
+   ```
+   - The backend automatically binds to `0.0.0.0` (all interfaces) instead of `127.0.0.1`.
+   - The server detects your computer's local IPv4 (e.g. `192.168.x.x`) and automatically synchronizes `mobile/.env`.
+
+3. **Launch Mobile App on Physical Device:**
+   ```bash
+   cd mobile
+   flutter run --dart-define-from-file=.env
+   ```
+   - `EnvConfig` dynamically routes all requests to `http://<YOUR_LOCAL_IP>:3000`.
+   - Android (`usesCleartextTraffic`, internet permissions) and iOS (`NSAllowsLocalNetworking`, `NSLocalNetworkUsageDescription`) are configured to allow local network HTTP traffic.
+
 ---
 
 ## 3. Production Deployment (Docker Compose)
