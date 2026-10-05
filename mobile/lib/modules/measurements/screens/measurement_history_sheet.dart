@@ -280,15 +280,48 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.history, color: FormaTheme.primaryTeal),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${l10n.history}: ${_selectedType.replaceAll('_', ' ').toUpperCase()}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.history, color: FormaTheme.primaryTeal),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButton<String>(
+                        value: _selectedType,
+                        isExpanded: true,
+                        underline: const SizedBox(),
+                        dropdownColor: FormaTheme.surfaceElevated,
+                        style: const TextStyle(
+                          color: FormaTheme.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'weight', child: Text('Weight (الوزن)')),
+                          DropdownMenuItem(value: 'body_fat_percentage', child: Text('Body Fat % (نسبة الدهون)')),
+                          DropdownMenuItem(value: 'muscle_mass', child: Text('Muscle Mass (الكتلة العضلية)')),
+                          DropdownMenuItem(value: 'bone_mass', child: Text('Bone Mass (كتلة العظام)')),
+                          DropdownMenuItem(value: 'body_water_percentage', child: Text('Body Water % (الماء)')),
+                          DropdownMenuItem(value: 'visceral_fat', child: Text('Visceral Fat (الدهون الحشوية)')),
+                          DropdownMenuItem(value: 'waist_circumference', child: Text('Waist (محيط الخصر)')),
+                          DropdownMenuItem(value: 'hip_circumference', child: Text('Hips (محيط الورك)')),
+                          DropdownMenuItem(value: 'chest_circumference', child: Text('Chest (محيط الصدر)')),
+                          DropdownMenuItem(value: 'shoulder_circumference', child: Text('Shoulders (الكتفين)')),
+                          DropdownMenuItem(value: 'neck_circumference', child: Text('Neck (الرقبة)')),
+                          DropdownMenuItem(value: 'bicep_circumference', child: Text('Arms (الذراع)')),
+                          DropdownMenuItem(value: 'thigh_circumference', child: Text('Thighs (الفخذ)')),
+                          DropdownMenuItem(value: 'calf_circumference', child: Text('Calves (بطة الساق)')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null && val != _selectedType) {
+                            setState(() => _selectedType = val);
+                            _loadObservations();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.close),

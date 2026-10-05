@@ -30,3 +30,8 @@ final dashboardSnapshotProvider = FutureProvider.autoDispose<SnapshotModel>((ref
   final repo = ref.watch(analyticsRepositoryProvider);
   return await repo.getSnapshot();
 });
+
+final trendAnalysisProvider = FutureProvider.autoDispose.family<Map<String, dynamic>, (String, int)>((ref, params) async {
+  final repo = ref.watch(analyticsRepositoryProvider);
+  return await repo.getTrend(params.$1, params.$2);
+});

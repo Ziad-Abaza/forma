@@ -16,6 +16,8 @@ class SnapshotModel {
   final double? progressPct;
   final bool isSafeRate;
 
+  final String? projectedTargetDate;
+
   // Energy
   final double? bmr;
   final double? tdee;
@@ -24,6 +26,9 @@ class SnapshotModel {
   final int? proteinGrams;
   final int? fatGrams;
   final int? carbsGrams;
+  final double? proteinPct;
+  final double? fatPct;
+  final double? carbsPct;
   final bool guardrailsTriggered;
   final List<String> triggeredGuardrails;
 
@@ -44,6 +49,7 @@ class SnapshotModel {
     this.startingValue,
     this.currentValue,
     this.progressPct,
+    this.projectedTargetDate,
     this.isSafeRate = true,
     this.bmr,
     this.tdee,
@@ -52,6 +58,9 @@ class SnapshotModel {
     this.proteinGrams,
     this.fatGrams,
     this.carbsGrams,
+    this.proteinPct,
+    this.fatPct,
+    this.carbsPct,
     this.guardrailsTriggered = false,
     this.triggeredGuardrails = const [],
     this.recentMeasurements = const [],
@@ -90,6 +99,7 @@ class SnapshotModel {
       startingValue: (goal['startingValue'] as num?)?.toDouble(),
       currentValue: (goal['currentValue'] as num?)?.toDouble(),
       progressPct: (goal['progressPct'] as num?)?.toDouble(),
+      projectedTargetDate: goal['projectedTargetDate'] as String?,
       isSafeRate: goal['isSafeRate'] as bool? ?? true,
       bmr: (energy['bmr'] as num?)?.toDouble(),
       tdee: (energy['tdee'] as num?)?.toDouble(),
@@ -98,6 +108,9 @@ class SnapshotModel {
       proteinGrams: (macros['proteinGrams'] as num?)?.toInt(),
       fatGrams: (macros['fatGrams'] as num?)?.toInt(),
       carbsGrams: (macros['carbsGrams'] as num?)?.toInt(),
+      proteinPct: (macros['proteinPct'] as num?)?.toDouble(),
+      fatPct: (macros['fatPct'] as num?)?.toDouble(),
+      carbsPct: (macros['carbsPct'] as num?)?.toDouble(),
       guardrailsTriggered: isGuardrailsTriggered,
       triggeredGuardrails: guardrailList,
       recentMeasurements: recentList

@@ -263,19 +263,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   data: (snapshot) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. Primary Goal & Progress Card
+                      // 1. Physical Status & Body Composition Glance
+                      _buildBodyStatusCard(snapshot, l10n, numeralSystem),
+                      const SizedBox(height: 16),
+
+                      // 2. Primary Goal & Progress Card
                       _buildGoalCard(snapshot, l10n, numeralSystem),
                       const SizedBox(height: 16),
 
-                      // 2. Noise-Robust Trends Card
+                      // 3. Noise-Robust Trends Card (Multi-Window Dynamic Query)
                       _buildTrendsCard(snapshot, l10n, numeralSystem),
                       const SizedBox(height: 16),
 
-                      // 3. Energy & Nutrition Targets Card
+                      // 4. Energy & Nutrition Targets Card
                       _buildEnergyTargetsCard(snapshot, l10n, numeralSystem),
                       const SizedBox(height: 16),
 
-                      // 4. Honest Health Records / Quick Log Action
+                      // 5. Honest Health Records / Quick Log Action
                       _buildMeasurementsSection(snapshot, l10n, numeralSystem),
                       const SizedBox(height: 24),
                     ],
@@ -284,6 +288,108 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBodyStatusCard(SnapshotModel snapshot, AppLocalizations l10n, String numeralSystem) {
+    final weightKg = snapshot.latestWeightKg;
+    final bmi = snapshot.bmi;
+    final bmiCategory = snapshot.bmiCategory;
+
+    String localizedBmiCategory(String? cat) {
+      switch (cat?.toLowerCase()) {
+        case 'underweight':
+          return l10n.bmiCategoryUnderweight;
+        case 'normal':
+          return l10n.bmiCategoryNormal;
+        case 'overweight':
+          return l10n.bmiCategoryOverweight;
+        case 'obese':
+          return l10n.bmiCategoryObese;
+        default:
+          return cat ?? 'Normal';
+      }
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.accessibility_new_rounded, color: FormaTheme.primaryTeal, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.weightAndCompositionSection,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _buildBadge(l10n.measured, FormaTheme.badgeMeasured),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: _buildMetricCol(
+                    l10n.weight,
+                    weightKg != null
+                        ? '${formatNumeralString(weightKg.toStringAsFixed(1), numeralSystem)} kg'
+                        : '-- kg',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildMetricCol(
+                    l10n.bmiTitle,
+                    bmi != null
+                        ? formatNumeralString(bmi.toStringAsFixed(1), numeralSystem)
+                        : '--',
+                  ),
+                ),
+                if (bmiCategory != null) ...[
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: FormaTheme.primaryTeal.withValues(alpha: 0.14),
+                          border: Border.all(color: FormaTheme.primaryTeal.withValues(alpha: 0.35), width: 0.8),
+                          borderRadius: BorderRadius.circular(FormaTheme.radiusSmall),
+                        ),
+                        child: Text(
+                          localizedBmiCategory(bmiCategory),
+                          style: const TextStyle(
+                            color: FormaTheme.primaryTealLight,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -340,6 +446,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final currentKg = snapshot.currentValue ?? snapshot.latestWeightKg ?? startingKg;
     final targetKg = snapshot.targetValue ?? startingKg;
     final progress = (snapshot.progressPct ?? 0.0).clamp(0.0, 100.0);
+    final remainingDiff = (currentKg - targetKg).abs();
+    final projectedDate = snapshot.projectedTargetDate;
 
     return Card(
       child: Padding(
@@ -379,9 +487,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              snapshot.goalType == 'weight_gain' ? l10n.goalMuscleGain : l10n.goalWeightLoss,
-              style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    snapshot.goalType == 'weight_gain' ? l10n.goalMuscleGain : l10n.goalWeightLoss,
+                    style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    l10n.remainingToTarget(formatNumeralString(remainingDiff.toStringAsFixed(1), numeralSystem)),
+                    style: const TextStyle(color: FormaTheme.primaryTeal, fontSize: 12, fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             Row(
@@ -443,15 +568,37 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ],
             ),
+            if (projectedDate != null && projectedDate.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                l10n.projectedCompletionDate(formatNumeralString(projectedDate.substring(0, 10), numeralSystem)),
+                style: const TextStyle(color: FormaTheme.textTertiary, fontSize: 12),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
+  int _selectedDays() {
+    switch (selectedPeriod) {
+      case '7d':
+        return 7;
+      case '30d':
+        return 30;
+      case '90d':
+        return 90;
+      case '1y':
+        return 365;
+      default:
+        return 30;
+    }
+  }
+
   Widget _buildTrendsCard(SnapshotModel snapshot, AppLocalizations l10n, String numeralSystem) {
-    final smoothedWeight = snapshot.trend7dKg;
-    final weeklyRate = snapshot.weeklyRateKg;
+    final windowDays = _selectedDays();
+    final trendAsync = ref.watch(trendAnalysisProvider(('weight', windowDays)));
 
     return Card(
       child: Padding(
@@ -497,63 +644,124 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            if (smoothedWeight != null && weeklyRate != null) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: _buildMetricCol(
-                      l10n.sevenDayAverage,
-                      '${formatNumeralString(smoothedWeight.toStringAsFixed(1), numeralSystem)} kg',
-                    ),
+            trendAsync.when(
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: FormaTheme.primaryTeal),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildMetricCol(
-                      l10n.weeklyRate,
-                      '${formatNumeralString(weeklyRate >= 0 ? "+${weeklyRate.toStringAsFixed(2)}" : weeklyRate.toStringAsFixed(2), numeralSystem)} kg/wk',
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: FormaTheme.surfaceElevated,
-                  borderRadius: BorderRadius.circular(FormaTheme.radiusSmall),
-                  border: Border.all(color: FormaTheme.borderSubtle, width: 0.8),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.show_chart_rounded, color: FormaTheme.textSecondary, size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            l10n.insufficientTrendData,
-                            style: const TextStyle(
-                              color: FormaTheme.textPrimary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+              ),
+              error: (_, _) => _buildFallbackTrend(snapshot, l10n, numeralSystem),
+              data: (trendData) {
+                final sufficiency = trendData['sufficiency'] as String? ?? 'insufficient';
+                final smoothed = (trendData['smoothedLatest'] as num?)?.toDouble() ?? snapshot.trend7dKg;
+                final weeklyRate = (trendData['weeklyRate'] as num?)?.toDouble() ?? snapshot.weeklyRateKg;
+                final delta = (trendData['deltaValue'] as num?)?.toDouble();
+
+                if (sufficiency == 'complete' && smoothed != null && weeklyRate != null) {
+                  return Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: _buildMetricCol(
+                              l10n.sevenDayAverage,
+                              '${formatNumeralString(smoothed.toStringAsFixed(1), numeralSystem)} kg',
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Log measurements consistently across several days to calculate your smoothed 7-day trend.',
-                      style: TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
-                    ),
-                  ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildMetricCol(
+                              l10n.weeklyRate,
+                              '${formatNumeralString(weeklyRate >= 0 ? "+${weeklyRate.toStringAsFixed(2)}" : weeklyRate.toStringAsFixed(2), numeralSystem)} kg/wk',
+                            ),
+                          ),
+                          if (delta != null) ...[
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildMetricCol(
+                                l10n.deltaChange(''),
+                                '${formatNumeralString(delta >= 0 ? "+${delta.toStringAsFixed(1)}" : delta.toStringAsFixed(1), numeralSystem)} kg',
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  );
+                } else {
+                  return _buildFallbackTrend(snapshot, l10n, numeralSystem, trendData['reason'] as String?);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackTrend(SnapshotModel snapshot, AppLocalizations l10n, String numeralSystem, [String? explicitReason]) {
+    final smoothedWeight = snapshot.trend7dKg;
+    final weeklyRate = snapshot.weeklyRateKg;
+
+    if (smoothedWeight != null && weeklyRate != null) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: _buildMetricCol(
+              l10n.sevenDayAverage,
+              '${formatNumeralString(smoothedWeight.toStringAsFixed(1), numeralSystem)} kg',
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildMetricCol(
+              l10n.weeklyRate,
+              '${formatNumeralString(weeklyRate >= 0 ? "+${weeklyRate.toStringAsFixed(2)}" : weeklyRate.toStringAsFixed(2), numeralSystem)} kg/wk',
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: FormaTheme.surfaceElevated,
+        borderRadius: BorderRadius.circular(FormaTheme.radiusSmall),
+        border: Border.all(color: FormaTheme.borderSubtle, width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.show_chart_rounded, color: FormaTheme.textSecondary, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.insufficientTrendData,
+                  style: const TextStyle(
+                    color: FormaTheme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
-          ],
-        ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            explicitReason ?? 'Log measurements consistently across several days to calculate your smoothed trend and rate of progress.',
+            style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+          ),
+        ],
       ),
     );
   }
@@ -633,14 +841,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 final proteinGrams = snapshot.proteinGrams ?? (target * 0.30 / 4).round();
                 final fatGrams = snapshot.fatGrams ?? (target * 0.25 / 9).round();
                 final carbGrams = snapshot.carbsGrams ?? (target * 0.45 / 4).round();
+                final proteinPct = snapshot.proteinPct ?? 30.0;
+                final fatPct = snapshot.fatPct ?? 25.0;
+                final carbPct = snapshot.carbsPct ?? 45.0;
+
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    Expanded(child: _buildMacroBar(l10n.protein, '${proteinGrams}g', FormaTheme.primaryTeal, numeralSystem)),
+                    Expanded(child: _buildMacroBar(l10n.protein, '${proteinGrams}g', '${proteinPct.round()}%', FormaTheme.primaryTeal, numeralSystem)),
                     const SizedBox(width: 8),
-                    Expanded(child: _buildMacroBar(l10n.fats, '${fatGrams}g', FormaTheme.warningAmber, numeralSystem)),
+                    Expanded(child: _buildMacroBar(l10n.fats, '${fatGrams}g', '${fatPct.round()}%', FormaTheme.warningAmber, numeralSystem)),
                     const SizedBox(width: 8),
-                    Expanded(child: _buildMacroBar(l10n.carbs, '${carbGrams}g', FormaTheme.secondaryMint, numeralSystem)),
+                    Expanded(child: _buildMacroBar(l10n.carbs, '${carbGrams}g', '${carbPct.round()}%', FormaTheme.secondaryMint, numeralSystem)),
                   ],
                 );
               }),
@@ -671,14 +883,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _buildMacroBar(String label, String amount, Color color, String numeralSystem) {
+  Widget _buildMacroBar(String label, String amount, String sharePct, Color color, String numeralSystem) {
     return Column(
       children: [
-        Text(
-          label,
-          style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              formatNumeralString(sharePct, numeralSystem),
+              style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700),
+            ),
+          ],
         ),
         const SizedBox(height: 4),
         FractionallySizedBox(
@@ -715,6 +938,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 Text(
                   l10n.healthRecords,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                TextButton.icon(
+                  key: const Key('view_all_history_button'),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const MeasurementHistorySheet(initialTypeCode: 'weight'),
+                    );
+                  },
+                  icon: const Icon(Icons.history_rounded, size: 16, color: FormaTheme.primaryTeal),
+                  label: Text(l10n.allHistory, style: const TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  ),
                 ),
                 IconButton(
                   key: const Key('extract_report_button'),

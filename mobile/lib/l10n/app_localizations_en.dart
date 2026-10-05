@@ -664,4 +664,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorS08Malformed => 'Unable to format response.';
+
+  @override
+  String get bmiTitle => 'Body Mass Index';
+
+  @override
+  String get bmiCategoryUnderweight => 'Underweight';
+
+  @override
+  String get bmiCategoryNormal => 'Normal Weight';
+
+  @override
+  String get bmiCategoryOverweight => 'Overweight';
+
+  @override
+  String get bmiCategoryObese => 'Obese';
+
+  @override
+  String projectedCompletionDate(String date) {
+    return 'Target Date: $date';
+  }
+
+  @override
+  String remainingToTarget(String diff) {
+    return 'Remaining: $diff kg';
+  }
+
+  @override
+  String deltaChange(String delta) {
+    return 'Change: $delta kg';
+  }
+
+  @override
+  String get weightAndCompositionSection => 'Weight & Body Composition';
+
+  @override
+  String get bodyCircumferencesSection => 'Circumference Measurements';
+
+  @override
+  String get allHistory => 'View All History';
+
+  @override
+  String get metabolicSummaryTitle => 'Metabolic Baseline Summary';
+
+  @override
+  String get bmrLabel => 'Basal Metabolic Rate';
+
+  @override
+  String get tdeeLabel => 'Total Daily Energy Expenditure';
 }

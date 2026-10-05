@@ -224,5 +224,34 @@
   "errorS05RateLimit": "You've reached the message limit for now. Try again shortly.",
   "errorS06Expired": "Action proposal expired.",
   "errorS07Commit": "Failed to commit action.",
-  "errorS08Malformed": "Unable to format response."
+  "errorS08Malformed": "Unable to format response.",
+  "bmiTitle": "Body Mass Index",
+  "bmiCategoryUnderweight": "Underweight",
+  "bmiCategoryNormal": "Normal Weight",
+  "bmiCategoryOverweight": "Overweight",
+  "bmiCategoryObese": "Obese",
+  "projectedCompletionDate": "Target Date: {date}",
+  "@projectedCompletionDate": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "remainingToTarget": "Remaining: {diff} kg",
+  "@remainingToTarget": {
+    "placeholders": {
+      "diff": { "type": "String" }
+    }
+  },
+  "deltaChange": "Change: {delta} kg",
+  "@deltaChange": {
+    "placeholders": {
+      "delta": { "type": "String" }
+    }
+  },
+  "weightAndCompositionSection": "Weight & Body Composition",
+  "bodyCircumferencesSection": "Circumference Measurements",
+  "allHistory": "View All History",
+  "metabolicSummaryTitle": "Metabolic Baseline Summary",
+  "bmrLabel": "Basal Metabolic Rate",
+  "tdeeLabel": "Total Daily Energy Expenditure"
 }

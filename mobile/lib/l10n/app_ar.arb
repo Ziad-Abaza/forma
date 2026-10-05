@@ -223,5 +223,19 @@
   "errorS05RateLimit": "وصلت إلى حد الرسائل مؤقتاً. حاول مجدداً بعد قليل.",
   "errorS06Expired": "انتهت صلاحية المقترح.",
   "errorS07Commit": "فشل تنفيذ الإجراء.",
-  "errorS08Malformed": "تعذر تنسيق الاستجابة."
+  "errorS08Malformed": "تعذر تنسيق الاستجابة.",
+  "bmiTitle": "مؤشر كتلة الجسم",
+  "bmiCategoryUnderweight": "نقص في الوزن",
+  "bmiCategoryNormal": "وزن طبيعي",
+  "bmiCategoryOverweight": "وزن زائد",
+  "bmiCategoryObese": "سمنة",
+  "projectedCompletionDate": "الموعد المتوقع: {date}",
+  "remainingToTarget": "المتبقي: {diff} كجم",
+  "deltaChange": "التغير: {delta} كجم",
+  "weightAndCompositionSection": "الوزن وتكوين الجسم",
+  "bodyCircumferencesSection": "قياسات المحيط والأبعاد",
+  "allHistory": "عرض كامل السجل",
+  "metabolicSummaryTitle": "ملخص الأيض والطاقة",
+  "bmrLabel": "معدل الأيض الأساسي (BMR)",
+  "tdeeLabel": "إجمالي استهلاك الطاقة اليومي (TDEE)"
 }

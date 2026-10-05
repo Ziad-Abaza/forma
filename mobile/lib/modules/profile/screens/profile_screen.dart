@@ -176,7 +176,80 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
+
+                    // Metabolic Baseline Glance
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final snapshotAsync = ref.watch(dashboardSnapshotProvider);
+                        return snapshotAsync.when(
+                          data: (snap) {
+                            final bmr = snap.bmr;
+                            final tdee = snap.tdee;
+                            if (bmr == null && tdee == null) return const SizedBox.shrink();
+
+                            return Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.bolt, color: FormaTheme.warningAmber, size: 18),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            l10n.metabolicSummaryTitle,
+                                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Row(
+                                      children: [
+                                        if (bmr != null)
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(l10n.bmrLabel, style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 11)),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  '${formatNumeralString(bmr.round().toString(), numeralSystem)} kcal',
+                                                  style: const TextStyle(color: FormaTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        if (tdee != null)
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(l10n.tdeeLabel, style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 11)),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  '${formatNumeralString(tdee.round().toString(), numeralSystem)} kcal',
+                                                  style: const TextStyle(color: FormaTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.bold),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
                     // Parameters Card
                     Card(

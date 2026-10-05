@@ -664,4 +664,52 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get errorS08Malformed => 'تعذر تنسيق الاستجابة.';
+
+  @override
+  String get bmiTitle => 'مؤشر كتلة الجسم';
+
+  @override
+  String get bmiCategoryUnderweight => 'نقص في الوزن';
+
+  @override
+  String get bmiCategoryNormal => 'وزن طبيعي';
+
+  @override
+  String get bmiCategoryOverweight => 'وزن زائد';
+
+  @override
+  String get bmiCategoryObese => 'سمنة';
+
+  @override
+  String projectedCompletionDate(String date) {
+    return 'الموعد المتوقع: $date';
+  }
+
+  @override
+  String remainingToTarget(String diff) {
+    return 'المتبقي: $diff كجم';
+  }
+
+  @override
+  String deltaChange(String delta) {
+    return 'التغير: $delta كجم';
+  }
+
+  @override
+  String get weightAndCompositionSection => 'الوزن وتكوين الجسم';
+
+  @override
+  String get bodyCircumferencesSection => 'قياسات المحيط والأبعاد';
+
+  @override
+  String get allHistory => 'عرض كامل السجل';
+
+  @override
+  String get metabolicSummaryTitle => 'ملخص الأيض والطاقة';
+
+  @override
+  String get bmrLabel => 'معدل الأيض الأساسي (BMR)';
+
+  @override
+  String get tdeeLabel => 'إجمالي استهلاك الطاقة اليومي (TDEE)';
 }

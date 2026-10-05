@@ -1309,6 +1309,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to format response.'**
   String get errorS08Malformed;
+
+  /// No description provided for @bmiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Body Mass Index'**
+  String get bmiTitle;
+
+  /// No description provided for @bmiCategoryUnderweight.
+  ///
+  /// In en, this message translates to:
+  /// **'Underweight'**
+  String get bmiCategoryUnderweight;
+
+  /// No description provided for @bmiCategoryNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal Weight'**
+  String get bmiCategoryNormal;
+
+  /// No description provided for @bmiCategoryOverweight.
+  ///
+  /// In en, this message translates to:
+  /// **'Overweight'**
+  String get bmiCategoryOverweight;
+
+  /// No description provided for @bmiCategoryObese.
+  ///
+  /// In en, this message translates to:
+  /// **'Obese'**
+  String get bmiCategoryObese;
+
+  /// No description provided for @projectedCompletionDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Date: {date}'**
+  String projectedCompletionDate(String date);
+
+  /// No description provided for @remainingToTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining: {diff} kg'**
+  String remainingToTarget(String diff);
+
+  /// No description provided for @deltaChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change: {delta} kg'**
+  String deltaChange(String delta);
+
+  /// No description provided for @weightAndCompositionSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight & Body Composition'**
+  String get weightAndCompositionSection;
+
+  /// No description provided for @bodyCircumferencesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Circumference Measurements'**
+  String get bodyCircumferencesSection;
+
+  /// No description provided for @allHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'View All History'**
+  String get allHistory;
+
+  /// No description provided for @metabolicSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Metabolic Baseline Summary'**
+  String get metabolicSummaryTitle;
+
+  /// No description provided for @bmrLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Basal Metabolic Rate'**
+  String get bmrLabel;
+
+  /// No description provided for @tdeeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Daily Energy Expenditure'**
+  String get tdeeLabel;
 }
 
 class _AppLocalizationsDelegate
