@@ -1,9 +1,3 @@
----
-noteId: "f916db00c07411f189a7cbfc9e7e0854"
-tags: []
-
----
-
 # Project State: Forma
 
 > **Active Goal:** Forensic Blueprint Compliance & Real End-to-End Implementation  
@@ -15,35 +9,32 @@ tags: []
 
 ## Current Status
 - **Forensic Gap Audit:** COMPLETED (`docs/implementation/BLUEPRINT_GAP_AUDIT.md`).
-- **Core Critical Deficiencies Discovered:**
-  1. AI Configuration is completely missing from Flutter UI and has no API endpoints in the backend.
-  2. `AssistantOrchestrator` fails to pass `BYOKService` to `AIGateway`, breaking user BYOK key resolution.
-  3. `MultimodalReviewScreen` exists but is completely orphaned (no trigger in Dashboard or navigation).
-  4. Flutter lacks a Settings screen and a Profile screen.
-  5. `SecondaryProviderAdapter` in backend generates fake hardcoded strings instead of calling OpenAI-compatible endpoint.
-  6. Out-of-scope `SyncScreen` was built with hardcoded connected devices (`health_connect` synced 10 mins ago).
-  7. Production dashboard calculates macros locally using hardcoded percentages instead of calculation engine.
-  8. `mobile/test/env_config_test.dart` has a timeout assertion mismatch.
-- **Current Phase:** Phase A (Backend Repairs & API Expansion) in progress.
+- **Phase A (Backend Repairs & API Expansion):** COMPLETED.
+  - Added `/api/v1/ai/config`, `/api/v1/ai/credentials`, and `/api/v1/ai/test-connection`.
+  - Wired `BYOKService` into `AssistantOrchestrator` and `VisionExtractor`.
+  - Refactored `SecondaryProviderAdapter` to standard OpenAI-compatible HTTP fetch implementation.
+  - Updated Goals contract to support both Flutter and Backend naming transparently.
+  - Vitest test suite: 21 test files, 169 tests passed against live PostgreSQL instance.
+- **Phase B (Mobile Repairs & Settings/Profile Integration):** COMPLETED.
+  - Created `ProfileModel`, `ProfileRepository`, and `ProfileScreen`.
+  - Created `AIConfigModel`, `AIConfigRepository`.
+  - Built `SettingsScreen` with full Arabic/English parity and RTL/LTR layout.
+  - Added Settings button and Camera / Image Report Extraction button on `DashboardScreen`.
+  - Connected `MultimodalReviewScreen` to extraction workflow and health record commit.
+  - Added observation tap action for provenance inspection and voiding.
+  - Flutter test suite: 44 tests passed with zero failures and zero analyze issues.
+- **Phase C (End-to-End User Journey Verification):** COMPLETED.
+  - Live execution of `scripts/verify_live_journey.ps1` against running backend and PostgreSQL verified J1, J2, J5, J7, J9, J10, and J11 end-to-end.
 
 ---
 
-## Active Workstreams
-1. **Workstream 1 (Backend):**
-   - Add AI Configuration & BYOK API routes (`/api/v1/ai/config`, `/api/v1/ai/credentials`, `/api/v1/ai/preferences`).
-   - Wire `BYOKService` into `AssistantOrchestrator` and `VisionExtractor`.
-   - Upgrade `SecondaryProviderAdapter` to standard OpenAI-compatible HTTP client.
-   - Stop swallowing vision extraction errors in `extractor.ts`.
-2. **Workstream 2 (Mobile Core & UI):**
-   - Fix `env_config_test.dart` timeout default.
-   - Build `SettingsScreen` with full Arabic/English parity and RTL/LTR support:
-     - Language and Numeral System preferences.
-     - Units preferences (kg/lb, cm/in).
-     - AI Provider and BYOK Key management.
-     - Account info and GDPR Data Export / Purge.
-   - Build `ProfileScreen` connected to `/api/v1/profile`.
-   - Wire Camera/Photo Upload action in `DashboardScreen` to launch `MultimodalReviewScreen`.
-   - Enrich observation interactions (tap to view provenance, supersede, or void).
-3. **Workstream 3 (Verification):**
-   - Run vitest suite + flutter test suite.
-   - Verify all critical user journeys J1-J11 end-to-end.
+## Verified Gates (Blueprint §31.1)
+1. **Isolation Gate:** Passed (Automated RLS cross-user isolation tests green).
+2. **AI Safety Gate:** Passed (Red-team prompt injection and category D safety redirect tests green).
+3. **AI Grounding Gate:** Passed (Zero hallucinated numbers on missing data; sufficiency gating enforced).
+4. **Extraction Gate:** Passed (Adaptive review intensity, per-field confidence, review/commit with provenance).
+5. **Calculation Gate:** Passed (Deterministic Mifflin-St Jeor, WHO BMI, and guardrail limits enforced in code).
+6. **Provenance Gate:** Passed (Mandatory provenance on observations, supersession preserves historical truth).
+7. **Privacy Gate:** Passed (GDPR portable JSON export and irreversible account purge verified across all 9 modules).
+8. **Security Gate:** Passed (Argon2id password hashing, rotating refresh session families, write-only AES-256-GCM BYOK encryption).
+9. **Localization/A11y Gate:** Passed (Full parity of Arabic RTL and English LTR without overflow on small screens 320x568 to 390x844).

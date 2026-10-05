@@ -36,11 +36,17 @@ class GoalsRepository {
     double ratePerWeek = 0.5,
     String? targetDate,
   }) async {
+    final nowStr = DateTime.now().toIso8601String().substring(0, 10);
     final body = <String, dynamic>{
+      'goalType': type,
       'type': type,
+      'targetMetricTypeCode': 'weight',
       'targetValue': targetValue,
+      'startingValue': baselineValue,
       'baselineValue': baselineValue,
       'ratePerWeek': ratePerWeek,
+      'startDate': nowStr,
+      'isPrimary': true,
     };
     if (targetDate != null) {
       body['targetDate'] = targetDate;

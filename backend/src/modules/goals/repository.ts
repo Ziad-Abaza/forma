@@ -11,11 +11,17 @@ export class GoalsRepository {
         );
       }
 
+      const goalType = data.goalType || data.type || 'weight_loss';
+      const startingValue = data.startingValue ?? data.baselineValue ?? data.targetValue;
+      const weeklyRate = data.weeklyRate ?? data.ratePerWeek ?? null;
+      const startDate = data.startDate || new Date().toISOString().slice(0, 10);
+      const metricType = data.targetMetricTypeCode || 'weight';
+
       const goalRes = await client.query(
         `INSERT INTO goals (user_id, goal_type, target_metric_type_code, is_primary, status)
          VALUES ($1, $2, $3, $4, 'active')
          RETURNING id, user_id, goal_type, target_metric_type_code, is_primary, status, created_at, updated_at`,
-        [userId, data.goalType, data.targetMetricTypeCode, data.isPrimary]
+        [userId, goalType, metricType, data.isPrimary]
       );
       const goalRow = goalRes.rows[0];
 
@@ -31,9 +37,9 @@ export class GoalsRepository {
           goalRow.id,
           userId,
           data.targetValue,
-          data.startingValue,
-          data.weeklyRate || null,
-          data.startDate,
+          startingValue,
+          weeklyRate,
+          startDate,
           data.targetDate || null,
           data.rationale || null
         ]

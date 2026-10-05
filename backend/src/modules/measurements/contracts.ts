@@ -16,7 +16,11 @@ export const CreateObservationRequestSchema = z.object({
   typeCode: z.string().min(1),
   value: z.number().positive('Value must be positive'),
   unit: z.string().min(1),
-  observedAt: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)),
+  observedAt: z
+    .string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/))
+    .default(() => new Date().toISOString()),
   timeZone: z.string().default('UTC'),
   originType: OriginTypeSchema.default('manual_entry'),
   epistemicClass: EpistemicClassSchema.default('measured'),

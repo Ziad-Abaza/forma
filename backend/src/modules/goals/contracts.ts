@@ -7,12 +7,15 @@ export const GoalStatusSchema = z.enum(['active', 'achieved', 'abandoned', 'supe
 export type GoalStatus = z.infer<typeof GoalStatusSchema>;
 
 export const CreateGoalRequestSchema = z.object({
-  goalType: GoalTypeSchema,
-  targetMetricTypeCode: z.string().min(1),
+  goalType: GoalTypeSchema.optional(),
+  type: GoalTypeSchema.optional(),
+  targetMetricTypeCode: z.string().min(1).default('weight'),
   targetValue: z.number().positive(),
-  startingValue: z.number().positive(),
+  startingValue: z.number().positive().optional(),
+  baselineValue: z.number().positive().optional(),
   weeklyRate: z.number().optional(),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD'),
+  ratePerWeek: z.number().optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD').optional(),
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD').optional(),
   rationale: z.string().max(500).optional(),
   isPrimary: z.boolean().default(true)

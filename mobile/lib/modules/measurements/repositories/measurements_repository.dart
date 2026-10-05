@@ -34,14 +34,14 @@ class MeasurementsRepository {
     required String typeCode,
     required double value,
     required String unit,
-    DateTime? recordedAt,
+    DateTime? observedAt,
     String originType = 'manual_entry',
   }) async {
     final body = {
       'typeCode': typeCode,
       'value': value,
       'unit': unit,
-      'recordedAt': (recordedAt ?? DateTime.now()).toIso8601String(),
+      'observedAt': (observedAt ?? DateTime.now()).toUtc().toIso8601String(),
       'originType': originType,
     };
 

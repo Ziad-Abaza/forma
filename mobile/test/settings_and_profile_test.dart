@@ -9,9 +9,7 @@ import 'package:forma/core/theme.dart';
 import 'package:forma/l10n/app_localizations.dart';
 import 'package:forma/modules/auth/notifiers/auth_state.dart';
 import 'package:forma/modules/auth/models/user_model.dart';
-import 'package:forma/modules/ai/repositories/ai_config_repository.dart';
-import 'package:forma/modules/profile/repositories/profile_repository.dart';
-import 'package:forma/modules/privacy/repositories/privacy_repository.dart';
+import 'package:forma/modules/auth/repositories/auth_repository.dart';
 import 'package:forma/presentation/screens/settings_screen.dart';
 import 'package:forma/modules/profile/screens/profile_screen.dart';
 
@@ -184,11 +182,21 @@ void main() {
       expect(find.text('Fingerprint: ...5678 (AES-256-GCM)'), findsOneWidget);
 
       // Test connection button tap
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('test_ai_connection_button')),
+        100,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.byKey(const Key('test_ai_connection_button')));
       await tester.pumpAndSettle();
       expect(find.textContaining('verified successfully'), findsOneWidget);
 
       // Open Export dialog
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('settings_export_button')),
+        100,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.byKey(const Key('settings_export_button')));
       await tester.pumpAndSettle();
       expect(find.text('Copy JSON'), findsOneWidget);
