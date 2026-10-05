@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Compilation Output
+dist/
+
+# Environment Variables
+.env*
+!.env.example
+
+# Test Coverage & Logs
+coverage/
+*.log
+logs/
+
+# Local Storage
+storage/
+
+# System and IDE Files
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
