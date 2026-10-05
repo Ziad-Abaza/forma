@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import { withUserContext } from '../../core/database/index.js';
 import { MeasurementsService } from '../measurements/service.js';
+import { MeasurementsRepository } from '../measurements/repository.js';
+import { normalizeToCanonical } from '../../core/units/index.js';
 import { GoalsService } from '../goals/service.js';
 import { AssistantMemoryService } from './memory.js';
 import { AuditService } from '../audit/index.js';
@@ -33,18 +35,26 @@ export class ActionProposalEngine {
     input: CreateProposalInput
   ): Promise<ActionProposal> {
     // G-A4: Implausible-value gate (Spec §4.2 G-A4)
+    // Bounds come from the measurement_types catalog — never from a second
+    // hardcoded copy that can drift out of sync.
     if (input.actionType === 'log_measurement') {
       const typeCode = input.parameters?.typeCode;
       const val = Number(input.parameters?.value);
-      if (!isNaN(val)) {
-        if (typeCode === 'weight' && (val < 20 || val > 350)) {
-          throw new Error(`Implausible weight value: ${val}. Plausible physiological bounds are 20 to 350 kg.`);
+      const unit = input.parameters?.unit;
+      if (typeof typeCode === 'string' && !isNaN(val)) {
+        const type = await withUserContext(userId, (client) =>
+          MeasurementsRepository.getMeasurementType(client, typeCode)
+        );
+        if (!type) {
+          throw new Error(`Unknown measurement type code: ${typeCode}`);
         }
-        if (typeCode === 'body_fat_percentage' && (val < 2 || val > 70)) {
-          throw new Error(`Implausible body fat value: ${val}%. Plausible physiological bounds are 2% to 70%.`);
-        }
-        if (typeCode === 'height' && (val < 50 || val > 270)) {
-          throw new Error(`Implausible height value: ${val} cm. Plausible bounds are 50 to 270 cm.`);
+        if (typeof unit === 'string' && type.allowed_units.includes(unit)) {
+          const canonical = normalizeToCanonical(val, unit).canonicalValue;
+          if (canonical < type.min_plausible || canonical > type.max_plausible) {
+            throw new Error(
+              `Implausible ${typeCode} value: ${val} ${unit}. Plausible bounds are ${type.min_plausible} to ${type.max_plausible} ${type.canonical_unit}.`
+            );
+          }
         }
       }
     }
