@@ -76,7 +76,7 @@ class SourcesSheet extends StatelessWidget {
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: evidenceClaims.length,
-              separatorBuilder: (_, __) => const Divider(color: FormaTheme.borderSubtle, height: 16),
+              separatorBuilder: (_, _) => const Divider(color: FormaTheme.borderSubtle, height: 16),
               itemBuilder: (context, index) {
                 final claim = evidenceClaims[index];
                 final color = _badgeColor(claim.type);

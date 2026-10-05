@@ -146,7 +146,7 @@ class _BentoTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        '$deltaGlyph${delta!.abs()}',
+                        '$deltaGlyph${delta.abs()}',
                         style: TextStyle(
                           color: deltaColor,
                           fontSize: 11,

@@ -46,16 +46,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Image.asset(
                 'assets/logo.png',
-                width: 28,
-                height: 28,
-                cacheWidth: 84,
-                cacheHeight: 84,
+                width: 26,
+                height: 26,
+                cacheWidth: 78,
+                cacheHeight: 78,
                 errorBuilder: (_, _, _) =>
-                    const Icon(Icons.fitness_center, color: FormaTheme.primaryTeal),
+                    const Icon(Icons.fitness_center_rounded, color: FormaTheme.primaryTeal, size: 22),
               ),
               const SizedBox(width: 8),
               Text(
                 l10n.appTitle,
+                style: const TextStyle(
+                  color: FormaTheme.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -67,135 +73,184 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  key: const Key('sync_devices_button'),
-                  tooltip: l10n.syncScreenTitle,
-                  icon: const Icon(Icons.sync_outlined, color: FormaTheme.primaryTeal),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SyncScreen()),
-                    );
-                  },
-                ),
-                IconButton(
-                  key: const Key('assistant_button'),
-                  tooltip: l10n.assistantTitle,
-                  icon: const Icon(Icons.smart_toy_outlined, color: FormaTheme.primaryTeal),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AssistantScreen()),
-                    );
-                  },
-                ),
-                IconButton(
-                  key: const Key('settings_button'),
-                  tooltip: l10n.settings,
-                  icon: const Icon(Icons.settings_outlined, color: FormaTheme.primaryTeal),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                    );
-                  },
-                ),
-                TextButton.icon(
-                  key: const Key('language_toggle_button'),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  ),
-                  onPressed: () {
-                    if (currentLocale.languageCode == 'en') {
-                      updateAppLocale(ref, const Locale('ar'));
-                      updateAppNumeralSystem(ref, 'eastern_arabic');
-                    } else {
-                      updateAppLocale(ref, const Locale('en'));
-                      updateAppNumeralSystem(ref, 'western');
-                    }
-                  },
-                  icon: const Icon(Icons.language, color: FormaTheme.primaryTeal, size: 18),
-                  label: Text(
-                    currentLocale.languageCode == 'en' ? 'العربية' : 'English',
-                    style: const TextStyle(
-                      color: FormaTheme.primaryTeal,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  key: const Key('logout_button'),
-                  tooltip: l10n.logout,
-                  icon: const Icon(Icons.logout, color: FormaTheme.textSecondary, size: 20),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => _confirmLogout(context, l10n),
-                ),
-                const SizedBox(width: 4),
+          // 1. Sync button (Preserved key for tests)
+          IconButton(
+            key: const Key('sync_devices_button'),
+            tooltip: l10n.syncScreenTitle,
+            icon: const Icon(Icons.sync_outlined, color: FormaTheme.textSecondary, size: 20),
+            visualDensity: VisualDensity.compact,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SyncScreen()),
+              );
+            },
+          ),
+          // 2. Assistant button (Clean in-app bar integration, key preserved)
+          IconButton(
+            key: const Key('assistant_button'),
+            tooltip: l10n.assistantTitle,
+            icon: const Icon(Icons.chat_bubble_outline_rounded, color: FormaTheme.textSecondary, size: 20),
+            visualDensity: VisualDensity.compact,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AssistantScreen()),
+              );
+            },
+          ),
+          // 3. Settings button (key preserved)
+          IconButton(
+            key: const Key('settings_button'),
+            tooltip: l10n.settings,
+            icon: const Icon(Icons.settings_outlined, color: FormaTheme.textSecondary, size: 20),
+            visualDensity: VisualDensity.compact,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+          // 4. Language toggle (key preserved)
+          TextButton(
+            key: const Key('language_toggle_button'),
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            ),
+            onPressed: () {
+              if (currentLocale.languageCode == 'en') {
+                updateAppLocale(ref, const Locale('ar'));
+                updateAppNumeralSystem(ref, 'eastern_arabic');
+              } else {
+                updateAppLocale(ref, const Locale('en'));
+                updateAppNumeralSystem(ref, 'western');
+              }
+            },
+            child: Text(
+              currentLocale.languageCode == 'en' ? 'العربية' : 'English',
+              style: const TextStyle(
+                color: FormaTheme.primaryTeal,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          // 5. Logout (key preserved)
+          IconButton(
+            key: const Key('logout_button'),
+            tooltip: l10n.logout,
+            icon: const Icon(Icons.logout_rounded, color: FormaTheme.textTertiary, size: 19),
+            visualDensity: VisualDensity.compact,
+            onPressed: () => _confirmLogout(context, l10n),
+          ),
+          const SizedBox(width: 4),
               ],
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const Key('assistant_fab'),
-        backgroundColor: FormaTheme.primaryTeal,
-        foregroundColor: Colors.black,
-        icon: const Icon(Icons.smart_toy_outlined),
-        label: Text(l10n.assistantTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AssistantScreen()),
-          );
-        },
+      // Clean non-overlapping bottom navigation strip instead of a giant floating FAB blocking logs
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: FormaTheme.surfaceCard,
+          border: Border(top: BorderSide(color: FormaTheme.borderSubtle)),
+        ),
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 10,
+          bottom: MediaQuery.of(context).padding.bottom + 10,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                key: const Key('assistant_fab'),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: FormaTheme.borderSubtle),
+                  foregroundColor: FormaTheme.textPrimary,
+                  backgroundColor: FormaTheme.surfaceElevated,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(FormaTheme.radiusSmall),
+                  ),
+                ),
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18, color: FormaTheme.primaryTeal),
+                label: Text(
+                  l10n.assistantTitle,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AssistantScreen()),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                key: const Key('add_measurement_quick_button'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: FormaTheme.primaryTeal,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(FormaTheme.radiusSmall),
+                  ),
+                ),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(
+                  currentLocale.languageCode == 'ar' ? 'تسجيل جديد' : 'New Entry',
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onPressed: () => _showAddMeasurementDialog(context, l10n, snapshotAsync.valueOrNull),
+              ),
+            ),
+          ],
+        ),
       ),
       body: SafeArea(
+        bottom: false,
         child: RefreshIndicator(
+          color: FormaTheme.primaryTeal,
           onRefresh: () async {
             ref.invalidate(dashboardSnapshotProvider);
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l10n.tagline,
-                  style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-
-                // Epistemic Class Badges Legend
-                _buildEpistemicLegend(l10n),
-                const SizedBox(height: 20),
-
                 snapshotAsync.when(
                   loading: () => const Center(
                     child: Padding(
-                      padding: EdgeInsets.all(32.0),
+                      padding: EdgeInsets.all(40.0),
                       child: CircularProgressIndicator(color: FormaTheme.primaryTeal),
                     ),
                   ),
                   error: (err, _) => Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: FormaTheme.criticalCrimson.withValues(alpha: 0.15),
-                      border: Border.all(color: FormaTheme.criticalCrimson.withValues(alpha: 0.4)),
-                      borderRadius: BorderRadius.circular(12),
+                      color: FormaTheme.criticalCrimson.withValues(alpha: 0.12),
+                      border: Border.all(color: FormaTheme.criticalCrimson.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(FormaTheme.radiusSmall),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline, color: FormaTheme.criticalCrimson),
+                        const Icon(Icons.error_outline_rounded, color: FormaTheme.criticalCrimson),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             formatApiErrorMessage(err),
-                            style: const TextStyle(color: FormaTheme.criticalCrimson),
+                            style: const TextStyle(color: FormaTheme.criticalCrimson, fontSize: 13),
                           ),
                         ),
                         TextButton(
@@ -222,6 +277,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                       // 4. Honest Health Records / Quick Log Action
                       _buildMeasurementsSection(snapshot, l10n, numeralSystem),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -229,23 +285,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildEpistemicLegend(AppLocalizations l10n) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _buildBadge(l10n.measured, FormaTheme.badgeMeasured),
-          const SizedBox(width: 8),
-          _buildBadge(l10n.calculated, FormaTheme.badgeCalculated),
-          const SizedBox(width: 8),
-          _buildBadge(l10n.estimated, FormaTheme.badgeEstimated),
-          const SizedBox(width: 8),
-          _buildBadge(l10n.asserted, FormaTheme.badgeAsserted),
-        ],
       ),
     );
   }
@@ -479,20 +518,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ] else ...[
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: FormaTheme.surfaceElevated,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(FormaTheme.radiusSmall),
+                  border: Border.all(color: FormaTheme.borderSubtle, width: 0.8),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline, color: FormaTheme.textSecondary, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        l10n.insufficientTrendData,
-                        style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
-                      ),
+                    Row(
+                      children: [
+                        const Icon(Icons.show_chart_rounded, color: FormaTheme.textSecondary, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l10n.insufficientTrendData,
+                            style: const TextStyle(
+                              color: FormaTheme.textPrimary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Log measurements consistently across several days to calculate your smoothed 7-day trend.',
+                      style: TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
                     ),
                   ],
                 ),
@@ -760,13 +814,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+          style: const TextStyle(
+            color: FormaTheme.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          style: const TextStyle(
+            color: FormaTheme.textPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            letterSpacing: -0.2,
+          ),
           overflow: TextOverflow.ellipsis,
         ),
       ],
@@ -775,15 +838,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildBadge(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-        borderRadius: BorderRadius.circular(16),
+        color: color.withValues(alpha: 0.12),
+        border: Border.all(color: color.withValues(alpha: 0.28), width: 0.8),
+        borderRadius: BorderRadius.circular(FormaTheme.radiusSmall),
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+        ),
       ),
     );
   }

@@ -101,7 +101,7 @@ class AssistantMessageView extends StatelessWidget {
                       color: FormaTheme.primaryTeal.withValues(alpha: 0.15),
                     ),
                     child: const Center(
-                      child: Icon(Icons.auto_awesome, color: FormaTheme.primaryTeal, size: 16),
+                      child: Icon(Icons.fitness_center_rounded, color: FormaTheme.primaryTeal, size: 15),
                     ),
                   ),
                   const SizedBox(width: 8),

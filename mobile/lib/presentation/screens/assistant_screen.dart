@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/theme.dart';
-import '../../core/providers.dart';
 import '../../modules/assistant/models/assistant_models.dart';
 import '../../modules/assistant/repositories/assistant_repository.dart';
 import '../widgets/chat/assistant_message_view.dart';
