@@ -1,4 +1,4 @@
-import { withUserContext } from '../../core/database/index.js';
+import { withUserContext, withSystemContext } from '../../core/database/index.js';
 import { normalizeToCanonical } from '../../core/units/index.js';
 import { AuditService } from '../audit/index.js';
 import {
@@ -238,10 +238,11 @@ export class MeasurementsService {
   }
 
   /**
-   * Lists catalog types.
+   * Lists catalog types. measurement_types is a global reference catalog —
+   * read under the system context, never a fabricated user identity.
    */
   static async listTypes(): Promise<MeasurementTypeRecord[]> {
-    return await withUserContext('00000000-0000-0000-0000-000000000000', async (client) => {
+    return await withSystemContext(async (client) => {
       return await MeasurementsRepository.listMeasurementTypes(client);
     });
   }
