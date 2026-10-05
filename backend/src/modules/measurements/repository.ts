@@ -236,6 +236,32 @@ export class MeasurementsRepository {
     return res.rows.map(r => this.mapObservation(r));
   }
 
+  /**
+   * True count of observations for a user/status — used when callers need an
+   * accurate total rather than a capped page of results. When epistemicClass
+   * is given, only observations whose provenance carries that class count.
+   */
+  static async countObservations(
+    client: PoolClient,
+    userId: string,
+    status: 'active' | 'superseded' | 'voided' = 'active',
+    epistemicClass?: string
+  ): Promise<number> {
+    const res = epistemicClass
+      ? await client.query(
+          `SELECT COUNT(*)::int AS count
+           FROM observations o
+           JOIN provenance_records p ON p.id = o.provenance_id
+           WHERE o.user_id = $1 AND o.status = $2 AND p.epistemic_class = $3`,
+          [userId, status, epistemicClass]
+        )
+      : await client.query(
+          'SELECT COUNT(*)::int AS count FROM observations WHERE user_id = $1 AND status = $2',
+          [userId, status]
+        );
+    return res.rows[0]?.count ?? 0;
+  }
+
   static async getProvenanceById(client: PoolClient, id: string): Promise<ProvenanceRecord | null> {
     const res = await client.query('SELECT * FROM provenance_records WHERE id = $1', [id]);
     if (!res.rows[0]) return null;

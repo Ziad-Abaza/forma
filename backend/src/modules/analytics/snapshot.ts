@@ -223,7 +223,8 @@ export class SnapshotEngine {
       }
 
       // --- SECTION 7: Data Quality ---
-      const totalCount = activeObs.length;
+      // True total (the fetched page is capped at 100 for display lists).
+      const totalCount = await MeasurementsRepository.countObservations(client, userId);
       // Staleness is measured from the latest observation of ANY type, not just weight.
       // activeObs is ordered by observed_at DESC.
       const latestObservedAt = activeObs[0]?.observed_at;
@@ -233,11 +234,14 @@ export class SnapshotEngine {
         stalenessDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       }
 
-      // Real share of 'measured' observations among all active observations;
-      // null when there is nothing to measure.
-      const measuredCount = activeObs.filter(
-        (o) => epistemicByProvenance.get(o.provenance_id) === 'measured'
-      ).length;
+      // Real share of 'measured' observations among ALL active observations —
+      // counted in SQL, not over the capped page; null when nothing exists.
+      const measuredCount = await MeasurementsRepository.countObservations(
+        client,
+        userId,
+        'active',
+        'measured'
+      );
 
       const dataQuality = {
         totalActiveObservations: totalCount,
