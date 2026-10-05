@@ -2,6 +2,7 @@ import { withUserContext } from '../../core/database/index.js';
 import { normalizeToCanonical } from '../../core/units/index.js';
 import { AIGateway } from '../ai/gateway/gateway.js';
 import { BYOKService } from '../ai/gateway/byok.js';
+import { ModelRegistry } from '../ai/gateway/registry.js';
 import { AITraceService } from '../ai/traces/service.js';
 import type {
   ExtractedField,
@@ -18,8 +19,22 @@ export interface ExtractionInput {
   correlationId: string;
 }
 
+export class VisionExtractionError extends Error {
+  public readonly statusCode = 502;
+  constructor(
+    message: string,
+    public readonly draftId: string | null,
+    cause?: unknown
+  ) {
+    super(message);
+    this.name = 'VisionExtractionError';
+    this.cause = cause;
+  }
+}
+
 export class VisionExtractor {
   private static gateway = new AIGateway(new BYOKService());
+  private static byok = new BYOKService();
   private static traceService = new AITraceService();
 
   private static readonly SUPPORTED_CATALOG_TYPES: Record<string, { min: number; max: number; canonicalUnit: string }> = {
@@ -119,6 +134,19 @@ CRITICAL RULES:
       confidenceScore: number;
     }> = [];
 
+    let routing: { selectedProvider: string; selectedModel: string } | null = null;
+    let providerError: unknown = null;
+
+    // Resolve the attempted provider/model up front so failure traces stay truthful
+    let attemptedProvider = 'unknown';
+    let attemptedModel = 'unknown';
+    try {
+      attemptedProvider = await this.byok.getActiveProvider(userId);
+      attemptedModel = ModelRegistry.getDefaultModelForProvider(attemptedProvider, 'vision_extraction');
+    } catch {
+      // provider resolution itself failed; trace will record 'unknown'
+    }
+
     try {
       const result = await this.gateway.execute(
         'vision_extraction',
@@ -131,6 +159,11 @@ CRITICAL RULES:
         },
         userId
       );
+
+      routing = {
+        selectedProvider: result.routing.selectedProvider,
+        selectedModel: result.routing.selectedModel
+      };
 
       const parsed = JSON.parse(result.result.text);
       detectedKind = parsed.detectedKind || kind;
@@ -148,14 +181,56 @@ CRITICAL RULES:
       if (err.message?.includes('Clinical and medical lab documents')) {
         throw err;
       }
-      // If live vision API is unavailable or mocked in testing, fall back gracefully
-      rawFields = [];
+      providerError = err;
+    }
+
+    if (providerError !== null) {
+      // Provider failure must never masquerade as a successful extraction:
+      // persist a typed 'extraction_failed' draft, emit a truthful trace, then throw.
+      const failedDraft = await withUserContext(userId, async (client) => {
+        const res = await client.query(
+          `INSERT INTO extraction_drafts (
+            user_id, media_artifact_id, image_kind, status,
+            extracted_fields, overall_confidence, requires_field_attention,
+            consistency_flags
+          ) VALUES ($1, $2, $3, 'extraction_failed', '[]'::jsonb, 0, TRUE, '["provider_error"]'::jsonb)
+          RETURNING *`,
+          [userId, mediaArtifact.id, detectedKind]
+        );
+        return mapExtractionDraftRow(res.rows[0]);
+      });
+
+      await this.traceService.emitTrace({
+        userId,
+        correlationId,
+        provider: attemptedProvider,
+        modelId: attemptedModel,
+        taskClass: 'vision_extraction',
+        intentClass: 'extraction',
+        contextTier: 0,
+        contextManifest: {
+          tier: 0,
+          intentClass: 'extraction',
+          includedSections: [],
+          excludedReasons: { vision: 'Extraction aborted: vision provider error' },
+          recordCount: 0,
+          dataFreshness: 'none'
+        },
+        evidenceTypes: [],
+        outcome: 'error'
+      });
+
+      throw new VisionExtractionError(
+        'Vision extraction failed: the AI provider could not process this image.',
+        failedDraft.id,
+        providerError
+      );
     }
 
     // 3. Process, normalize, and validate extracted fields
     const processedFields: ExtractedField[] = [];
     const consistencyFlags: string[] = [];
-    let requiresFieldAttention = false;
+    let requiresFieldAttention = rawFields.length === 0;
 
     // Epistemic class: measured for reports/scale displays, estimated for food/visual estimates
     const epistemicClass =
@@ -218,7 +293,8 @@ CRITICAL RULES:
       }
     }
 
-    // Calculate overall confidence score
+    // Overall confidence is computed only over real extracted fields.
+    // An empty extraction is honestly reported as zero confidence.
     const overallConfidence =
       processedFields.length > 0
         ? Number(
@@ -227,7 +303,7 @@ CRITICAL RULES:
               processedFields.length
             ).toFixed(2)
           )
-        : 1.0;
+        : 0;
 
     // 5. Persist extraction draft in database under PostgreSQL RLS
     const draft = await withUserContext(userId, async (client) => {
@@ -253,12 +329,12 @@ CRITICAL RULES:
       return mapExtractionDraftRow(res.rows[0]);
     });
 
-    // 6. Emit content-free AI trace
+    // 6. Emit content-free AI trace reflecting the real routing decision
     await this.traceService.emitTrace({
       userId,
       correlationId,
-      provider: 'google',
-      modelId: 'gemini-3.8-flash',
+      provider: routing?.selectedProvider ?? attemptedProvider,
+      modelId: routing?.selectedModel ?? attemptedModel,
       taskClass: 'vision_extraction',
       intentClass: 'extraction',
       contextTier: 0,

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import fs from 'fs';
 import { runMigrations } from '../core/database/migrate.js';
 import { withUserContext } from '../core/database/index.js';
@@ -7,6 +7,7 @@ import { MeasurementsService } from '../modules/measurements/service.js';
 import {
   MediaPipeline,
   VisionExtractor,
+  VisionExtractionError,
   DraftReviewService,
   MultimodalPrivacyContract
 } from '../modules/multimodal/index.js';
@@ -129,6 +130,12 @@ describe('Phase 5: Multimodal Image Intelligence & Vision Extraction Tests', { t
         'body_composition_report'
       );
 
+      const gateway = (VisionExtractor as unknown as { gateway: { execute: (...args: unknown[]) => unknown } }).gateway;
+      const spy = vi.spyOn(gateway, 'execute').mockResolvedValueOnce({
+        result: { text: JSON.stringify({ detectedKind: 'body_composition_report', fields: [] }) },
+        routing: { taskClass: 'vision_extraction', selectedModel: 'test-model', selectedProvider: 'google', fallbackUsed: false, latencyMs: 1 }
+      });
+
       const draft = await VisionExtractor.extractFromImage({
         userId: userAId,
         mediaArtifact: media.artifact,
@@ -136,13 +143,67 @@ describe('Phase 5: Multimodal Image Intelligence & Vision Extraction Tests', { t
         kindHint: 'body_composition_report',
         correlationId: 'corr-draft-create'
       });
+      spy.mockRestore();
 
       expect(draft.id).toBeDefined();
       expect(draft.status).toBe('draft');
+      // An empty extraction is honestly reported as zero confidence, never 1.0
+      expect(draft.overallConfidence).toBe(0);
 
       // Invariant: Verify zero observations were written!
       const initialObs = await MeasurementsService.getLatestObservation(userAId, 'weight');
       expect(initialObs).toBeNull();
+    });
+
+    it('propagates provider failure as an extraction_failed draft with truthful trace (HC-006)', async () => {
+      const media = await MediaPipeline.ingestImage(
+        userAId,
+        validJpegBase64,
+        'image/jpeg',
+        'scale_display'
+      );
+
+      const gateway = (VisionExtractor as unknown as { gateway: { execute: (...args: unknown[]) => unknown } }).gateway;
+      const spy = vi.spyOn(gateway, 'execute').mockRejectedValueOnce(
+        new Error('AI Gateway Error: 503 Service Unavailable')
+      );
+
+      let captured: VisionExtractionError | null = null;
+      try {
+        await VisionExtractor.extractFromImage({
+          userId: userAId,
+          mediaArtifact: media.artifact,
+          base64Image: media.base64,
+          kindHint: 'scale_display',
+          correlationId: 'corr-extract-fail'
+        });
+      } catch (e) {
+        captured = e as VisionExtractionError;
+      }
+      spy.mockRestore();
+
+      // Error propagates truthfully — no fake successful draft
+      expect(captured).toBeInstanceOf(VisionExtractionError);
+      expect(captured!.draftId).toBeDefined();
+
+      // The persisted draft is marked as failed, zero confidence
+      const failedDraft = await DraftReviewService.getDraft(userAId, captured!.draftId!);
+      expect(failedDraft).not.toBeNull();
+      expect(failedDraft!.status).toBe('extraction_failed');
+      expect(failedDraft!.overallConfidence).toBe(0);
+      expect(failedDraft!.extractedFields).toHaveLength(0);
+
+      // The trace records the real outcome — 'error', never falsified 'success'
+      const trace = await withUserContext(userAId, async (client) => {
+        const res = await client.query(
+          `SELECT outcome, task_class FROM ai_traces WHERE correlation_id = $1 AND user_id = $2`,
+          ['corr-extract-fail', userAId]
+        );
+        return res.rows[0];
+      });
+      expect(trace).toBeDefined();
+      expect(trace.outcome).toBe('error');
+      expect(trace.task_class).toBe('vision_extraction');
     });
 
     it('supports field editing and user correction in draft', async () => {

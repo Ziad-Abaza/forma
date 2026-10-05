@@ -10,7 +10,7 @@ export type ImageKind =
   | 'clinical_document'
   | 'unknown';
 
-export type DraftStatus = 'draft' | 'reviewed' | 'committed' | 'discarded';
+export type DraftStatus = 'draft' | 'reviewed' | 'committed' | 'discarded' | 'extraction_failed';
 
 export interface ExtractedField {
   typeCode: string;

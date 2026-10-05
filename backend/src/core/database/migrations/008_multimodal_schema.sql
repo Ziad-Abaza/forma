@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS extraction_drafts (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     media_artifact_id UUID REFERENCES media_artifacts(id) ON DELETE SET NULL,
     image_kind VARCHAR(64) NOT NULL,
-    status VARCHAR(32) NOT NULL DEFAULT 'draft', -- 'draft', 'reviewed', 'committed', 'discarded'
+    status VARCHAR(32) NOT NULL DEFAULT 'draft', -- 'draft', 'reviewed', 'committed', 'discarded', 'extraction_failed'
     extracted_fields JSONB NOT NULL DEFAULT '[]'::jsonb,
     overall_confidence NUMERIC(3,2) NOT NULL DEFAULT 1.0,
     requires_field_attention BOOLEAN NOT NULL DEFAULT FALSE,
