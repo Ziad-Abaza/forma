@@ -113,6 +113,21 @@ describe('Fastify HTTP API End-to-End Tests', () => {
     userBToken = JSON.parse(resB.body).tokens.accessToken;
   });
 
+  it('CORS never reflects arbitrary origins and never emits a wildcard (HC-010)', async () => {
+    const res = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/auth/login',
+      headers: {
+        origin: 'https://evil.example.com',
+        'access-control-request-method': 'POST'
+      }
+    });
+    const acao = res.headers['access-control-allow-origin'];
+    expect(acao).not.toBe('*');
+    expect(acao).not.toBe('https://evil.example.com');
+    expect(res.headers['access-control-allow-credentials']).not.toBe('true');
+  });
+
   it('rejects unauthenticated requests with 401', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/profile' });
     expect(res.statusCode).toBe(401);

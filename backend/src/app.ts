@@ -74,10 +74,32 @@ export function buildApp(deps: AppDependencies = {}): FastifyInstance {
     logger: false // Logging handled by structured sanitized logger
   });
 
-  // Enable CORS
+  // Enable CORS against an explicit allowlist (CORS_ORIGINS env var).
+  // Bearer-token auth means browsers still require an allowlisted origin;
+  // non-browser clients (mobile app) send no Origin header and are unaffected.
+  const corsAllowlist = (config.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter((o) => o.length > 0);
+  const allowDevOrigins = config.NODE_ENV !== 'production';
+
   app.register(cors, {
-    origin: true,
-    credentials: true
+    origin: (origin, cb) => {
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+      if (corsAllowlist.includes(origin)) {
+        cb(null, true);
+        return;
+      }
+      if (allowDevOrigins && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        cb(null, true);
+        return;
+      }
+      cb(null, false);
+    },
+    credentials: false
   });
 
   // Support empty JSON bodies gracefully (e.g. DELETE or bodyless requests with application/json header)
@@ -538,7 +560,7 @@ export function buildApp(deps: AppDependencies = {}): FastifyInstance {
       reply.raw.setHeader('Content-Type', 'text/event-stream');
       reply.raw.setHeader('Cache-Control', 'no-cache');
       reply.raw.setHeader('Connection', 'keep-alive');
-      reply.raw.setHeader('Access-Control-Allow-Origin', '*');
+      // CORS is handled by the @fastify/cors allowlist — no manual wildcard header.
 
       try {
         for await (const event of assistantOrchestrator.chatStream(userId, parsed, req.correlationId)) {

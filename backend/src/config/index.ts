@@ -28,6 +28,7 @@ const configSchema = z.object({
     .optional(),
   GEMINI_API_KEY: z.string().optional(),
   AI_PRIMARY_MODEL: z.string().optional(),
+  CORS_ORIGINS: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info')
 });
 
