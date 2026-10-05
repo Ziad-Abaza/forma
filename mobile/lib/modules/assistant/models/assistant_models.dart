@@ -315,3 +315,144 @@ class AssistantChatMessage {
     );
   }
 }
+
+/// A persisted conversation row as returned by
+/// GET /api/v1/assistant/conversations.
+class ConversationSummary {
+  final String id;
+  final String title;
+  final String? summary;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  const ConversationSummary({
+    required this.id,
+    required this.title,
+    this.summary,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory ConversationSummary.fromJson(Map<String, dynamic> json) {
+    return ConversationSummary(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      summary: json['summary'] as String?,
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+    );
+  }
+}
+
+/// A persisted message row from GET /api/v1/assistant/conversations/:id.
+/// Roles can be 'user', 'assistant', 'system' or 'tool' — callers that
+/// render chat should filter to the visible roles.
+class ConversationMessageModel {
+  final String id;
+  final String role;
+  final String content;
+  final List<EvidenceClaimModel> evidenceClaims;
+  final List<ActionProposalModel> proposals;
+  final String? safetyCategory;
+  final DateTime? createdAt;
+
+  const ConversationMessageModel({
+    required this.id,
+    required this.role,
+    required this.content,
+    this.evidenceClaims = const [],
+    this.proposals = const [],
+    this.safetyCategory,
+    this.createdAt,
+  });
+
+  factory ConversationMessageModel.fromJson(Map<String, dynamic> json) {
+    final evidenceList = <EvidenceClaimModel>[];
+    if (json['evidenceClaims'] is List) {
+      for (final e in json['evidenceClaims'] as List) {
+        if (e is Map<String, dynamic>) {
+          evidenceList.add(EvidenceClaimModel.fromJson(e));
+        }
+      }
+    }
+
+    final proposalsList = <ActionProposalModel>[];
+    if (json['proposals'] is List) {
+      for (final p in json['proposals'] as List) {
+        if (p is Map<String, dynamic>) {
+          proposalsList.add(ActionProposalModel.fromJson(p));
+        }
+      }
+    }
+
+    return ConversationMessageModel(
+      id: json['id'] as String? ?? '',
+      role: json['role'] as String? ?? 'assistant',
+      content: json['content'] as String? ?? '',
+      evidenceClaims: evidenceList,
+      proposals: proposalsList,
+      safetyCategory: json['safetyCategory'] as String?,
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+    );
+  }
+}
+
+/// A conversation plus its messages, as returned by
+/// GET /api/v1/assistant/conversations/:id.
+class ConversationDetail {
+  final ConversationSummary conversation;
+  final List<ConversationMessageModel> messages;
+
+  const ConversationDetail({
+    required this.conversation,
+    required this.messages,
+  });
+
+  factory ConversationDetail.fromJson(Map<String, dynamic> json) {
+    final rawMessages = json['messages'] as List<dynamic>? ?? [];
+    return ConversationDetail(
+      conversation: ConversationSummary.fromJson(json),
+      messages: rawMessages
+          .whereType<Map<String, dynamic>>()
+          .map(ConversationMessageModel.fromJson)
+          .toList(),
+    );
+  }
+}
+
+/// A durable assistant memory row (GET /api/v1/assistant/memories).
+/// Category is one of: preference | fact | routine | constraint.
+class AssistantMemory {
+  final String id;
+  final String category;
+  final String key;
+  final String value;
+  final double confidence;
+  final String source;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  const AssistantMemory({
+    required this.id,
+    required this.category,
+    required this.key,
+    required this.value,
+    this.confidence = 1.0,
+    this.source = '',
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory AssistantMemory.fromJson(Map<String, dynamic> json) {
+    return AssistantMemory(
+      id: json['id'] as String? ?? '',
+      category: json['category'] as String? ?? 'fact',
+      key: json['key'] as String? ?? '',
+      value: json['value'] as String? ?? '',
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 1.0,
+      source: json['source'] as String? ?? '',
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+    );
+  }
+}

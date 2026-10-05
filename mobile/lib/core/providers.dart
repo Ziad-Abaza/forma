@@ -23,9 +23,6 @@ final apiClientProvider = Provider<ApiClient>((ref) {
     getBaseUrl: () => ref.watch(apiBaseUrlProvider),
     tokenStorage: tokenStorage,
     timeout: Duration(milliseconds: envConfig.apiTimeoutMs),
-    onSessionExpired: () {
-      // Trigger logout if session expires and refresh fails
-    },
   );
 });
 

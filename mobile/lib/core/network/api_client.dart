@@ -64,7 +64,9 @@ class ApiClient {
   final String Function() getBaseUrl;
   final TokenStorage tokenStorage;
   final http.Client _httpClient;
-  final void Function()? onSessionExpired;
+  /// Invoked when a request fails even after refresh — tokens are already
+  /// cleared at that point; the auth layer registers this to force logout.
+  void Function()? onSessionExpired;
   final Duration timeout;
 
   bool _isRefreshing = false;

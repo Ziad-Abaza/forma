@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { runMigrations } from '../core/database/migrate.js';
-import { withSystemContext } from '../core/database/index.js';
+import { withSystemContext, withUserContext } from '../core/database/index.js';
 import { IdentityService } from '../modules/identity/service.js';
 import { MeasurementsService } from '../modules/measurements/service.js';
 import { GoalsService } from '../modules/goals/service.js';
 import { AssistantMemoryService, AssistantPrivacyContract } from '../modules/assistant/index.js';
 import { MediaPipeline, MultimodalPrivacyContract } from '../modules/multimodal/index.js';
-import { IntegrationSyncService, IntegrationsPrivacyContract } from '../modules/integrations/index.js';
+import { IntegrationsPrivacyContract } from '../modules/integrations/index.js';
 import {
   PrivacyOrchestrator,
   IdentityPrivacyContract,
@@ -50,7 +50,7 @@ describe('Phase 6: End-to-End Privacy Verification (Blueprint §31.1 Gate 7, §3
     purgeUserId = regRes.user.id;
 
     // 2. Add Measurement Observation
-    await MeasurementsService.recordObservation(
+    const obsResult = await MeasurementsService.recordObservation(
       purgeUserId,
       {
         typeCode: 'weight',
@@ -100,24 +100,29 @@ describe('Phase 6: End-to-End Privacy Verification (Blueprint §31.1 Gate 7, §3
     );
     testMediaPath = media.artifact.storagePath;
 
-    // 6. Ingest Integration Batch
-    await IntegrationSyncService.ingestBatch(
-      purgeUserId,
-      {
-        provider: 'health_connect',
-        records: [
-          {
-            externalRecordId: 'hc-e2e-1',
-            typeCode: 'weight',
-            value: 82.3,
-            unit: 'kg',
-            recordedAt: new Date().toISOString(),
-            epistemicClass: 'measured'
-          }
-        ]
-      },
-      'corr-privacy-sync'
-    );
+    // 6. Seed historical integration import rows directly (ingestion write path was
+    // removed — device integrations are deferred per blueprint §27.2; the tables
+    // remain for GDPR export/purge coverage).
+    await withUserContext(purgeUserId, async (client) => {
+      const conn = await client.query(
+        `INSERT INTO integration_connections (user_id, provider, status, scopes, last_synced_at)
+         VALUES ($1, 'health_connect', 'revoked', '["measurements"]'::jsonb, NOW())
+         RETURNING id`,
+        [purgeUserId]
+      );
+      const connId = conn.rows[0].id;
+      const batch = await client.query(
+        `INSERT INTO import_batches (user_id, connection_id, provider, status, records_count, completed_at)
+         VALUES ($1, $2, 'health_connect', 'completed', 1, NOW())
+         RETURNING id`,
+        [purgeUserId, connId]
+      );
+      await client.query(
+        `INSERT INTO sync_dedup_records (user_id, connection_id, batch_id, observation_id, provider, external_record_id, dedup_hash)
+         VALUES ($1, $2, $3, $4, 'health_connect', 'hc-e2e-1', 'e2e-dedup-hash-1')`,
+        [purgeUserId, connId, batch.rows[0].id, obsResult.observation.id]
+      );
+    });
   });
 
   it('exports comprehensive machine-readable GDPR data payload across all modules', async () => {

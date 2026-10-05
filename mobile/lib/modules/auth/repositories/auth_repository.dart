@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
+import '../models/session_model.dart';
 import '../models/user_model.dart';
 
 class AuthRepository {
@@ -103,10 +104,64 @@ class AuthRepository {
       await tokenStorage.clearAll();
     }
   }
+
+  /// Lists the user's sessions (refresh-token families) for device management.
+  Future<List<SessionInfo>> listSessions() async {
+    final resp = await apiClient.get('/api/v1/auth/sessions');
+    if (resp is Map<String, dynamic>) {
+      final raw = resp['sessions'] as List<dynamic>? ?? const [];
+      return raw
+          .whereType<Map<String, dynamic>>()
+          .map(SessionInfo.fromJson)
+          .toList();
+    }
+    return const [];
+  }
+
+  /// Revokes a single session by id. Throws ApiException(404) when the
+  /// session does not belong to the current user.
+  Future<void> revokeSession(String sessionId) async {
+    await apiClient.delete('/api/v1/auth/sessions/$sessionId');
+  }
+
+  /// Revokes every session for the user. On success the backend has
+  /// invalidated all refresh-token families — the next authenticated
+  /// request will surface the session-expired path and route to login.
+  /// Returns the number of sessions revoked when reported by the server.
+  Future<int?> logoutAll() async {
+    final resp = await apiClient.post('/api/v1/auth/logout-all', body: const {});
+    if (resp is Map<String, dynamic>) {
+      return (resp['sessionsRevoked'] as num?)?.toInt();
+    }
+    return null;
+  }
+
+  /// Changes the account password. On success the backend revokes ALL
+  /// sessions, so the user will be logged out via the ApiClient
+  /// session-expired path. Returns the server-provided message when present.
+  Future<String?> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final resp = await apiClient.post('/api/v1/auth/change-password', body: {
+      'currentPassword': currentPassword,
+      'newPassword': newPassword,
+    });
+    if (resp is Map<String, dynamic>) {
+      return resp['message']?.toString();
+    }
+    return null;
+  }
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   final tokenStorage = ref.watch(tokenStorageProvider);
   return AuthRepository(apiClient: apiClient, tokenStorage: tokenStorage);
+});
+
+/// Live list of the user's sessions for the settings/device-management UI.
+final sessionsProvider = FutureProvider.autoDispose<List<SessionInfo>>((ref) async {
+  final repo = ref.watch(authRepositoryProvider);
+  return await repo.listSessions();
 });

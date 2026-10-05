@@ -17,9 +17,16 @@ class MeasurementsRepository {
     return [];
   }
 
-  Future<List<ObservationModel>> getObservations({String? typeCode, int limit = 50}) async {
+  /// [status] passes through to QueryObservationsFilterSchema — allowed
+  /// values: 'active' (backend default), 'superseded', 'voided', 'all'.
+  Future<List<ObservationModel>> getObservations({
+    String? typeCode,
+    String? status,
+    int limit = 50,
+  }) async {
     final query = <String, dynamic>{'limit': limit};
     if (typeCode != null) query['typeCode'] = typeCode;
+    if (status != null) query['status'] = status;
 
     final resp = await apiClient.get('/api/v1/measurements/observations', queryParameters: query);
     if (resp is Map && resp['observations'] is List) {
@@ -74,21 +81,34 @@ class MeasurementsRepository {
       '/api/v1/measurements/observations/$observationId/supersede',
       body: body,
     );
-    final obsJson = (resp is Map && resp['observation'] != null) ? resp['observation'] : resp;
+    // Backend returns { newObservation, previousObservation } — the caller
+    // wants the newly written correction record.
+    final obsJson = (resp is Map && resp['newObservation'] is Map)
+        ? resp['newObservation']
+        : resp;
     return ObservationModel.fromJson(obsJson as Map<String, dynamic>);
   }
 
-  Future<Map<String, dynamic>?> getProvenance(String observationId) async {
-    try {
-      final resp = await apiClient.get('/api/v1/measurements/provenance/$observationId');
-      return resp is Map<String, dynamic> ? resp : null;
-    } catch (_) {
-      return null;
-    }
+  /// Fetches a provenance record.
+  ///
+  /// IMPORTANT: [provenanceId] must be the observation's provenance id
+  /// (`ObservationModel.provenanceId`), NOT the observation id —
+  /// `GET /api/v1/measurements/provenance/:id` looks up `provenance_records`
+  /// by their own primary key. Errors (including 404s) propagate to the
+  /// caller.
+  Future<Map<String, dynamic>?> getProvenance(String provenanceId) async {
+    final resp = await apiClient.get('/api/v1/measurements/provenance/$provenanceId');
+    return resp is Map<String, dynamic> ? resp : null;
   }
 }
 
 final measurementsRepositoryProvider = Provider<MeasurementsRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return MeasurementsRepository(apiClient: apiClient);
+});
+
+/// Server-issued measurement type catalog (`GET /api/v1/measurements/types`).
+/// The single source of truth for pickers — never hardcode type lists.
+final measurementTypesProvider = FutureProvider<List<MeasurementTypeModel>>((ref) {
+  return ref.watch(measurementsRepositoryProvider).listTypes();
 });

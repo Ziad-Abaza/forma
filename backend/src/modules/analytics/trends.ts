@@ -37,6 +37,23 @@ export class TrendEngine {
     const timespanMs = last.observedAt.getTime() - first.observedAt.getTime();
     const timespanDays = timespanMs / (1000 * 60 * 60 * 24);
 
+    // Raw series + EMA-smoothed series for client visualization.
+    const rawSeries = sorted.map((p) => ({
+      observedAt: p.observedAt.toISOString(),
+      value: p.value
+    }));
+
+    const alpha = 2 / (7 + 1); // 7-day EMA smoothing
+    let ema = sorted[0]!.value;
+    const smoothedSeries = [{ observedAt: first.observedAt.toISOString(), value: ema }];
+    for (let i = 1; i < sorted.length; i++) {
+      ema = alpha * sorted[i]!.value + (1 - alpha) * ema;
+      smoothedSeries.push({
+        observedAt: sorted[i]!.observedAt.toISOString(),
+        value: Math.round(ema * 100) / 100
+      });
+    }
+
     // If fewer than 3 points or spanning less than 4 days, report insufficiency for rate/slope
     if (count < 3 || timespanDays < 4) {
       return {
@@ -46,18 +63,13 @@ export class TrendEngine {
         startValue: first.value,
         endValue: last.value,
         deltaValue: Math.round((last.value - first.value) * 100) / 100,
+        series: rawSeries,
+        smoothedSeries,
         sufficiency: 'insufficient',
         reason: `Insufficient data points (${count}) or timespan (${Math.round(timespanDays)} days). Need at least 3 points across 4+ days for a trend rate.`
       };
     }
 
-    // Exponential Moving Average (EMA) for noise filtering
-    // alpha = 2 / (N + 1), where N = 7 (7-day smoothing)
-    const alpha = 2 / (7 + 1);
-    let ema = sorted[0]!.value;
-    for (let i = 1; i < sorted.length; i++) {
-      ema = alpha * sorted[i]!.value + (1 - alpha) * ema;
-    }
     const smoothedLatest = Math.round(ema * 100) / 100;
 
     // Linear regression (ordinary least squares) to find robust daily slope
@@ -97,6 +109,8 @@ export class TrendEngine {
       weeklyRate,
       smoothedLatest,
       slopePerDay: Math.round(slopePerDay * 1000) / 1000,
+      series: rawSeries,
+      smoothedSeries,
       sufficiency: 'complete'
     };
   }

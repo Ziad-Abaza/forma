@@ -6,7 +6,7 @@ import { AnalyticsService } from '../analytics/service.js';
 import { MeasurementsService } from '../measurements/service.js';
 import { GoalsService } from '../goals/service.js';
 import { ProfileService } from '../profile/service.js';
-import { SafetyClassifier, SafetyCategory } from '../ai/safety/classifier.js';
+import { SafetyClassifier, SafetyCategory, SafetyClassificationResult } from '../ai/safety/classifier.js';
 import { LLMSafetyClassifier } from '../ai/safety/llmClassifier.js';
 import { AITraceService } from '../ai/traces/service.js';
 import { ToolRegistry, ToolExecutor } from '../ai/tools/executor.js';
@@ -43,6 +43,17 @@ export interface ChatResponse {
 export interface ChatStreamEvent {
   event: 'start' | 'status' | 'delta' | 'metrics' | 'proposal' | 'suggestions' | 'evidence' | 'done' | 'error';
   data: Record<string, any>;
+}
+
+/**
+ * State prepared by the caller (e.g. chatStream) so the conversational turn
+ * executes against the SAME conversation and does not re-persist the user message.
+ */
+export interface PreparedChatTurn {
+  conversation: Conversation;
+  history: ConversationMessage[];
+  userMessage: ConversationMessage;
+  safety: SafetyClassificationResult;
 }
 
 export class AssistantOrchestrator {
@@ -128,23 +139,28 @@ export class AssistantOrchestrator {
   async chat(
     userId: string,
     req: ChatRequest,
-    correlationId: string
+    correlationId: string,
+    prepared?: PreparedChatTurn
   ): Promise<ChatResponse> {
     const startTime = Date.now();
     const userPrompt = req.message.trim();
 
     // 1. Safety classification - Stage 1 fast keyword check
-    let safety = SafetyClassifier.classify(userPrompt);
+    let safety = prepared?.safety ?? SafetyClassifier.classify(userPrompt);
 
-    // 2. Get or create conversation
-    const conversation = await this.getOrCreateConversation(userId, req.conversationId, userPrompt);
+    // 2. Get or create conversation (reuse the caller's conversation if provided —
+    //    a fresh one here would orphan the already-persisted stream user message)
+    const conversation = prepared?.conversation
+      ?? await this.getOrCreateConversation(userId, req.conversationId, userPrompt);
 
     // 3. A3 Fix: Fetch recent history BEFORE saving current user message
     // A2 Fix: Fetch the latest 10 messages preserving chronological order
-    const history = await this.getRecentMessages(userId, conversation.id, 10);
+    const history = prepared?.history
+      ?? await this.getRecentMessages(userId, conversation.id, 10);
 
-    // 4. Persist user message (after history is captured, so current prompt appears exactly once)
-    const userMessage = await this.saveMessage(userId, {
+    // 4. Persist user message (after history is captured, so current prompt appears exactly once).
+    //    When the caller already persisted it (chatStream), reuse it — never double-save.
+    const userMessage = prepared?.userMessage ?? await this.saveMessage(userId, {
       conversationId: conversation.id,
       role: 'user',
       content: userPrompt,
@@ -471,8 +487,9 @@ export class AssistantOrchestrator {
     const safety = SafetyClassifier.classify(userPrompt);
     const conversation = await this.getOrCreateConversation(userId, req.conversationId, userPrompt);
 
-    // History before saving user message (A2 / A3)
-    await this.getRecentMessages(userId, conversation.id, 10);
+    // History before saving user message (A2 / A3) — captured so the turn can be
+    // handed to chat() without re-fetching or re-persisting anything.
+    const history = await this.getRecentMessages(userId, conversation.id, 10);
 
     const userMessage = await this.saveMessage(userId, {
       conversationId: conversation.id,
@@ -517,6 +534,7 @@ export class AssistantOrchestrator {
         data: {
           conversationId: conversation.id,
           messageId: assistantMsg.id,
+          content: redirectText,
           fullText: redirectText,
           proposals: [],
           evidenceClaims: [],
@@ -536,10 +554,17 @@ export class AssistantOrchestrator {
     // Status: generating
     yield { event: 'status', data: { stage: 'generating' } };
 
-    // Execute chat with StreamFilter hold-back buffer
+    // Execute chat with StreamFilter hold-back buffer.
+    // Hand over the prepared turn so chat() runs against THIS conversation and
+    // does not persist a duplicate user message.
     let chatResult: ChatResponse;
     try {
-      chatResult = await this.chat(userId, req, correlationId);
+      chatResult = await this.chat(userId, req, correlationId, {
+        conversation,
+        history,
+        userMessage,
+        safety
+      });
     } catch (err: any) {
       // Map to error code S02
       yield {
@@ -593,6 +618,7 @@ export class AssistantOrchestrator {
       data: {
         conversationId: chatResult.conversationId,
         messageId: chatResult.assistantMessageId,
+        content: chatResult.content,
         fullText: chatResult.content,
         proposals: chatResult.proposals,
         evidenceClaims: chatResult.evidenceClaims,

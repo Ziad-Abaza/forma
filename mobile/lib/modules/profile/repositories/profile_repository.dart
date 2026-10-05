@@ -8,18 +8,15 @@ class ProfileRepository {
   ProfileRepository({required this.apiClient});
 
   Future<ProfileModel?> getProfile() async {
-    try {
-      final resp = await apiClient.get('/api/v1/profile');
-      if (resp is Map<String, dynamic>) {
-        return ProfileModel.fromJson(resp);
-      }
-      return null;
-    } catch (_) {
-      return null;
+    final resp = await apiClient.get('/api/v1/profile');
+    if (resp is Map<String, dynamic>) {
+      return ProfileModel.fromJson(resp);
     }
+    return null;
   }
 
   Future<ProfileModel> updateProfile({
+    String? dateOfBirth,
     double? heightCm,
     String? sexForCalculation,
     String? activityLevel,
@@ -27,6 +24,7 @@ class ProfileRepository {
     List<String>? constraints,
   }) async {
     final body = <String, dynamic>{};
+    if (dateOfBirth != null) body['dateOfBirth'] = dateOfBirth;
     if (heightCm != null) body['heightCm'] = heightCm;
     if (sexForCalculation != null) body['sexForCalculation'] = sexForCalculation;
     if (activityLevel != null) body['activityLevel'] = activityLevel;

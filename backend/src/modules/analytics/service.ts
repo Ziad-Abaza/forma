@@ -19,9 +19,13 @@ export class AnalyticsService implements ExportableModule, DeletableModule {
 
   public async getTrend(userId: string, typeCode: string, windowDays: number = 30): Promise<TrendAnalysis> {
     return withUserContext(userId, async (client) => {
+      // Apply the requested time window for real: only observations within the
+      // last `windowDays` days feed the trend (7d/30d/90d/1y differ).
+      const fromDate = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
       const obs = await MeasurementsRepository.queryObservations(client, userId, {
         typeCode,
         status: 'active',
+        fromDate,
         limit: 100
       });
 

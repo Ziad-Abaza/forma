@@ -16,13 +16,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _dobController = TextEditingController(text: '1995-01-01');
-  final _heightController = TextEditingController(text: '175');
+  final _dobController = TextEditingController();
+  final _heightController = TextEditingController();
 
   String _sexForCalculation = 'unspecified';
   bool _termsConsent = false;
   bool _healthConsent = false;
-  bool _aiConsent = true;
+  bool _aiConsent = false;
   bool _obscurePassword = true;
 
   @override
@@ -49,7 +49,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _pickDate(BuildContext context) async {
-    final current = DateTime.tryParse(_dobController.text.trim()) ?? DateTime(1995, 1, 1);
+    final current = DateTime.tryParse(_dobController.text.trim()) ?? DateTime(2000, 1, 1);
     final picked = await showDatePicker(
       context: context,
       initialDate: current,
@@ -89,7 +89,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
-    final height = double.tryParse(_heightController.text.trim()) ?? 175.0;
+    final height = double.tryParse(_heightController.text.trim());
+    if (height == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.fillAllFields),
+          backgroundColor: FormaTheme.criticalCrimson,
+        ),
+      );
+      return;
+    }
 
     ref.read(authStateProvider.notifier).register(
           email: _emailController.text,
@@ -441,7 +450,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     CheckboxListTile(
                       key: const Key('consent_ai_checkbox'),
                       value: _aiConsent,
-                      onChanged: (val) => setState(() => _aiConsent = val ?? true),
+                      onChanged: (val) => setState(() => _aiConsent = val ?? false),
                       title: Text(l10n.aiConsent, style: const TextStyle(fontSize: 13)),
                       controlAffinity: ListTileControlAffinity.leading,
                       contentPadding: EdgeInsets.zero,

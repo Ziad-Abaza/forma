@@ -24,6 +24,7 @@ export class ProfileRepository {
     client: PoolClient,
     userId: string,
     updates: {
+      dateOfBirth?: string | undefined;
       heightCm?: number | undefined;
       sexForCalculation?: string | undefined;
       activityLevel?: string | undefined;
@@ -36,6 +37,10 @@ export class ProfileRepository {
     const params: unknown[] = [userId];
     let idx = 2;
 
+    if (updates.dateOfBirth !== undefined) {
+      fields.push(`date_of_birth = $${idx++}`);
+      params.push(updates.dateOfBirth);
+    }
     if (updates.heightCm !== undefined) {
       fields.push(`height_cm = $${idx++}`);
       params.push(updates.heightCm);

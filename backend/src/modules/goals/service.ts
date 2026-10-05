@@ -1,5 +1,5 @@
 import { GoalsRepository } from './repository.js';
-import type { CreateGoalRequest, UpdateGoalVersionRequest, Goal } from './contracts.js';
+import type { CreateGoalRequest, UpdateGoalVersionRequest, Goal, GoalVersion } from './contracts.js';
 import type { ExportableModule, DeletableModule } from '../privacy/index.js';
 import { MeasurementsService } from '../measurements/service.js';
 
@@ -36,6 +36,10 @@ export class GoalsService implements ExportableModule, DeletableModule {
   public async listGoals(userId: string): Promise<Goal[]> {
     const goals = await this.repo.listGoals(userId);
     return Promise.all(goals.map((g) => this.enrichGoalWithProgress(userId, g)));
+  }
+
+  public async listGoalVersions(userId: string, goalId: string): Promise<GoalVersion[]> {
+    return this.repo.listGoalVersions(userId, goalId);
   }
 
   public async exportData(userId: string): Promise<Record<string, unknown>> {

@@ -20,6 +20,14 @@ const testSnapshot = SnapshotModel(
   progressPct: 45.8,
   maintenanceCalories: 2450,
   targetCalories: 1950,
+  // Real macro values — the card no longer fabricates a 30/25/45 split,
+  // so the fixture must supply them for the labels to render.
+  proteinGrams: 140,
+  carbsGrams: 180,
+  fatGrams: 74,
+  proteinPct: 29,
+  carbsPct: 37,
+  fatPct: 34,
   recentMeasurements: [
     SnapshotMeasurementItem(
       typeCode: 'weight',

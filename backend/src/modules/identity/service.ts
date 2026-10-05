@@ -7,7 +7,7 @@ import {
   generateTokenPair
 } from '../../core/security/index.js';
 import { AuditService } from '../audit/index.js';
-import { IdentityRepository, type UserRecord } from './repository.js';
+import { IdentityRepository, type UserRecord, type SessionRecord, type ConsentRecord } from './repository.js';
 import type { RegisterRequest, LoginRequest, RefreshTokenRequest, AuthResponse, UpdatePreferencesRequest } from './contracts.js';
 
 export function calculateAge(dateOfBirth: string): number {
@@ -384,6 +384,149 @@ export class IdentityService {
         client
       );
       return updated;
+    });
+  }
+
+  /**
+   * Lists the user's sessions (refresh-token families) for device management.
+   */
+  static async listSessions(userId: string): Promise<SessionRecord[]> {
+    return await withSystemContext(async (client) => {
+      return await IdentityRepository.listSessionsForUser(client, userId);
+    });
+  }
+
+  /**
+   * Revokes a single session owned by the user (signs out that device).
+   */
+  static async revokeSession(userId: string, sessionId: string, correlationId: string): Promise<boolean> {
+    return await withSystemContext(async (client) => {
+      const revoked = await IdentityRepository.revokeSessionForUser(client, userId, sessionId);
+      if (revoked) {
+        await AuditService.recordEvent(
+          {
+            userId,
+            actorType: 'user',
+            action: 'session_revoked',
+            entityType: 'session',
+            entityId: sessionId,
+            correlationId,
+            status: 'success'
+          },
+          client
+        );
+      }
+      return revoked;
+    });
+  }
+
+  /**
+   * Revokes every active session for the user (sign out everywhere).
+   */
+  static async revokeAllSessions(userId: string, correlationId: string): Promise<number> {
+    return await withSystemContext(async (client) => {
+      const count = await IdentityRepository.revokeAllSessionsForUser(client, userId);
+      await AuditService.recordEvent(
+        {
+          userId,
+          actorType: 'user',
+          action: 'all_sessions_revoked',
+          entityType: 'user',
+          entityId: userId,
+          correlationId,
+          status: 'success',
+          metadata: { sessionsRevoked: count }
+        },
+        client
+      );
+      return count;
+    });
+  }
+
+  /**
+   * Verifies the current password, rotates the hash, and revokes all sessions
+   * so stolen tokens cannot survive a credential change.
+   */
+  static async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    correlationId: string
+  ): Promise<void> {
+    if (newPassword.length < 8) {
+      throw new Error('New password must be at least 8 characters.');
+    }
+    await withSystemContext(async (client) => {
+      const currentHash = await IdentityRepository.findPasswordHashByUserId(client, userId);
+      if (!currentHash || !(await verifyPassword(currentHash, currentPassword))) {
+        throw new Error('Current password is incorrect.');
+      }
+      const newHash = await hashPassword(newPassword);
+      await IdentityRepository.updatePasswordHash(client, userId, newHash);
+      await IdentityRepository.revokeAllSessionsForUser(client, userId);
+      await AuditService.recordEvent(
+        {
+          userId,
+          actorType: 'user',
+          action: 'password_changed',
+          entityType: 'user',
+          entityId: userId,
+          correlationId,
+          status: 'success'
+        },
+        client
+      );
+    });
+  }
+
+  /**
+   * Lists the user's consent records including withdrawn state.
+   */
+  static async listConsents(userId: string): Promise<ConsentRecord[]> {
+    return await withSystemContext(async (client) => {
+      return await IdentityRepository.listConsents(client, userId);
+    });
+  }
+
+  /**
+   * Withdraws an active consent. Only ai_third_party_processing is revocable —
+   * terms/health-data consent are required to hold an account and their
+   * removal is only possible via account deletion (privacy purge).
+   */
+  static async withdrawConsent(userId: string, policyType: string, correlationId: string): Promise<void> {
+    const withdrawable = ['ai_third_party_processing'];
+    if (!withdrawable.includes(policyType)) {
+      throw new Error(
+        `Consent '${policyType}' cannot be withdrawn while the account is active. Delete the account to revoke required consents.`
+      );
+    }
+    await withSystemContext(async (client) => {
+      const done = await IdentityRepository.withdrawLatestConsent(client, userId, policyType);
+      if (!done) {
+        throw new Error('No active consent record found for this policy.');
+      }
+      await AuditService.recordEvent(
+        {
+          userId,
+          actorType: 'user',
+          action: 'consent_withdrawn',
+          entityType: 'consent',
+          entityId: policyType,
+          correlationId,
+          status: 'success',
+          metadata: { policyType }
+        },
+        client
+      );
+    });
+  }
+
+  /**
+   * True when the user has a granted, non-withdrawn consent for the policy.
+   */
+  static async hasActiveConsent(userId: string, policyType: string): Promise<boolean> {
+    return await withSystemContext(async (client) => {
+      return await IdentityRepository.hasActiveConsent(client, userId, policyType);
     });
   }
 }

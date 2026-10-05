@@ -85,8 +85,8 @@ describe('Health Snapshot Engine & Trend Analytics Integration Tests (Real Postg
   });
 
   it('updates snapshot sections and advances watermark when observations are recorded', async () => {
-    // Record baseline weigh-in: 85 kg
-    const day1 = new Date('2026-09-20T08:00:00Z').toISOString();
+    // Record baseline weigh-in: 85 kg (15 days ago — inside the 30d trend window)
+    const day1 = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
     await MeasurementsService.recordObservation(
       userA,
       {
@@ -109,7 +109,7 @@ describe('Health Snapshot Engine & Trend Analytics Integration Tests (Real Postg
     expect(snap1.sections.energy.tdee).toBeGreaterThan(2500);
 
     // Record second weigh-in: 84.5 kg 3 days later
-    const day2 = new Date('2026-09-23T08:00:00Z').toISOString();
+    const day2 = new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString();
     await MeasurementsService.recordObservation(
       userA,
       {
@@ -126,6 +126,14 @@ describe('Health Snapshot Engine & Trend Analytics Integration Tests (Real Postg
     const snap2 = await analyticsService.getSnapshot(userA);
     expect(snap2.sections.bodyStatus.latestWeightKg).toBe(84.5);
     expect(snap2.sourceDataWatermark).not.toBe(snap1.sourceDataWatermark);
+
+    // Truthful data-quality fields: all recorded observations are 'measured'
+    expect(snap2.sections.dataQuality.measuredSharePct).toBe(100);
+    // Staleness is derived from the latest observation of any type
+    expect(snap2.sections.dataQuality.stalenessDays).toBeDefined();
+    // Real epistemic class from provenance — never a hardcoded 'measured'
+    const weightItem = snap2.sections.recentMeasurements.find((m) => m.typeCode === 'weight');
+    expect(weightItem?.epistemicClass).toBe('measured');
   });
 
   it('proves zero drift between materialized snapshot and pure recomputation', async () => {
@@ -135,9 +143,9 @@ describe('Health Snapshot Engine & Trend Analytics Integration Tests (Real Postg
   });
 
   it('detects noise-robust trend when sufficient points exist', async () => {
-    // Add 3 more points across a 10-day span
-    const day3 = new Date('2026-09-26T08:00:00Z').toISOString();
-    const day4 = new Date('2026-09-29T08:00:00Z').toISOString();
+    // Add 2 more points, 9 and 6 days ago (4 points total spanning 9 days)
+    const day3 = new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString();
+    const day4 = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
 
     await MeasurementsService.recordObservation(
       userA,
@@ -156,11 +164,16 @@ describe('Health Snapshot Engine & Trend Analytics Integration Tests (Real Postg
     expect(trend.deltaValue).toBe(-1.5); // from 85.0 to 83.5
     expect(trend.weeklyRate).toBeLessThan(0); // losing weight
     expect(trend.smoothedLatest).toBeDefined();
+
+    // windowDays is a real filter: a 1-day window sees none of the older points
+    const narrowTrend = await analyticsService.getTrend(userA, 'weight', 1);
+    expect(narrowTrend.dataPointCount).toBe(0);
+    expect(narrowTrend.sufficiency).toBe('insufficient');
   });
 
   it('flags an implausible jump anomaly when weight spikes unrealistically in 24 hours', async () => {
     // Current is 83.5 kg. Add a measurement 5 hours later of 90 kg (+6.5 kg jump!)
-    const anomalyTime = new Date('2026-09-29T13:00:00Z').toISOString();
+    const anomalyTime = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString();
     await MeasurementsService.recordObservation(
       userA,
       { typeCode: 'weight', value: 90.0, unit: 'kg', observedAt: anomalyTime },
@@ -179,6 +192,10 @@ describe('Health Snapshot Engine & Trend Analytics Integration Tests (Real Postg
     expect(userBSnap.userId).toBe(userB);
     expect(userBSnap.sections.bodyStatus.latestWeightKg).toBeUndefined();
     expect(userBSnap.sections.dataQuality.totalActiveObservations).toBe(0);
+    // No observations -> measured share is honestly null, not a fabricated 100
+    expect(userBSnap.sections.dataQuality.measuredSharePct).toBeNull();
+    // Profile default is 'sedentary' — never fabricated to 'moderately_active'
+    expect(userBSnap.sections.energy.activityLevel).toBe('sedentary');
   });
 
   it('exports and cleanly purges user analytics and snapshot data', async () => {

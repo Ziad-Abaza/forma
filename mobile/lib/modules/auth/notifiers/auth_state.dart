@@ -38,6 +38,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   AuthNotifier(this._ref, this._repository)
       : super(const AuthState(status: AuthStatus.initial)) {
+    // When a request fails even after token refresh, the ApiClient has already
+    // cleared tokens — reflect that in auth state so the router returns to login.
+    _ref.read(apiClientProvider).onSessionExpired = () {
+      state = const AuthState(status: AuthStatus.unauthenticated);
+    };
     restoreSession();
   }
 

@@ -137,7 +137,7 @@ abstract class AppLocalizations {
   /// No description provided for @dateOfBirth.
   ///
   /// In en, this message translates to:
-  /// **'Date of Birth'**
+  /// **'Date of Birth (YYYY-MM-DD)'**
   String get dateOfBirth;
 
   /// No description provided for @height.
@@ -692,132 +692,6 @@ abstract class AppLocalizations {
   /// **'Extracted Metrics'**
   String get extractedMetricsTitle;
 
-  /// No description provided for @syncScreenTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Connected Devices & Sync'**
-  String get syncScreenTitle;
-
-  /// No description provided for @healthConnect.
-  ///
-  /// In en, this message translates to:
-  /// **'Health Connect'**
-  String get healthConnect;
-
-  /// No description provided for @appleHealth.
-  ///
-  /// In en, this message translates to:
-  /// **'Apple Health'**
-  String get appleHealth;
-
-  /// No description provided for @garmin.
-  ///
-  /// In en, this message translates to:
-  /// **'Garmin Connect'**
-  String get garmin;
-
-  /// No description provided for @withings.
-  ///
-  /// In en, this message translates to:
-  /// **'Withings Health Mate'**
-  String get withings;
-
-  /// No description provided for @oura.
-  ///
-  /// In en, this message translates to:
-  /// **'Oura Ring'**
-  String get oura;
-
-  /// No description provided for @fitbit.
-  ///
-  /// In en, this message translates to:
-  /// **'Fitbit'**
-  String get fitbit;
-
-  /// No description provided for @lastSynced.
-  ///
-  /// In en, this message translates to:
-  /// **'Last synced: {time}'**
-  String lastSynced(String time);
-
-  /// No description provided for @syncNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync Now'**
-  String get syncNow;
-
-  /// No description provided for @syncing.
-  ///
-  /// In en, this message translates to:
-  /// **'Syncing...'**
-  String get syncing;
-
-  /// No description provided for @connectedStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Connected'**
-  String get connectedStatus;
-
-  /// No description provided for @disconnectedStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Disconnected'**
-  String get disconnectedStatus;
-
-  /// No description provided for @connect.
-  ///
-  /// In en, this message translates to:
-  /// **'Connect'**
-  String get connect;
-
-  /// No description provided for @disconnect.
-  ///
-  /// In en, this message translates to:
-  /// **'Disconnect'**
-  String get disconnect;
-
-  /// No description provided for @syncFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync failed. Please try again.'**
-  String get syncFailed;
-
-  /// No description provided for @connectionUpdateFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t update the connection. Please try again.'**
-  String get connectionUpdateFailed;
-
-  /// No description provided for @integrationsLoadError.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load your device connections.'**
-  String get integrationsLoadError;
-
-  /// No description provided for @noIntegrationsAvailable.
-  ///
-  /// In en, this message translates to:
-  /// **'No device integrations are available right now.'**
-  String get noIntegrationsAvailable;
-
-  /// No description provided for @epistemicResolutionHeader.
-  ///
-  /// In en, this message translates to:
-  /// **'Conflict Resolution & Provenance'**
-  String get epistemicResolutionHeader;
-
-  /// No description provided for @epistemicResolutionDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Direct device readings supersede manual assertions deterministically without loss of history.'**
-  String get epistemicResolutionDesc;
-
-  /// No description provided for @privacyDataSection.
-  ///
-  /// In en, this message translates to:
-  /// **'Data Privacy & Management'**
-  String get privacyDataSection;
-
   /// No description provided for @exportUserData.
   ///
   /// In en, this message translates to:
@@ -829,12 +703,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete Account & Purge Data'**
   String get purgeAccount;
-
-  /// No description provided for @exportSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'Data export generated successfully.'**
-  String get exportSuccess;
 
   /// No description provided for @purgeConfirmation.
   ///
@@ -920,11 +788,161 @@ abstract class AppLocalizations {
   /// **'An error occurred'**
   String get errorOccurred;
 
+  /// No description provided for @noMeasurementTypesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No measurement types are available right now.'**
+  String get noMeasurementTypesAvailable;
+
+  /// No description provided for @dataQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Quality'**
+  String get dataQuality;
+
+  /// No description provided for @observationsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Observations'**
+  String get observationsLabel;
+
+  /// No description provided for @measuredShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Measured Share'**
+  String get measuredShare;
+
+  /// No description provided for @staleness.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Age'**
+  String get staleness;
+
+  /// No description provided for @noAnomaliesDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'No anomalies detected in your records.'**
+  String get noAnomaliesDetected;
+
+  /// No description provided for @pendingReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Reviews'**
+  String get pendingReviews;
+
+  /// No description provided for @noPendingDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'No report extractions awaiting review.'**
+  String get noPendingDrafts;
+
+  /// No description provided for @reviewAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get reviewAction;
+
+  /// No description provided for @goalHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal History'**
+  String get goalHistory;
+
+  /// No description provided for @noGoalVersions.
+  ///
+  /// In en, this message translates to:
+  /// **'No goal versions recorded yet.'**
+  String get noGoalVersions;
+
+  /// No description provided for @profileHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile History'**
+  String get profileHistory;
+
+  /// No description provided for @noProfileChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'No changes recorded yet.'**
+  String get noProfileChanges;
+
+  /// No description provided for @invalidDobFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Use YYYY-MM-DD format'**
+  String get invalidDobFormat;
+
+  /// No description provided for @invalidDobAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Must be a valid adult birthdate'**
+  String get invalidDobAge;
+
+  /// No description provided for @trainingExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'Training Experience'**
+  String get trainingExperience;
+
+  /// No description provided for @experienceBeginner.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner'**
+  String get experienceBeginner;
+
+  /// No description provided for @experienceIntermediate.
+  ///
+  /// In en, this message translates to:
+  /// **'Intermediate'**
+  String get experienceIntermediate;
+
+  /// No description provided for @experienceAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get experienceAdvanced;
+
+  /// No description provided for @addConstraintHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add constraint (e.g. knee injury)'**
+  String get addConstraintHint;
+
   /// No description provided for @sexForCalculation.
   ///
   /// In en, this message translates to:
   /// **'Sex (for calculations)'**
   String get sexForCalculation;
+
+  /// No description provided for @physicalActivityLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Physical Activity Level'**
+  String get physicalActivityLevel;
+
+  /// No description provided for @calculationParams.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculation-Relevant Parameters'**
+  String get calculationParams;
+
+  /// No description provided for @profileUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated successfully'**
+  String get profileUpdated;
+
+  /// No description provided for @heightCmLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Height (cm)'**
+  String get heightCmLabel;
+
+  /// No description provided for @heightValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid height between 80 and 250 cm'**
+  String get heightValidation;
 
   /// No description provided for @exportData.
   ///
@@ -1423,6 +1441,372 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total Daily Energy Expenditure'**
   String get tdeeLabel;
+
+  /// No description provided for @unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get unknown;
+
+  /// No description provided for @securitySectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Security & Sessions'**
+  String get securitySectionTitle;
+
+  /// No description provided for @securitySectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your password and signed-in devices'**
+  String get securitySectionSubtitle;
+
+  /// No description provided for @sessionsListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed-In Sessions'**
+  String get sessionsListTitle;
+
+  /// No description provided for @sessionUnknownDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown device'**
+  String get sessionUnknownDevice;
+
+  /// No description provided for @sessionCreatedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Created {date}'**
+  String sessionCreatedLabel(Object date);
+
+  /// No description provided for @sessionRevokedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoked'**
+  String get sessionRevokedBadge;
+
+  /// No description provided for @revokeSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke'**
+  String get revokeSession;
+
+  /// No description provided for @sessionRevokedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Session revoked'**
+  String get sessionRevokedSuccess;
+
+  /// No description provided for @sessionActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Session action failed: {error}'**
+  String sessionActionFailed(Object error);
+
+  /// No description provided for @signOutAllDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out All Devices'**
+  String get signOutAllDevices;
+
+  /// No description provided for @signOutAllConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out everywhere?'**
+  String get signOutAllConfirmTitle;
+
+  /// No description provided for @signOutAllConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'All sessions on every device — including this one — will be signed out.'**
+  String get signOutAllConfirmBody;
+
+  /// No description provided for @signOutAllSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed out of all devices'**
+  String get signOutAllSuccess;
+
+  /// No description provided for @sessionsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions found'**
+  String get sessionsEmpty;
+
+  /// No description provided for @sessionsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load sessions: {error}'**
+  String sessionsLoadError(Object error);
+
+  /// No description provided for @changePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePassword;
+
+  /// No description provided for @changePasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your password — you will be signed out on all devices'**
+  String get changePasswordSubtitle;
+
+  /// No description provided for @currentPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Password'**
+  String get currentPasswordLabel;
+
+  /// No description provided for @newPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New Password'**
+  String get newPasswordLabel;
+
+  /// No description provided for @changePasswordFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Password change failed: {error}'**
+  String changePasswordFailed(Object error);
+
+  /// No description provided for @changePasswordSuccessFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Password updated. Please sign in again.'**
+  String get changePasswordSuccessFallback;
+
+  /// No description provided for @consentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Consent & Privacy'**
+  String get consentsTitle;
+
+  /// No description provided for @consentsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review and manage the consents tied to your account'**
+  String get consentsSubtitle;
+
+  /// No description provided for @consentPolicyTermsOfService.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get consentPolicyTermsOfService;
+
+  /// No description provided for @consentPolicyHealthData.
+  ///
+  /// In en, this message translates to:
+  /// **'Health Data Processing'**
+  String get consentPolicyHealthData;
+
+  /// No description provided for @consentPolicyAiThirdParty.
+  ///
+  /// In en, this message translates to:
+  /// **'Third-Party AI Processing'**
+  String get consentPolicyAiThirdParty;
+
+  /// No description provided for @consentGrantedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Granted {date}'**
+  String consentGrantedOn(Object date);
+
+  /// No description provided for @consentWithdrawnOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawn {date}'**
+  String consentWithdrawnOn(Object date);
+
+  /// No description provided for @consentVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String consentVersionLabel(Object version);
+
+  /// No description provided for @consentWithdrawButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw'**
+  String get consentWithdrawButton;
+
+  /// No description provided for @consentWithdrawConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw consent for third-party AI processing? AI-powered features will stop working.'**
+  String get consentWithdrawConfirm;
+
+  /// No description provided for @consentWithdrawnSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Consent withdrawn'**
+  String get consentWithdrawnSuccess;
+
+  /// No description provided for @consentWithdrawFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to withdraw consent: {error}'**
+  String consentWithdrawFailed(Object error);
+
+  /// No description provided for @consentRequiresDeletion.
+  ///
+  /// In en, this message translates to:
+  /// **'This consent can only be withdrawn by deleting your account.'**
+  String get consentRequiresDeletion;
+
+  /// No description provided for @consentsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No consent records found'**
+  String get consentsEmpty;
+
+  /// No description provided for @consentsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load consents: {error}'**
+  String consentsLoadError(Object error);
+
+  /// No description provided for @aiModelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred AI Model'**
+  String get aiModelLabel;
+
+  /// No description provided for @aiModelUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'AI model preference saved'**
+  String get aiModelUpdated;
+
+  /// No description provided for @aiModelUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save model preference: {error}'**
+  String aiModelUpdateFailed(Object error);
+
+  /// No description provided for @conversationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations'**
+  String get conversationsTitle;
+
+  /// No description provided for @conversationsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No past conversations yet.'**
+  String get conversationsEmpty;
+
+  /// No description provided for @untitledConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled conversation'**
+  String get untitledConversation;
+
+  /// No description provided for @conversationLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this conversation.'**
+  String get conversationLoadFailed;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @deleteConversationConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this conversation? This cannot be undone.'**
+  String get deleteConversationConfirm;
+
+  /// No description provided for @deleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete failed. Please try again.'**
+  String get deleteFailed;
+
+  /// No description provided for @memoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant Memory'**
+  String get memoriesTitle;
+
+  /// No description provided for @memoriesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No memories yet. Forma stores durable preferences, facts, routines, and constraints here.'**
+  String get memoriesEmpty;
+
+  /// No description provided for @addMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Memory'**
+  String get addMemory;
+
+  /// No description provided for @memoryCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get memoryCategory;
+
+  /// No description provided for @memoryKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get memoryKey;
+
+  /// No description provided for @memoryKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. preferred_units'**
+  String get memoryKeyHint;
+
+  /// No description provided for @memoryValueHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. kilograms'**
+  String get memoryValueHint;
+
+  /// No description provided for @memoryCategoryPreference.
+  ///
+  /// In en, this message translates to:
+  /// **'Preference'**
+  String get memoryCategoryPreference;
+
+  /// No description provided for @memoryCategoryFact.
+  ///
+  /// In en, this message translates to:
+  /// **'Fact'**
+  String get memoryCategoryFact;
+
+  /// No description provided for @memoryCategoryRoutine.
+  ///
+  /// In en, this message translates to:
+  /// **'Routine'**
+  String get memoryCategoryRoutine;
+
+  /// No description provided for @memoryCategoryConstraint.
+  ///
+  /// In en, this message translates to:
+  /// **'Constraint'**
+  String get memoryCategoryConstraint;
+
+  /// No description provided for @deleteMemoryConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this memory?'**
+  String get deleteMemoryConfirm;
+
+  /// No description provided for @memorySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Memory saved'**
+  String get memorySaved;
+
+  /// No description provided for @memorySaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save memory: {error}'**
+  String memorySaveFailed(String error);
 }
 
 class _AppLocalizationsDelegate

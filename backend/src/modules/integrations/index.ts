@@ -1,9 +1,6 @@
 import { withUserContext, withPurgeContext } from '../../core/database/index.js';
 import type { ModulePrivacyContract, ExportPayload, DeletionResult } from '../privacy/index.js';
 
-export * from './contracts.js';
-export * from './sync.js';
-
 export class IntegrationsPrivacyContract implements ModulePrivacyContract {
   public readonly moduleName = 'integrations';
 

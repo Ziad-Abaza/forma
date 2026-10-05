@@ -69,6 +69,7 @@ class DraftReviewState {
   final bool isSubmitting;
   final String? committedReceipt;
   final bool isDiscarded;
+  final String? actionError;
 
   const DraftReviewState({
     required this.draftId,
@@ -81,6 +82,7 @@ class DraftReviewState {
     this.isSubmitting = false,
     this.committedReceipt,
     this.isDiscarded = false,
+    this.actionError,
   });
 
   bool get hasAttentionFields => fields.any((f) => f.requiresFieldAttention);
@@ -93,6 +95,8 @@ class DraftReviewState {
     bool? isSubmitting,
     String? committedReceipt,
     bool? isDiscarded,
+    String? actionError,
+    bool clearError = false,
   }) {
     return DraftReviewState(
       draftId: draftId,
@@ -105,31 +109,67 @@ class DraftReviewState {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       committedReceipt: committedReceipt ?? this.committedReceipt,
       isDiscarded: isDiscarded ?? this.isDiscarded,
+      actionError: clearError ? null : (actionError ?? this.actionError),
     );
   }
 }
 
 class DraftReviewNotifier extends StateNotifier<DraftReviewState> {
-  DraftReviewNotifier(super.initial);
+  final MultimodalRepository? repository;
 
-  void toggleApproval(int index) {
+  DraftReviewNotifier(super.initial, {this.repository});
+
+  /// Persists a field approval change to the backend draft; reverts on failure.
+  Future<void> toggleApproval(int index) async {
     if (index < 0 || index >= state.fields.length) return;
     final updatedList = List<ExtractedFieldItem>.from(state.fields);
-    updatedList[index] = updatedList[index].copyWith(
-      isApproved: !updatedList[index].isApproved,
-    );
-    state = state.copyWith(fields: updatedList);
+    final newApproval = !updatedList[index].isApproved;
+    updatedList[index] = updatedList[index].copyWith(isApproved: newApproval);
+    state = state.copyWith(fields: updatedList, clearError: true);
+
+    try {
+      await repository?.updateDraftField(
+        draftId: state.draftId,
+        fieldIndex: index,
+        isApproved: newApproval,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final reverted = List<ExtractedFieldItem>.from(state.fields);
+      if (index < reverted.length) {
+        reverted[index] = reverted[index].copyWith(isApproved: !newApproval);
+      }
+      state = state.copyWith(fields: reverted, actionError: e.toString());
+    }
   }
 
-  void editFieldValue(int index, double newValue) {
+  /// Persists a user-corrected value to the backend draft; reverts on failure.
+  Future<void> editFieldValue(int index, double newValue) async {
     if (index < 0 || index >= state.fields.length) return;
+    final previous = state.fields[index];
     final updatedList = List<ExtractedFieldItem>.from(state.fields);
     updatedList[index] = updatedList[index].copyWith(
       userEditedValue: newValue,
       canonicalValue: newValue,
       isApproved: true,
     );
-    state = state.copyWith(fields: updatedList, status: 'reviewed');
+    state = state.copyWith(fields: updatedList, status: 'reviewed', clearError: true);
+
+    try {
+      await repository?.updateDraftField(
+        draftId: state.draftId,
+        fieldIndex: index,
+        userEditedValue: newValue,
+        isApproved: true,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final reverted = List<ExtractedFieldItem>.from(state.fields);
+      if (index < reverted.length) {
+        reverted[index] = previous;
+      }
+      state = state.copyWith(fields: reverted, actionError: e.toString());
+    }
   }
 
   void setDeleteSourceImage(bool value) {
@@ -137,55 +177,59 @@ class DraftReviewNotifier extends StateNotifier<DraftReviewState> {
   }
 
   Future<void> commitDraft({
-    Future<String> Function(DraftReviewState)? onCommit,
+    Future<String?> Function(DraftReviewState)? onCommit,
     MultimodalRepository? repository,
   }) async {
-    if (state.approvedCount == 0) return;
-    state = state.copyWith(isSubmitting: true);
+    if (state.approvedCount == 0 || state.isSubmitting) return;
+    state = state.copyWith(isSubmitting: true, clearError: true);
+    final repo = repository ?? this.repository;
     try {
+      String? receipt;
       if (onCommit != null) {
-        final receipt = await onCommit(state);
-        state = state.copyWith(
-          isSubmitting: false,
-          status: 'committed',
-          committedReceipt: receipt,
-        );
-      } else if (repository != null) {
-        final res = await repository.commitDraft(
+        receipt = await onCommit(state);
+      } else if (repo != null) {
+        final res = await repo.commitDraft(
           draftId: state.draftId,
           deleteSourceImage: state.deleteSourceImage,
         );
         final receiptMap = res['receipt'] as Map<String, dynamic>?;
-        final receiptId = receiptMap?['receiptId'] as String? ?? 'rcpt_multimodal_${state.draftId.substring(0, 8)}';
-        state = state.copyWith(
-          isSubmitting: false,
-          status: 'committed',
-          committedReceipt: receiptId,
-        );
-      } else {
-        state = state.copyWith(
-          isSubmitting: false,
-          status: 'committed',
-          committedReceipt: 'rcpt_multimodal_${state.draftId.substring(0, 8)}',
-        );
+        receipt = receiptMap?['receiptId'] as String?;
       }
-    } catch (_) {
-      state = state.copyWith(isSubmitting: false);
+      if (!mounted) return;
+      state = state.copyWith(
+        isSubmitting: false,
+        status: 'committed',
+        committedReceipt: receipt,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(isSubmitting: false, actionError: e.toString());
     }
   }
 
-  void discardDraft() {
+  /// Discards the draft server-side. Returns true only when the backend
+  /// confirmed the discard — the caller decides navigation.
+  Future<bool> discardDraft() async {
+    try {
+      await repository?.discardDraft(state.draftId);
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(actionError: e.toString());
+      return false;
+    }
+    if (!mounted) return false;
     state = state.copyWith(status: 'discarded', isDiscarded: true);
+    return true;
   }
 }
 
 final multimodalDraftProvider = StateNotifierProvider.family<DraftReviewNotifier, DraftReviewState, DraftReviewState>(
-  (ref, initial) => DraftReviewNotifier(initial),
+  (ref, initial) => DraftReviewNotifier(initial, repository: ref.watch(multimodalRepositoryProvider)),
 );
 
 class MultimodalReviewScreen extends ConsumerWidget {
   final DraftReviewState initialDraft;
-  final Future<String> Function(DraftReviewState)? onCommit;
+  final Future<String?> Function(DraftReviewState)? onCommit;
   final VoidCallback? onDiscard;
 
   const MultimodalReviewScreen({
@@ -247,7 +291,7 @@ class MultimodalReviewScreen extends ConsumerWidget {
       );
     }
 
-    if (state.committedReceipt != null) {
+    if (state.status == 'committed') {
       return Scaffold(
         appBar: AppBar(
           titleSpacing: 12,
@@ -286,12 +330,14 @@ class MultimodalReviewScreen extends ConsumerWidget {
                         color: FormaTheme.successGreen,
                       ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  l10n.actionReceiptId(state.committedReceipt!),
-                  style: const TextStyle(fontFamily: 'monospace', color: FormaTheme.textSecondary),
-                  textAlign: TextAlign.center,
-                ),
+                if (state.committedReceipt != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.actionReceiptId(state.committedReceipt!),
+                    style: const TextStyle(fontFamily: 'monospace', color: FormaTheme.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).maybePop(),
@@ -328,9 +374,9 @@ class MultimodalReviewScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              notifier.discardDraft();
-              if (onDiscard != null) onDiscard!();
+            onPressed: () async {
+              final ok = await notifier.discardDraft();
+              if (ok && onDiscard != null) onDiscard!();
             },
             child: Text(
               l10n.discardDraft,
@@ -465,6 +511,24 @@ class MultimodalReviewScreen extends ConsumerWidget {
             ),
 
             const SizedBox(height: 24),
+
+            // Action error surface (commit/discard/field-sync failures)
+            if (state.actionError != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: FormaTheme.criticalCrimson.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: FormaTheme.criticalCrimson),
+                ),
+                child: Text(
+                  l10n.errorOccurred,
+                  style: const TextStyle(color: FormaTheme.criticalCrimson, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Commit Button
             ElevatedButton.icon(

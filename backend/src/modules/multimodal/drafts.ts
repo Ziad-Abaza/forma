@@ -1,4 +1,5 @@
 import fs from 'fs';
+import crypto from 'crypto';
 import { withUserContext } from '../../core/database/index.js';
 import { normalizeToCanonical } from '../../core/units/index.js';
 import { MeasurementsService } from '../measurements/service.js';
@@ -11,13 +12,39 @@ import {
 } from './contracts.js';
 import { mapExtractionDraftRow } from './extractor.js';
 
+export interface CommitDraftReceipt {
+  receiptId: string;
+  committedAt: string;
+  observationIds: string[];
+  draftId: string;
+}
+
 export interface CommitDraftResult {
   draft: ExtractionDraft;
   observationsCommitted: number;
   sourceImageDeleted: boolean;
+  receipt: CommitDraftReceipt;
 }
 
 export class DraftReviewService {
+  /**
+   * Lists the user's extraction drafts, optionally filtered by status
+   * (e.g. 'draft' for pending-review items on the dashboard).
+   */
+  static async listDrafts(userId: string, status?: string): Promise<ExtractionDraft[]> {
+    return await withUserContext(userId, async (client) => {
+      const params: unknown[] = [userId];
+      let sql = `SELECT * FROM extraction_drafts WHERE user_id = $1`;
+      if (status) {
+        params.push(status);
+        sql += ` AND status = $${params.length}`;
+      }
+      sql += ` ORDER BY created_at DESC LIMIT 50`;
+      const res = await client.query(sql, params);
+      return res.rows.map(mapExtractionDraftRow);
+    });
+  }
+
   /**
    * Retrieves a draft by ID scoped to the authenticated user.
    */
@@ -127,6 +154,7 @@ export class DraftReviewService {
 
     const observedAt = options.observedAt || new Date().toISOString();
     let observationsCommitted = 0;
+    const observationIds: string[] = [];
 
     // Commit each approved observation with strict provenance
     for (const field of approvedFields) {
@@ -142,7 +170,7 @@ export class DraftReviewService {
           ? 'user_corrected'
           : 'user_reviewed';
 
-      await MeasurementsService.recordObservation(
+      const recorded = await MeasurementsService.recordObservation(
         userId,
         {
           typeCode: field.typeCode,
@@ -159,6 +187,7 @@ export class DraftReviewService {
         correlationId
       );
 
+      observationIds.push(recorded.observation.id);
       observationsCommitted++;
     }
 
@@ -227,10 +256,19 @@ export class DraftReviewService {
       }
     });
 
+    // Truthful server-generated receipt for the committed write set
+    const receipt: CommitDraftReceipt = {
+      receiptId: crypto.randomUUID(),
+      committedAt: updatedDraft.committedAt || new Date().toISOString(),
+      observationIds,
+      draftId: updatedDraft.id
+    };
+
     return {
       draft: updatedDraft,
       observationsCommitted,
-      sourceImageDeleted
+      sourceImageDeleted,
+      receipt
     };
   }
 

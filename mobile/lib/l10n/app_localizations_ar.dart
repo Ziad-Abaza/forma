@@ -28,7 +28,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get password => 'كلمة المرور';
 
   @override
-  String get dateOfBirth => 'تاريخ الميلاد';
+  String get dateOfBirth => 'تاريخ الميلاد (YYYY-MM-DD)';
 
   @override
   String get height => 'الطول';
@@ -320,79 +320,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get extractedMetricsTitle => 'المؤشرات المستخرجة';
 
   @override
-  String get syncScreenTitle => 'الأجهزة المتصلة والمزامنة';
-
-  @override
-  String get healthConnect => 'هيلث كونيكت';
-
-  @override
-  String get appleHealth => 'آبل هيلث';
-
-  @override
-  String get garmin => 'جارمن كونيكت';
-
-  @override
-  String get withings => 'ويذينجز';
-
-  @override
-  String get oura => 'أورا رينج';
-
-  @override
-  String get fitbit => 'فيتبيت';
-
-  @override
-  String lastSynced(String time) {
-    return 'آخر مزامنة: $time';
-  }
-
-  @override
-  String get syncNow => 'مزامنة الآن';
-
-  @override
-  String get syncing => 'جاري المزامنة...';
-
-  @override
-  String get connectedStatus => 'متصل';
-
-  @override
-  String get disconnectedStatus => 'غير متصل';
-
-  @override
-  String get connect => 'ربط';
-
-  @override
-  String get disconnect => 'إلغاء الربط';
-
-  @override
-  String get syncFailed => 'فشلت المزامنة. حاول مرة أخرى.';
-
-  @override
-  String get connectionUpdateFailed => 'تعذر تحديث الاتصال. حاول مرة أخرى.';
-
-  @override
-  String get integrationsLoadError => 'تعذر تحميل اتصالات الأجهزة.';
-
-  @override
-  String get noIntegrationsAvailable => 'لا توجد تكاملات أجهزة متاحة حالياً.';
-
-  @override
-  String get epistemicResolutionHeader => 'فض التضارب ومصدر البيانات';
-
-  @override
-  String get epistemicResolutionDesc =>
-      'قراءات الأجهزة المباشرة تتفوق نظامياً على الإدخالات اليدوية دون فقدان السجل التاريخي.';
-
-  @override
-  String get privacyDataSection => 'خصوصية البيانات وإدارتها';
-
-  @override
   String get exportUserData => 'تصدير البيانات الصحية (GDPR)';
 
   @override
   String get purgeAccount => 'حذف الحساب ومسح البيانات';
-
-  @override
-  String get exportSuccess => 'تم إنشاء تصدير البيانات بنجاح.';
 
   @override
   String get purgeConfirmation =>
@@ -440,7 +371,83 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errorOccurred => 'حدث خطأ';
 
   @override
+  String get noMeasurementTypesAvailable =>
+      'لا توجد أنواع قياسات متاحة حالياً.';
+
+  @override
+  String get dataQuality => 'جودة البيانات';
+
+  @override
+  String get observationsLabel => 'القياسات';
+
+  @override
+  String get measuredShare => 'نسبة القياسات الفعلية';
+
+  @override
+  String get staleness => 'عمر البيانات';
+
+  @override
+  String get noAnomaliesDetected => 'لم يتم رصد أي شذوذ في سجلاتك.';
+
+  @override
+  String get pendingReviews => 'مراجعات معلقة';
+
+  @override
+  String get noPendingDrafts => 'لا توجد استخراجات تقارير بانتظار المراجعة.';
+
+  @override
+  String get reviewAction => 'مراجعة';
+
+  @override
+  String get goalHistory => 'سجل الهدف';
+
+  @override
+  String get noGoalVersions => 'لا توجد نسخ للهدف بعد.';
+
+  @override
+  String get profileHistory => 'سجل الملف الشخصي';
+
+  @override
+  String get noProfileChanges => 'لم يتم تسجيل أي تغييرات بعد.';
+
+  @override
+  String get invalidDobFormat => 'استخدم التنسيق YYYY-MM-DD';
+
+  @override
+  String get invalidDobAge => 'يجب أن يكون تاريخ ميلاد صالحاً لشخص بالغ';
+
+  @override
+  String get trainingExperience => 'خبرة التدريب';
+
+  @override
+  String get experienceBeginner => 'مبتدئ';
+
+  @override
+  String get experienceIntermediate => 'متوسط';
+
+  @override
+  String get experienceAdvanced => 'متقدم';
+
+  @override
+  String get addConstraintHint => 'أضف قيداً (مثل: إصابة ركبة)';
+
+  @override
   String get sexForCalculation => 'الجنس (للحسابات الحيوية)';
+
+  @override
+  String get physicalActivityLevel => 'مستوى النشاط البدني';
+
+  @override
+  String get calculationParams => 'معاملات الحساب';
+
+  @override
+  String get profileUpdated => 'تم تحديث الملف الشخصي بنجاح';
+
+  @override
+  String get heightCmLabel => 'الطول (سم)';
+
+  @override
+  String get heightValidation => 'أدخل طولاً صحيحاً بين 80 و 250 سم';
 
   @override
   String get exportData => 'تصدير البيانات';
@@ -727,4 +734,216 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get tdeeLabel => 'إجمالي استهلاك الطاقة اليومي (TDEE)';
+
+  @override
+  String get unknown => 'غير معروف';
+
+  @override
+  String get securitySectionTitle => 'الأمان والجلسات';
+
+  @override
+  String get securitySectionSubtitle => 'إدارة كلمة المرور والأجهزة المسجلة';
+
+  @override
+  String get sessionsListTitle => 'الجلسات المسجلة';
+
+  @override
+  String get sessionUnknownDevice => 'جهاز غير معروف';
+
+  @override
+  String sessionCreatedLabel(Object date) {
+    return 'أُنشئت في $date';
+  }
+
+  @override
+  String get sessionRevokedBadge => 'ملغاة';
+
+  @override
+  String get revokeSession => 'إلغاء الجلسة';
+
+  @override
+  String get sessionRevokedSuccess => 'تم إلغاء الجلسة';
+
+  @override
+  String sessionActionFailed(Object error) {
+    return 'فشل إجراء الجلسة: $error';
+  }
+
+  @override
+  String get signOutAllDevices => 'تسجيل الخروج من جميع الأجهزة';
+
+  @override
+  String get signOutAllConfirmTitle => 'تسجيل الخروج من كل مكان؟';
+
+  @override
+  String get signOutAllConfirmBody =>
+      'سيتم تسجيل الخروج من جميع الجلسات على كل الأجهزة — بما في ذلك هذا الجهاز.';
+
+  @override
+  String get signOutAllSuccess => 'تم تسجيل الخروج من جميع الأجهزة';
+
+  @override
+  String get sessionsEmpty => 'لا توجد جلسات';
+
+  @override
+  String sessionsLoadError(Object error) {
+    return 'تعذر تحميل الجلسات: $error';
+  }
+
+  @override
+  String get changePassword => 'تغيير كلمة المرور';
+
+  @override
+  String get changePasswordSubtitle =>
+      'حدّث كلمة المرور — سيتم تسجيل خروجك من جميع الأجهزة';
+
+  @override
+  String get currentPasswordLabel => 'كلمة المرور الحالية';
+
+  @override
+  String get newPasswordLabel => 'كلمة المرور الجديدة';
+
+  @override
+  String changePasswordFailed(Object error) {
+    return 'فشل تغيير كلمة المرور: $error';
+  }
+
+  @override
+  String get changePasswordSuccessFallback =>
+      'تم تحديث كلمة المرور. يرجى تسجيل الدخول مرة أخرى.';
+
+  @override
+  String get consentsTitle => 'الموافقات والخصوصية';
+
+  @override
+  String get consentsSubtitle => 'راجع وأدر الموافقات المرتبطة بحسابك';
+
+  @override
+  String get consentPolicyTermsOfService => 'شروط الخدمة';
+
+  @override
+  String get consentPolicyHealthData => 'معالجة البيانات الصحية';
+
+  @override
+  String get consentPolicyAiThirdParty => 'معالجة الذكاء الاصطناعي الخارجية';
+
+  @override
+  String consentGrantedOn(Object date) {
+    return 'مُنحت في $date';
+  }
+
+  @override
+  String consentWithdrawnOn(Object date) {
+    return 'سُحبت في $date';
+  }
+
+  @override
+  String consentVersionLabel(Object version) {
+    return 'الإصدار $version';
+  }
+
+  @override
+  String get consentWithdrawButton => 'سحب الموافقة';
+
+  @override
+  String get consentWithdrawConfirm =>
+      'سحب الموافقة على معالجة الذكاء الاصطناعي الخارجية؟ ستتوقف الميزات المعتمدة على الذكاء الاصطناعي.';
+
+  @override
+  String get consentWithdrawnSuccess => 'تم سحب الموافقة';
+
+  @override
+  String consentWithdrawFailed(Object error) {
+    return 'فشل سحب الموافقة: $error';
+  }
+
+  @override
+  String get consentRequiresDeletion =>
+      'لا يمكن سحب هذه الموافقة إلا بحذف حسابك.';
+
+  @override
+  String get consentsEmpty => 'لا توجد سجلات موافقة';
+
+  @override
+  String consentsLoadError(Object error) {
+    return 'تعذر تحميل الموافقات: $error';
+  }
+
+  @override
+  String get aiModelLabel => 'نموذج الذكاء الاصطناعي المفضل';
+
+  @override
+  String get aiModelUpdated => 'تم حفظ تفضيل النموذج';
+
+  @override
+  String aiModelUpdateFailed(Object error) {
+    return 'فشل حفظ تفضيل النموذج: $error';
+  }
+
+  @override
+  String get conversationsTitle => 'المحادثات';
+
+  @override
+  String get conversationsEmpty => 'لا توجد محادثات سابقة بعد.';
+
+  @override
+  String get untitledConversation => 'محادثة بدون عنوان';
+
+  @override
+  String get conversationLoadFailed => 'تعذر تحميل هذه المحادثة.';
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get deleteConversationConfirm =>
+      'هل تريد حذف هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get deleteFailed => 'فشل الحذف. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get memoriesTitle => 'ذاكرة المساعد';
+
+  @override
+  String get memoriesEmpty =>
+      'لا توجد ذكريات بعد. يحتفظ Forma بالتفضيلات والحقائق والروتين والقيود الدائمة هنا.';
+
+  @override
+  String get addMemory => 'إضافة ذاكرة';
+
+  @override
+  String get memoryCategory => 'الفئة';
+
+  @override
+  String get memoryKey => 'المفتاح';
+
+  @override
+  String get memoryKeyHint => 'مثال: preferred_units';
+
+  @override
+  String get memoryValueHint => 'مثال: kilograms';
+
+  @override
+  String get memoryCategoryPreference => 'تفضيل';
+
+  @override
+  String get memoryCategoryFact => 'حقيقة';
+
+  @override
+  String get memoryCategoryRoutine => 'روتين';
+
+  @override
+  String get memoryCategoryConstraint => 'قيد';
+
+  @override
+  String get deleteMemoryConfirm => 'هل تريد حذف هذه الذاكرة؟';
+
+  @override
+  String get memorySaved => 'تم حفظ الذاكرة';
+
+  @override
+  String memorySaveFailed(String error) {
+    return 'تعذر حفظ الذاكرة: $error';
+  }
 }

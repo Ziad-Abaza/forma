@@ -6,6 +6,26 @@ import 'package:forma/core/theme.dart';
 import 'package:forma/core/providers.dart';
 import 'package:forma/l10n/app_localizations.dart';
 import 'package:forma/presentation/screens/multimodal_review_screen.dart';
+import 'package:forma/modules/multimodal/repositories/multimodal_repository.dart';
+
+/// Field edits/approvals are now persisted server-side; without this fake the
+/// notifier would hit the network and revert local state on failure.
+class _FakeMultimodalRepository extends MultimodalRepository {
+  _FakeMultimodalRepository({required super.apiClient});
+
+  @override
+  Future<Map<String, dynamic>> updateDraftField({
+    required String draftId,
+    required int fieldIndex,
+    double? userEditedValue,
+    String? userEditedUnit,
+    bool? isApproved,
+  }) async =>
+      {'draft': {'id': draftId}};
+
+  @override
+  Future<Map<String, dynamic>> discardDraft(String draftId) async => {'success': true};
+}
 
 void main() {
   FlutterSecureStorage.setMockInitialValues({});
@@ -54,6 +74,9 @@ void main() {
     return ProviderScope(
       overrides: [
         localeProvider.overrideWith((ref) => locale),
+        multimodalRepositoryProvider.overrideWith(
+          (ref) => _FakeMultimodalRepository(apiClient: ref.watch(apiClientProvider)),
+        ),
       ],
       child: MaterialApp(
         locale: locale,

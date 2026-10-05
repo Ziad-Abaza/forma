@@ -24,6 +24,16 @@ export interface SessionRecord {
   updated_at: Date;
 }
 
+export interface ConsentRecord {
+  id: string;
+  user_id: string;
+  policy_type: string;
+  version: string;
+  granted: boolean;
+  granted_at: Date;
+  withdrawn_at: Date | null;
+}
+
 export class IdentityRepository {
   static async createUser(
     client: PoolClient,
@@ -124,6 +134,71 @@ export class IdentityRepository {
       [userId, familyId]
     );
     return res.rowCount || 0;
+  }
+
+  static async listSessionsForUser(client: PoolClient, userId: string): Promise<SessionRecord[]> {
+    const res = await client.query(
+      `SELECT id, user_id, device_info, family_id, is_revoked, expires_at, created_at, updated_at
+       FROM sessions WHERE user_id = $1 ORDER BY created_at DESC`,
+      [userId]
+    );
+    return res.rows as SessionRecord[];
+  }
+
+  static async revokeSessionForUser(client: PoolClient, userId: string, sessionId: string): Promise<boolean> {
+    const res = await client.query(
+      'UPDATE sessions SET is_revoked = true, updated_at = NOW() WHERE id = $1 AND user_id = $2',
+      [sessionId, userId]
+    );
+    return (res.rowCount || 0) > 0;
+  }
+
+  static async revokeAllSessionsForUser(client: PoolClient, userId: string): Promise<number> {
+    const res = await client.query(
+      'UPDATE sessions SET is_revoked = true, updated_at = NOW() WHERE user_id = $1 AND is_revoked = false',
+      [userId]
+    );
+    return res.rowCount || 0;
+  }
+
+  static async updatePasswordHash(client: PoolClient, userId: string, passwordHash: string): Promise<void> {
+    await client.query(
+      'UPDATE credentials SET password_hash = $1, updated_at = NOW() WHERE user_id = $2',
+      [passwordHash, userId]
+    );
+  }
+
+  static async listConsents(client: PoolClient, userId: string): Promise<ConsentRecord[]> {
+    const res = await client.query(
+      `SELECT id, user_id, policy_type, version, granted, granted_at, withdrawn_at
+       FROM consents WHERE user_id = $1 ORDER BY granted_at DESC`,
+      [userId]
+    );
+    return res.rows as ConsentRecord[];
+  }
+
+  static async withdrawLatestConsent(client: PoolClient, userId: string, policyType: string): Promise<boolean> {
+    const res = await client.query(
+      `UPDATE consents SET withdrawn_at = NOW()
+       WHERE id = (
+         SELECT id FROM consents
+         WHERE user_id = $1 AND policy_type = $2 AND granted = true AND withdrawn_at IS NULL
+         ORDER BY granted_at DESC LIMIT 1
+       )`,
+      [userId, policyType]
+    );
+    return (res.rowCount || 0) > 0;
+  }
+
+  static async hasActiveConsent(client: PoolClient, userId: string, policyType: string): Promise<boolean> {
+    const res = await client.query(
+      `SELECT EXISTS(
+         SELECT 1 FROM consents
+         WHERE user_id = $1 AND policy_type = $2 AND granted = true AND withdrawn_at IS NULL
+       ) AS has`,
+      [userId, policyType]
+    );
+    return res.rows[0]?.has === true;
   }
 
   static async createConsent(

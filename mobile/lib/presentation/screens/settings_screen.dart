@@ -5,8 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../modules/auth/models/session_model.dart';
 import '../../modules/auth/notifiers/auth_state.dart';
+import '../../modules/auth/repositories/auth_repository.dart';
+import '../../modules/ai/models/ai_config_model.dart';
 import '../../modules/ai/repositories/ai_config_repository.dart';
+import '../../modules/privacy/models/consent_model.dart';
 import '../../modules/privacy/repositories/privacy_repository.dart';
 import '../../modules/profile/screens/profile_screen.dart';
 
@@ -191,6 +195,291 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  /// Formats a timestamp for list subtitles; '—' when absent so we never
+  /// fabricate a date.
+  String _formatTimestamp(DateTime? dt) {
+    if (dt == null) return '—';
+    final s = dt.toLocal().toString();
+    return s.length >= 16 ? s.substring(0, 16) : s;
+  }
+
+  String _consentPolicyLabel(AppLocalizations l10n, String policyType) {
+    switch (policyType) {
+      case 'terms_of_service':
+        return l10n.consentPolicyTermsOfService;
+      case 'health_data_processing':
+        return l10n.consentPolicyHealthData;
+      case 'ai_third_party_processing':
+        return l10n.consentPolicyAiThirdParty;
+      default:
+        return policyType.isEmpty ? l10n.unknown : policyType;
+    }
+  }
+
+  Future<void> _revokeSession(SessionInfo session) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await ref.read(authRepositoryProvider).revokeSession(session.id);
+      ref.invalidate(sessionsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.sessionRevokedSuccess),
+            backgroundColor: FormaTheme.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.sessionActionFailed(formatApiErrorMessage(e))),
+            backgroundColor: FormaTheme.criticalCrimson,
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmSignOutAll(AppLocalizations l10n) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.signOutAllConfirmTitle),
+        content: Text(
+          l10n.signOutAllConfirmBody,
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: FormaTheme.criticalCrimson),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              try {
+                await ref.read(authRepositoryProvider).logoutAll();
+                // All sessions revoked server-side — the next authenticated
+                // request hits the session-expired path and routes to login.
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.signOutAllSuccess),
+                      backgroundColor: FormaTheme.successGreen,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.sessionActionFailed(formatApiErrorMessage(e))),
+                      backgroundColor: FormaTheme.criticalCrimson,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(l10n.signOutAllDevices, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(AppLocalizations l10n) {
+    final currentController = TextEditingController();
+    final newController = TextEditingController();
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+    bool isSubmitting = false;
+    String? errorText;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(l10n.changePassword),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  key: const Key('current_password_field'),
+                  controller: currentController,
+                  obscureText: obscureCurrent,
+                  enabled: !isSubmitting,
+                  decoration: InputDecoration(
+                    labelText: l10n.currentPasswordLabel,
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureCurrent ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setDialogState(() => obscureCurrent = !obscureCurrent),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  key: const Key('new_password_field'),
+                  controller: newController,
+                  obscureText: obscureNew,
+                  enabled: !isSubmitting,
+                  decoration: InputDecoration(
+                    labelText: l10n.newPasswordLabel,
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setDialogState(() => obscureNew = !obscureNew),
+                    ),
+                  ),
+                ),
+                if (errorText != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    errorText!,
+                    style: const TextStyle(color: FormaTheme.criticalCrimson, fontSize: 13),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.of(ctx).pop(),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              key: const Key('change_password_submit'),
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      final current = currentController.text;
+                      final next = newController.text;
+                      if (current.isEmpty || next.isEmpty) {
+                        setDialogState(() => errorText = l10n.fillAllFields);
+                        return;
+                      }
+                      if (next.length < 8) {
+                        setDialogState(() => errorText = l10n.passwordTooShort);
+                        return;
+                      }
+                      setDialogState(() {
+                        isSubmitting = true;
+                        errorText = null;
+                      });
+                      try {
+                        final message = await ref.read(authRepositoryProvider).changePassword(
+                              currentPassword: current,
+                              newPassword: next,
+                            );
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+                        // Backend revoked all sessions — the session-expired
+                        // path routes to login. Do not navigate manually.
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(message ?? l10n.changePasswordSuccessFallback),
+                              backgroundColor: FormaTheme.successGreen,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setDialogState(() {
+                          isSubmitting = false;
+                          errorText = l10n.changePasswordFailed(formatApiErrorMessage(e));
+                        });
+                      }
+                    },
+              child: isSubmitting
+                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(l10n.changePassword),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _withdrawConsent(ConsentInfo consent) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.consentWithdrawButton),
+        content: Text(
+          l10n.consentWithdrawConfirm,
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: FormaTheme.criticalCrimson),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.consentWithdrawButton, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(privacyRepositoryProvider).withdrawConsent(consent.policyType);
+      ref.invalidate(consentsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.consentWithdrawnSuccess),
+            backgroundColor: FormaTheme.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.consentWithdrawFailed(formatApiErrorMessage(e))),
+            backgroundColor: FormaTheme.criticalCrimson,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _selectAiModel(AIConfigModel config, String modelId) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final model = config.selectableModels.where((m) => m.id == modelId).firstOrNull;
+      await ref.read(aiConfigRepositoryProvider).updatePreferences(
+            preferredModel: modelId,
+            // Current backend requires activeProvider — prefer the model's
+            // own provider when none is configured yet.
+            activeProvider: config.activeProvider ?? model?.provider,
+          );
+      ref.invalidate(aiConfigProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.aiModelUpdated),
+            backgroundColor: FormaTheme.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.aiModelUpdateFailed(formatApiErrorMessage(e))),
+            backgroundColor: FormaTheme.criticalCrimson,
+          ),
+        );
+      }
+    }
+  }
+
   void _confirmDeleteAccount(AppLocalizations l10n) {
     showDialog(
       context: context,
@@ -240,6 +529,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final numeralSystem = ref.watch(numeralSystemProvider);
     final authState = ref.watch(authStateProvider);
     final aiConfigAsync = ref.watch(aiConfigProvider);
+    final sessionsAsync = ref.watch(sessionsProvider);
+    final consentsAsync = ref.watch(consentsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -296,13 +587,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         title: Text(l10n.appLanguageTitle),
                         subtitle: Text(currentLocale.languageCode == 'en' ? 'English (LTR)' : 'العربية (RTL)'),
                         trailing: ElevatedButton(
+                          // Language and numeral system are independent
+                          // choices — switching language must not override
+                          // the user's numeral preference.
                           onPressed: () {
                             if (currentLocale.languageCode == 'en') {
                               updateAppLocale(ref, const Locale('ar'));
-                              updateAppNumeralSystem(ref, 'eastern_arabic');
                             } else {
                               updateAppLocale(ref, const Locale('en'));
-                              updateAppNumeralSystem(ref, 'western');
                             }
                           },
                           child: Text(currentLocale.languageCode == 'en' ? 'العربية' : 'English'),
@@ -439,6 +731,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ),
                               const SizedBox(height: 16),
 
+                              // Preferred model picker — only eval-approved
+                              // models (falls back to all when none are marked).
+                              if (config.selectableModels.isNotEmpty)
+                                DropdownButtonFormField<String>(
+                                  key: const Key('ai_model_dropdown'),
+                                  isExpanded: true,
+                                  initialValue: config.selectableModels
+                                          .any((m) => m.id == config.preferredModel)
+                                      ? config.preferredModel
+                                      : null,
+                                  decoration: InputDecoration(labelText: l10n.aiModelLabel),
+                                  items: config.selectableModels.map((m) {
+                                    return DropdownMenuItem(
+                                      value: m.id,
+                                      child: Text(
+                                        m.displayName.isNotEmpty ? m.displayName : m.id,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null && val != config.preferredModel) {
+                                      _selectAiModel(config, val);
+                                    }
+                                  },
+                                ),
+                              const SizedBox(height: 16),
+
                               // Active credentials status
                               if (config.credentials.isNotEmpty) ...[
                                 Text(
@@ -545,6 +865,85 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       const SizedBox(height: 16),
 
+                      // Consent & Privacy — live consent records from the backend
+                      Text(
+                        l10n.consentsTitle,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.consentsSubtitle,
+                        style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+                      ),
+                      const SizedBox(height: 8),
+                      consentsAsync.when(
+                        loading: () => const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: CircularProgressIndicator(color: FormaTheme.primaryTeal),
+                          ),
+                        ),
+                        error: (err, _) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.consentsLoadError(formatApiErrorMessage(err)),
+                              style: const TextStyle(color: FormaTheme.criticalCrimson, fontSize: 13),
+                            ),
+                            TextButton(
+                              onPressed: () => ref.invalidate(consentsProvider),
+                              child: Text(l10n.retry),
+                            ),
+                          ],
+                        ),
+                        data: (consents) {
+                          if (consents.isEmpty) {
+                            return Text(
+                              l10n.consentsEmpty,
+                              style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
+                            );
+                          }
+                          return Column(
+                            children: consents.map((consent) {
+                              final statusLine = consent.withdrawnAt != null
+                                  ? l10n.consentWithdrawnOn(_formatTimestamp(consent.withdrawnAt))
+                                  : l10n.consentGrantedOn(_formatTimestamp(consent.grantedAt));
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                dense: true,
+                                leading: Icon(
+                                  consent.isActive ? Icons.check_circle_outline : Icons.cancel_outlined,
+                                  color: consent.isActive ? FormaTheme.successGreen : FormaTheme.textTertiary,
+                                  size: 20,
+                                ),
+                                title: Text(
+                                  consent.version != null && consent.version!.isNotEmpty
+                                      ? '${_consentPolicyLabel(l10n, consent.policyType)} · ${l10n.consentVersionLabel(consent.version!)}'
+                                      : _consentPolicyLabel(l10n, consent.policyType),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
+                                subtitle: Text(
+                                  consent.isWithdrawable
+                                      ? statusLine
+                                      : '$statusLine — ${l10n.consentRequiresDeletion}',
+                                  style: const TextStyle(fontSize: 12, color: FormaTheme.textSecondary),
+                                ),
+                                trailing: (consent.isWithdrawable && consent.isActive)
+                                    ? TextButton(
+                                        onPressed: () => _withdrawConsent(consent),
+                                        child: Text(
+                                          l10n.consentWithdrawButton,
+                                          style: const TextStyle(color: FormaTheme.alertCoral),
+                                        ),
+                                      )
+                                    : null,
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                      const Divider(color: FormaTheme.borderSubtle),
+
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.download_outlined, color: FormaTheme.primaryTeal),
@@ -588,7 +987,145 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 5. Account Info & Logout
+              // 5. Security & Sessions — password rotation + device management
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.lock_outline, color: FormaTheme.primaryTeal),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.securitySectionTitle,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.securitySectionSubtitle,
+                        style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Change password entry point
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.password_outlined, color: FormaTheme.primaryTeal),
+                        title: Text(l10n.changePassword, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(l10n.changePasswordSubtitle),
+                        trailing: Icon(
+                          Directionality.of(context) == TextDirection.rtl
+                              ? Icons.arrow_back_ios_new
+                              : Icons.arrow_forward_ios,
+                          size: 16,
+                          color: FormaTheme.textSecondary,
+                        ),
+                        onTap: () => _showChangePasswordDialog(l10n),
+                      ),
+                      const Divider(color: FormaTheme.borderSubtle),
+
+                      // Signed-in sessions
+                      Text(
+                        l10n.sessionsListTitle,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      sessionsAsync.when(
+                        loading: () => const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: CircularProgressIndicator(color: FormaTheme.primaryTeal),
+                          ),
+                        ),
+                        error: (err, _) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.sessionsLoadError(formatApiErrorMessage(err)),
+                              style: const TextStyle(color: FormaTheme.criticalCrimson, fontSize: 13),
+                            ),
+                            TextButton(
+                              onPressed: () => ref.invalidate(sessionsProvider),
+                              child: Text(l10n.retry),
+                            ),
+                          ],
+                        ),
+                        data: (sessions) {
+                          if (sessions.isEmpty) {
+                            return Text(
+                              l10n.sessionsEmpty,
+                              style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 13),
+                            );
+                          }
+                          return Column(
+                            children: sessions.map((session) {
+                              final revoked = session.isRevoked == true;
+                              final deviceSummary = session.deviceSummary;
+                              return Opacity(
+                                opacity: revoked ? 0.5 : 1.0,
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                  leading: Icon(
+                                    Icons.devices_outlined,
+                                    color: revoked ? FormaTheme.textTertiary : FormaTheme.primaryTeal,
+                                    size: 20,
+                                  ),
+                                  title: Text(
+                                    deviceSummary.isNotEmpty
+                                        ? deviceSummary
+                                        : l10n.sessionUnknownDevice,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  ),
+                                  subtitle: Text(
+                                    l10n.sessionCreatedLabel(_formatTimestamp(session.createdAt)),
+                                    style: const TextStyle(fontSize: 12, color: FormaTheme.textSecondary),
+                                  ),
+                                  trailing: revoked
+                                      ? Text(
+                                          l10n.sessionRevokedBadge,
+                                          style: const TextStyle(color: FormaTheme.textTertiary, fontSize: 12),
+                                        )
+                                      : TextButton(
+                                          onPressed: () => _revokeSession(session),
+                                          child: Text(
+                                            l10n.revokeSession,
+                                            style: const TextStyle(color: FormaTheme.alertCoral),
+                                          ),
+                                        ),
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: OutlinedButton.icon(
+                          key: const Key('settings_sign_out_all_button'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: FormaTheme.criticalCrimson,
+                            side: const BorderSide(color: FormaTheme.criticalCrimson),
+                          ),
+                          icon: const Icon(Icons.logout, size: 16),
+                          onPressed: () => _confirmSignOutAll(l10n),
+                          label: Text(l10n.signOutAllDevices),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 6. Account Info & Logout
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),

@@ -134,6 +134,36 @@ export class GoalsRepository {
     });
   }
 
+  /**
+   * Returns the full immutable version history for a goal owned by the user.
+   */
+  public async listGoalVersions(userId: string, goalId: string): Promise<GoalVersion[]> {
+    return withUserContext(userId, async (client) => {
+      const res = await client.query(
+        `SELECT id, goal_id, user_id, version, target_value, starting_value,
+                weekly_rate, start_date, target_date, rationale, created_at
+         FROM goal_versions
+         WHERE goal_id = $1 AND user_id = $2
+         ORDER BY version DESC`,
+        [goalId, userId]
+      );
+
+      return res.rows.map((row) => ({
+        id: row.id,
+        goalId: row.goal_id,
+        userId: row.user_id,
+        version: row.version,
+        targetValue: Number(row.target_value),
+        startingValue: Number(row.starting_value),
+        weeklyRate: row.weekly_rate ? Number(row.weekly_rate) : undefined,
+        startDate: row.start_date.toISOString ? row.start_date.toISOString().split('T')[0] : String(row.start_date),
+        targetDate: row.target_date ? (row.target_date.toISOString ? row.target_date.toISOString().split('T')[0] : String(row.target_date)) : undefined,
+        rationale: row.rationale || undefined,
+        createdAt: row.created_at.toISOString()
+      }));
+    });
+  }
+
   public async getPrimaryGoal(userId: string): Promise<Goal | null> {
     return withUserContext(userId, async (client) => {
       const res = await client.query(

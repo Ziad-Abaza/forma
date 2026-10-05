@@ -34,6 +34,14 @@ export class AIGateway {
     return this.adapters.get(provider.toLowerCase());
   }
 
+  /**
+   * Providers with an actually-registered adapter. Anything not listed here
+   * cannot serve a request — config endpoints must report this truthfully.
+   */
+  public getRegisteredProviders(): string[] {
+    return Array.from(this.adapters.keys());
+  }
+
   public async execute(
     taskClass: TaskClass,
     options: GenerateTextOptions,

@@ -1,6 +1,7 @@
 import { withUserContext } from '../../core/database/index.js';
 import { AuditService } from '../audit/index.js';
 import { ProfileRepository } from './repository.js';
+import { calculateAge } from '../identity/service.js';
 import type { UpdateProfileRequest, ProfileResponse, ProfileHistoryEntry } from './contracts.js';
 
 export class ProfileService {
@@ -23,6 +24,21 @@ export class ProfileService {
       }
 
       // Check calculation-relevant attributes and record history for reproducibility
+      if (req.dateOfBirth !== undefined && req.dateOfBirth !== current.dateOfBirth) {
+        const newAge = calculateAge(req.dateOfBirth);
+        if (newAge < 18) {
+          throw new Error('Date of birth must indicate an adult (18+) user.');
+        }
+        await ProfileRepository.recordAttributeHistory(
+          client,
+          userId,
+          'date_of_birth',
+          current.dateOfBirth,
+          req.dateOfBirth,
+          actor
+        );
+      }
+
       if (req.heightCm !== undefined && req.heightCm !== current.heightCm) {
         await ProfileRepository.recordAttributeHistory(
           client,

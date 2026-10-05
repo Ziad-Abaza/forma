@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/providers.dart';
 import '../../core/theme.dart';
 import '../../modules/assistant/models/assistant_models.dart';
 import '../../modules/assistant/repositories/assistant_repository.dart';
+import '../../modules/assistant/screens/assistant_memories_screen.dart';
 import '../widgets/chat/assistant_message_view.dart';
 import '../widgets/chat/chat_error_card.dart';
 import '../widgets/chat/composer.dart';
@@ -320,7 +322,11 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
     state = state.copyWith(messages: updatedConfirming);
 
     try {
-      final result = await repository.confirmProposal(proposalId);
+      // Deterministic key per proposal: a retry/double-tap dedupes server-side.
+      final result = await repository.confirmProposal(
+        proposalId,
+        idempotencyKey: 'confirm_$proposalId',
+      );
 
       // 2. Transition confirming -> executed with confirmed proposal from server
       final updatedExecuted = state.messages.map((msg) {
@@ -336,20 +342,20 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
         return msg;
       }).toList();
 
-      final summaryText = result.receipt.summary.isNotEmpty
-          ? result.receipt.summary
-          : 'Action has been securely committed';
+      // Show the server-issued receipt verbatim — no client-composed claims.
+      final receiptId = result.receipt.receiptId;
+      final summaryText = result.receipt.summary;
+      final buffer = StringBuffer();
+      if (summaryText.isNotEmpty) buffer.write(summaryText);
+      if (receiptId.isNotEmpty) {
+        if (buffer.isNotEmpty) buffer.write('\n');
+        buffer.write('Receipt: $receiptId');
+      }
 
       final receiptMsg = AssistantChatMessage(
-        id: 'receipt_${DateTime.now().millisecondsSinceEpoch}',
+        id: 'receipt_${receiptId.isNotEmpty ? receiptId : proposalId}',
         role: 'assistant',
-        content: '✅ Action Receipt verified: $summaryText with provenance [${result.receipt.provenance}].',
-        evidenceClaims: const [
-          EvidenceClaimModel(
-            claimText: 'Receipt committed',
-            type: EvidenceBadgeType.retrieved,
-          ),
-        ],
+        content: buffer.isNotEmpty ? buffer.toString() : 'Action committed.',
         timestamp: DateTime.now(),
       );
 
@@ -408,6 +414,37 @@ class AssistantChatNotifier extends StateNotifier<AssistantChatState> {
       currentSuggestions: [],
     );
   }
+
+  /// Loads a persisted conversation's messages into chat state and sets
+  /// conversationId so follow-up messages continue the same conversation.
+  /// Throws on failure — the caller surfaces a snackbar and keeps the
+  /// current chat untouched.
+  Future<void> loadConversation(String conversationId) async {
+    stopStreaming();
+    final detail = await repository.getConversation(conversationId);
+
+    // Only user/assistant messages render; 'system' and 'tool' rows are
+    // internal orchestration artifacts, not chat bubbles.
+    final restored = detail.messages
+        .where((m) => m.role == 'user' || m.role == 'assistant')
+        .map(
+          (m) => AssistantChatMessage(
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            evidenceClaims: m.evidenceClaims,
+            proposals: m.proposals,
+            isEmergencyNotice: m.safetyCategory == 'D',
+            timestamp: m.createdAt ?? DateTime.now(),
+          ),
+        )
+        .toList();
+
+    state = AssistantChatState(
+      messages: restored,
+      conversationId: detail.conversation.id,
+    );
+  }
 }
 
 final assistantChatProvider =
@@ -460,6 +497,40 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
       0.0,
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
+    );
+  }
+
+  void _showConversationsSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ConversationsSheet(
+        onSelected: (conv) {
+          // Pop the sheet, then restore the conversation into chat state.
+          Navigator.of(context).pop();
+          ref
+              .read(assistantChatProvider.notifier)
+              .loadConversation(conv.id)
+              .catchError((_) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(AppLocalizations.of(context)!.conversationLoadFailed),
+                  backgroundColor: FormaTheme.criticalCrimson,
+                ),
+              );
+            }
+          });
+        },
+      ),
+    );
+  }
+
+  void _openMemoriesScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AssistantMemoriesScreen()),
     );
   }
 
@@ -520,8 +591,18 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: l10n.conversationsTitle,
+            icon: const Icon(Icons.history, color: FormaTheme.primaryTeal),
+            onPressed: _showConversationsSheet,
+          ),
+          IconButton(
+            tooltip: l10n.memoriesTitle,
+            icon: const Icon(Icons.psychology_outlined, color: FormaTheme.primaryTeal),
+            onPressed: _openMemoriesScreen,
+          ),
+          IconButton(
             tooltip: l10n.newChat,
-            icon: const Icon(Icons.refresh, color: FormaTheme.primaryTeal),
+            icon: const Icon(Icons.add_comment_outlined, color: FormaTheme.primaryTeal),
             onPressed: () {
               ref.read(assistantChatProvider.notifier).clearConversation();
             },
@@ -627,6 +708,258 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet listing the user's persisted conversations.
+/// Tap restores history into the chat; the trash icon deletes remotely
+/// and only removes the row on confirmed success.
+class ConversationsSheet extends ConsumerStatefulWidget {
+  final void Function(ConversationSummary conversation) onSelected;
+
+  const ConversationsSheet({super.key, required this.onSelected});
+
+  @override
+  ConsumerState<ConversationsSheet> createState() => _ConversationsSheetState();
+}
+
+class _ConversationsSheetState extends ConsumerState<ConversationsSheet> {
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<ConversationSummary> _conversations = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConversations();
+  }
+
+  Future<void> _loadConversations() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final list =
+          await ref.read(assistantRepositoryProvider).listConversations();
+      if (mounted) {
+        setState(() {
+          _conversations = list;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = formatApiErrorMessage(e);
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _confirmDelete(
+      ConversationSummary conv, AppLocalizations l10n) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: FormaTheme.surfaceCard,
+        title: Text(l10n.delete),
+        content: Text(l10n.deleteConversationConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: FormaTheme.criticalCrimson),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child:
+                Text(l10n.delete, style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final success = await ref
+          .read(assistantRepositoryProvider)
+          .deleteConversation(conv.id);
+      if (!mounted) return;
+      if (success) {
+        setState(() {
+          _conversations.removeWhere((c) => c.id == conv.id);
+        });
+        // If the deleted conversation is the one loaded in chat, drop the
+        // stale id/messages so follow-ups can't reference a dead record.
+        if (ref.read(assistantChatProvider).conversationId == conv.id) {
+          ref.read(assistantChatProvider.notifier).clearConversation();
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.deleteFailed),
+            backgroundColor: FormaTheme.criticalCrimson,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.deleteFailed),
+            backgroundColor: FormaTheme.criticalCrimson,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final activeId = ref.watch(assistantChatProvider).conversationId;
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.6,
+      padding: const EdgeInsets.all(16.0),
+      decoration: const BoxDecoration(
+        color: FormaTheme.surfaceCard,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.history, color: FormaTheme.primaryTeal),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.conversationsTitle,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: FormaTheme.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+          const Divider(),
+          if (_isLoading)
+            const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(color: FormaTheme.primaryTeal),
+              ),
+            )
+          else if (_errorMessage != null)
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _errorMessage!,
+                      style:
+                          const TextStyle(color: FormaTheme.criticalCrimson),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: _loadConversations,
+                      child: Text(l10n.retry),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (_conversations.isEmpty)
+            Expanded(
+              child: Center(
+                child: Text(
+                  l10n.conversationsEmpty,
+                  style: const TextStyle(color: FormaTheme.textSecondary),
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.separated(
+                itemCount: _conversations.length,
+                separatorBuilder: (_, _) =>
+                    const Divider(color: FormaTheme.borderSubtle, height: 1),
+                itemBuilder: (ctx, idx) {
+                  final conv = _conversations[idx];
+                  final date = conv.updatedAt ?? conv.createdAt;
+                  final subtitle = (conv.summary != null &&
+                          conv.summary!.isNotEmpty)
+                      ? conv.summary!
+                      : (date != null
+                          ? date.toLocal().toString().substring(0, 16)
+                          : '');
+                  final isActive = conv.id == activeId;
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    selected: isActive,
+                    selectedTileColor:
+                        FormaTheme.primaryTeal.withValues(alpha: 0.08),
+                    leading: Icon(
+                      isActive
+                          ? Icons.chat_bubble
+                          : Icons.chat_bubble_outline,
+                      size: 20,
+                      color: isActive
+                          ? FormaTheme.primaryTeal
+                          : FormaTheme.textSecondary,
+                    ),
+                    title: Text(
+                      conv.title.isNotEmpty
+                          ? conv.title
+                          : l10n.untitledConversation,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: FormaTheme.textPrimary,
+                      ),
+                    ),
+                    subtitle: subtitle.isNotEmpty
+                        ? Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: FormaTheme.textSecondary,
+                              fontSize: 12,
+                            ),
+                          )
+                        : null,
+                    trailing: IconButton(
+                      tooltip: l10n.delete,
+                      icon: const Icon(Icons.delete_outline,
+                          size: 18, color: FormaTheme.alertCoral),
+                      onPressed: () => _confirmDelete(conv, l10n),
+                    ),
+                    onTap: () => widget.onSelected(conv),
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }

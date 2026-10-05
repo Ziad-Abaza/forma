@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const UpdateProfileRequestSchema = z.object({
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD').optional(),
   heightCm: z.number().min(80).max(260).optional(),
   sexForCalculation: z.enum(['male', 'female', 'unspecified']).optional(),
   activityLevel: z.enum(['sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extra_active']).optional(),

@@ -43,6 +43,24 @@ class AIConfigRepository {
       'activeProvider': provider,
     });
   }
+
+  /// PATCH /api/v1/ai/preferences — sends only the fields provided.
+  /// The current backend schema requires `activeProvider`, so callers
+  /// should pass it alongside `preferredModel` when known.
+  Future<void> updatePreferences({
+    String? activeProvider,
+    String? preferredModel,
+  }) async {
+    final body = <String, dynamic>{};
+    if (activeProvider != null && activeProvider.isNotEmpty) {
+      body['activeProvider'] = activeProvider;
+    }
+    if (preferredModel != null && preferredModel.isNotEmpty) {
+      body['preferredModel'] = preferredModel;
+    }
+    if (body.isEmpty) return;
+    await apiClient.patch('/api/v1/ai/preferences', body: body);
+  }
 }
 
 final aiConfigRepositoryProvider = Provider<AIConfigRepository>((ref) {

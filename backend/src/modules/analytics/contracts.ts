@@ -24,6 +24,8 @@ export interface TrendAnalysis {
   weeklyRate?: number | undefined;
   smoothedLatest?: number | undefined;
   slopePerDay?: number | undefined;
+  series?: { observedAt: string; value: number }[] | undefined;
+  smoothedSeries?: { observedAt: string; value: number }[] | undefined;
   sufficiency: 'complete' | 'insufficient';
   reason?: string | undefined;
 }
@@ -89,7 +91,7 @@ export interface SnapshotRecentMeasurementItem {
 
 export interface SnapshotDataQualitySection {
   totalActiveObservations: number;
-  measuredSharePct: number;
+  measuredSharePct: number | null; // null when there are no observations to measure
   stalenessDays?: number | undefined;
   hasAnomalies: boolean;
 }
@@ -99,7 +101,7 @@ export interface HealthSnapshotSections {
   bodyStatus: SnapshotBodyStatusSection;
   goal: SnapshotGoalSection;
   energy: SnapshotEnergySection;
-  activityLevel: { level: string; multiplier: number };
+  activityLevel: { level?: string | undefined; multiplier?: number | undefined };
   recentMeasurements: SnapshotRecentMeasurementItem[];
   anomalies: AnomalyFlag[];
   dataQuality: SnapshotDataQualitySection;

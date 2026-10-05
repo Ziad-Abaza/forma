@@ -1,6 +1,6 @@
 import { withUserContext } from '../../core/database/index.js';
 import type { HealthSnapshot, HealthSnapshotSections } from './contracts.js';
-import { CalculationEngine } from '../calculations/engine.js';
+import { CalculationEngine, type ActivityLevel } from '../calculations/engine.js';
 import { TrendEngine, type DataPoint } from './trends.js';
 import { AnomalyDetector } from './anomalies.js';
 import { MeasurementsRepository } from '../measurements/repository.js';
@@ -91,10 +91,12 @@ export class SnapshotEngine {
           progressPct = Math.round(((currentVal - startVal) / dist) * 1000) / 10;
         }
 
+        // Never fabricate a weekly rate: without a real goal rate the projection
+        // is insufficient and no projectedTargetDate is emitted.
         const projection = this.calc.projectWeightTimeline({
           currentWeightKg: latestWeightKg,
           targetWeightKg: targetVal,
-          weeklyRateKg: primaryGoal.currentVersion.weeklyRate || 0.5
+          weeklyRateKg: primaryGoal.currentVersion.weeklyRate
         });
 
         goalSection = {
@@ -107,12 +109,26 @@ export class SnapshotEngine {
           currentValue: currentVal,
           progressPct,
           projectedTargetDate: projection.projectedTargetDate || undefined,
-          isSafeRate: projection.isSafeRate
+          isSafeRate: projection.sufficiency === 'complete' ? projection.isSafeRate : undefined
         };
       }
 
       // --- SECTION 4: Activity Level & Energy ---
-      const actLevel = (profile?.activityLevel as any) || 'moderately_active';
+      // Never fabricate an activity level: when the profile lacks one, TDEE and
+      // calorie targets are reported as insufficient instead of being computed
+      // on a guessed assumption. The profile schema uses 'extra_active' while the
+      // engine's PAL table calls it 'extremely_active' — map it honestly.
+      const PROFILE_TO_ENGINE_ACTIVITY: Record<string, ActivityLevel> = {
+        sedentary: 'sedentary',
+        lightly_active: 'lightly_active',
+        moderately_active: 'moderately_active',
+        very_active: 'very_active',
+        extra_active: 'extremely_active',
+        extremely_active: 'extremely_active'
+      };
+      const actLevel: ActivityLevel | undefined = profile?.activityLevel
+        ? PROFILE_TO_ENGINE_ACTIVITY[profile.activityLevel]
+        : undefined;
       const bmrResult = this.calc.calculateBmr({
         weightKg: latestWeightKg,
         heightCm: identityLite.heightCm,
@@ -153,6 +169,20 @@ export class SnapshotEngine {
       };
 
       // --- SECTION 5: Recent Measurements (Dynamic across all user-recorded types, with observation IDs) ---
+      // Fetch the real epistemic class of each observation from its provenance
+      // record — never assume 'measured'.
+      const epistemicByProvenance = new Map<string, string>();
+      const provenanceIds = Array.from(new Set(activeObs.map((o) => o.provenance_id)));
+      if (provenanceIds.length > 0) {
+        const provRes = await client.query(
+          `SELECT id, epistemic_class FROM provenance_records WHERE id = ANY($1::uuid[])`,
+          [provenanceIds]
+        );
+        for (const row of provRes.rows) {
+          epistemicByProvenance.set(row.id, row.epistemic_class);
+        }
+      }
+
       const seenTypes = new Set<string>();
       const recentMeasurements = [];
 
@@ -165,7 +195,8 @@ export class SnapshotEngine {
             canonicalValue: Number(obs.canonical_value),
             canonicalUnit: obs.canonical_unit,
             observedAt: obs.observed_at.toISOString(),
-            epistemicClass: 'measured'
+            // 'asserted' is the weakest honest claim when provenance is somehow missing
+            epistemicClass: epistemicByProvenance.get(obs.provenance_id) || 'asserted'
           });
         }
       }
@@ -193,15 +224,24 @@ export class SnapshotEngine {
 
       // --- SECTION 7: Data Quality ---
       const totalCount = activeObs.length;
+      // Staleness is measured from the latest observation of ANY type, not just weight.
+      // activeObs is ordered by observed_at DESC.
+      const latestObservedAt = activeObs[0]?.observed_at;
       let stalenessDays: number | undefined;
-      if (latestWeight) {
-        const diffMs = Date.now() - latestWeight.observed_at.getTime();
+      if (latestObservedAt) {
+        const diffMs = Date.now() - latestObservedAt.getTime();
         stalenessDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       }
 
+      // Real share of 'measured' observations among all active observations;
+      // null when there is nothing to measure.
+      const measuredCount = activeObs.filter(
+        (o) => epistemicByProvenance.get(o.provenance_id) === 'measured'
+      ).length;
+
       const dataQuality = {
         totalActiveObservations: totalCount,
-        measuredSharePct: 100, // all are measured observations
+        measuredSharePct: totalCount > 0 ? Math.round((measuredCount / totalCount) * 100) : null,
         stalenessDays,
         hasAnomalies: anomalies.length > 0
       };
@@ -211,7 +251,10 @@ export class SnapshotEngine {
         bodyStatus,
         goal: goalSection,
         energy: energySection,
-        activityLevel: { level: actLevel, multiplier: tdeeResult.multiplier },
+        activityLevel: {
+          level: actLevel,
+          multiplier: tdeeResult.sufficiency === 'complete' ? tdeeResult.multiplier : undefined
+        },
         recentMeasurements,
         anomalies,
         dataQuality

@@ -22,6 +22,17 @@ class MultimodalRepository {
     return resp as Map<String, dynamic>;
   }
 
+  /// GET /api/v1/multimodal/drafts — list the user's drafts (optionally
+  /// filtered by status, e.g. 'draft' for pending review).
+  Future<List<Map<String, dynamic>>> listDrafts({String? status}) async {
+    final query = status != null ? '?status=$status' : '';
+    final resp = await apiClient.get('/api/v1/multimodal/drafts$query');
+    if (resp is Map && resp['drafts'] is List) {
+      return (resp['drafts'] as List).whereType<Map<String, dynamic>>().toList();
+    }
+    return [];
+  }
+
   Future<Map<String, dynamic>> getDraft(String draftId) async {
     final resp = await apiClient.get('/api/v1/multimodal/drafts/$draftId');
     return resp as Map<String, dynamic>;
@@ -68,4 +79,9 @@ class MultimodalRepository {
 final multimodalRepositoryProvider = Provider<MultimodalRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return MultimodalRepository(apiClient: apiClient);
+});
+
+/// Drafts awaiting user review/commit (status = 'draft').
+final pendingDraftsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(multimodalRepositoryProvider).listDrafts(status: 'draft');
 });

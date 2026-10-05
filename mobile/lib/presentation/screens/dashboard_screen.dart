@@ -1,5 +1,6 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:typed_data';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,10 +11,10 @@ import '../../modules/analytics/models/snapshot_model.dart';
 import '../../modules/analytics/repositories/analytics_repository.dart';
 import '../../modules/measurements/repositories/measurements_repository.dart';
 import '../../modules/goals/repositories/goals_repository.dart';
+import '../../modules/goals/models/goal_model.dart';
 import '../../modules/auth/notifiers/auth_state.dart';
 import '../../modules/multimodal/repositories/multimodal_repository.dart';
 import 'assistant_screen.dart';
-import 'sync_screen.dart';
 import 'settings_screen.dart';
 import 'multimodal_review_screen.dart';
 import '../../modules/measurements/screens/measurement_history_sheet.dart';
@@ -73,20 +74,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-          // 1. Sync button (Preserved key for tests)
-          IconButton(
-            key: const Key('sync_devices_button'),
-            tooltip: l10n.syncScreenTitle,
-            icon: const Icon(Icons.sync_outlined, color: FormaTheme.textSecondary, size: 20),
-            visualDensity: VisualDensity.compact,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SyncScreen()),
-              );
-            },
-          ),
-          // 2. Assistant button (Clean in-app bar integration, key preserved)
+          // 1. Assistant button (Clean in-app bar integration, key preserved)
           IconButton(
             key: const Key('assistant_button'),
             tooltip: l10n.assistantTitle,
@@ -275,12 +263,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       _buildTrendsCard(snapshot, l10n, numeralSystem),
                       const SizedBox(height: 16),
 
+                      // 3b. Data Quality & Anomaly Flags (visible only when present)
+                      if (snapshot.anomalies.isNotEmpty || snapshot.dataQuality != null)
+                        _buildDataQualityCard(snapshot, l10n),
+                      if (snapshot.anomalies.isNotEmpty || snapshot.dataQuality != null)
+                        const SizedBox(height: 16),
+
                       // 4. Energy & Nutrition Targets Card
                       _buildEnergyTargetsCard(snapshot, l10n, numeralSystem),
                       const SizedBox(height: 16),
 
                       // 5. Honest Health Records / Quick Log Action
                       _buildMeasurementsSection(snapshot, l10n, numeralSystem),
+                      const SizedBox(height: 16),
+
+                      // 6. Pending extraction drafts awaiting review
+                      _buildPendingDraftsCard(l10n),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -482,6 +480,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   icon: const Icon(Icons.edit_outlined, size: 18, color: FormaTheme.primaryTeal),
                   onPressed: () => _showUpdateGoalDialog(context, l10n, snapshot),
                 ),
+                if (snapshot.goalId != null)
+                  IconButton(
+                    tooltip: 'Goal History',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.history, size: 18, color: FormaTheme.textSecondary),
+                    onPressed: () => _showGoalVersionsSheet(snapshot.goalId!, l10n),
+                  ),
                 const SizedBox(width: 8),
                 _buildBadge(l10n.calculated, FormaTheme.badgeCalculated),
               ],
@@ -556,16 +563,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    snapshot.isSafeRate ? l10n.safeRate : l10n.rateWarning,
-                    style: TextStyle(
-                      color: snapshot.isSafeRate ? FormaTheme.successGreen : FormaTheme.warningAmber,
-                      fontSize: 12,
+                if (snapshot.isSafeRate != null)
+                  Flexible(
+                    child: Text(
+                      snapshot.isSafeRate! ? l10n.safeRate : l10n.rateWarning,
+                      style: TextStyle(
+                        color: snapshot.isSafeRate! ? FormaTheme.successGreen : FormaTheme.warningAmber,
+                        fontSize: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
               ],
             ),
             if (projectedDate != null && projectedDate.isNotEmpty) ...[
@@ -661,10 +669,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 final smoothed = (trendData['smoothedLatest'] as num?)?.toDouble() ?? snapshot.trend7dKg;
                 final weeklyRate = (trendData['weeklyRate'] as num?)?.toDouble() ?? snapshot.weeklyRateKg;
                 final delta = (trendData['deltaValue'] as num?)?.toDouble();
+                final rawSeries = (trendData['series'] as List<dynamic>?) ?? const [];
+                final smoothedSeries = (trendData['smoothedSeries'] as List<dynamic>?) ?? const [];
 
                 if (sufficiency == 'complete' && smoothed != null && weeklyRate != null) {
                   return Column(
                     children: [
+                      if (rawSeries.length >= 2)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _buildTrendChart(rawSeries, smoothedSeries),
+                        ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -695,10 +710,101 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ],
                   );
                 } else {
-                  return _buildFallbackTrend(snapshot, l10n, numeralSystem, trendData['reason'] as String?);
+                  return Column(
+                    children: [
+                      // Real recorded points still chart even when the trend
+                      // rate is not yet computable.
+                      if (rawSeries.length >= 2)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildTrendChart(rawSeries, smoothedSeries),
+                        ),
+                      _buildFallbackTrend(snapshot, l10n, numeralSystem, trendData['reason'] as String?),
+                    ],
+                  );
                 }
               },
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Line chart of real observations (dim) + server-computed EMA smoothed
+  /// trend (teal). Series come from GET /api/v1/analytics/trends/:typeCode.
+  Widget _buildTrendChart(List<dynamic> rawSeries, List<dynamic> smoothedSeries) {
+    List<FlSpot> toSpots(List<dynamic> series) {
+      if (series.isEmpty) return const [];
+      final first = DateTime.tryParse((series.first as Map)['observedAt']?.toString() ?? '');
+      if (first == null) return const [];
+      final spots = <FlSpot>[];
+      for (final p in series) {
+        final m = p as Map;
+        final t = DateTime.tryParse(m['observedAt']?.toString() ?? '');
+        final v = (m['value'] as num?)?.toDouble();
+        if (t == null || v == null) continue;
+        spots.add(FlSpot(t.difference(first).inMilliseconds / 86400000.0, v));
+      }
+      return spots;
+    }
+
+    final raw = toSpots(rawSeries);
+    final smooth = toSpots(smoothedSeries);
+    if (raw.length < 2) return const SizedBox.shrink();
+
+    final minY = raw.map((s) => s.y).reduce((a, b) => a < b ? a : b);
+    final maxY = raw.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    final pad = ((maxY - minY) * 0.15).clamp(0.5, 5.0);
+
+    return SizedBox(
+      height: 160,
+      child: LineChart(
+        LineChartData(
+          minY: minY - pad,
+          maxY: maxY + pad,
+          gridData: const FlGridData(show: false),
+          borderData: FlBorderData(show: false),
+          titlesData: FlTitlesData(
+            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                getTitlesWidget: (v, _) => Text(
+                  v.toStringAsFixed(1),
+                  style: const TextStyle(fontSize: 9, color: FormaTheme.textSecondary),
+                ),
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 18,
+                getTitlesWidget: (v, _) => Text(
+                  '${v.round()}d',
+                  style: const TextStyle(fontSize: 9, color: FormaTheme.textSecondary),
+                ),
+              ),
+            ),
+          ),
+          lineBarsData: [
+            LineChartBarData(
+              spots: raw,
+              isCurved: false,
+              color: FormaTheme.textSecondary.withValues(alpha: 0.5),
+              barWidth: 1.5,
+              dotData: const FlDotData(show: true),
+            ),
+            if (smooth.length >= 2)
+              LineChartBarData(
+                spots: smooth,
+                isCurved: true,
+                color: FormaTheme.primaryTeal,
+                barWidth: 2.5,
+                dotData: const FlDotData(show: false),
+              ),
           ],
         ),
       ),
@@ -835,27 +941,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              // Deterministic macro breakdown from backend CalculationEngine
-              Builder(builder: (context) {
-                final proteinGrams = snapshot.proteinGrams ?? (target * 0.30 / 4).round();
-                final fatGrams = snapshot.fatGrams ?? (target * 0.25 / 9).round();
-                final carbGrams = snapshot.carbsGrams ?? (target * 0.45 / 4).round();
-                final proteinPct = snapshot.proteinPct ?? 30.0;
-                final fatPct = snapshot.fatPct ?? 25.0;
-                final carbPct = snapshot.carbsPct ?? 45.0;
-
-                return Row(
+              // Macro breakdown is rendered only when the backend CalculationEngine
+              // returns real values — never fabricated client-side.
+              if (snapshot.proteinGrams != null &&
+                  snapshot.fatGrams != null &&
+                  snapshot.carbsGrams != null) ...[
+                const SizedBox(height: 14),
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    Expanded(child: _buildMacroBar(l10n.protein, '${proteinGrams}g', '${proteinPct.round()}%', FormaTheme.primaryTeal, numeralSystem)),
+                    Expanded(child: _buildMacroBar(l10n.protein, '${snapshot.proteinGrams}g', '${(snapshot.proteinPct ?? 0).round()}%', FormaTheme.primaryTeal, numeralSystem)),
                     const SizedBox(width: 8),
-                    Expanded(child: _buildMacroBar(l10n.fats, '${fatGrams}g', '${fatPct.round()}%', FormaTheme.warningAmber, numeralSystem)),
+                    Expanded(child: _buildMacroBar(l10n.fats, '${snapshot.fatGrams}g', '${(snapshot.fatPct ?? 0).round()}%', FormaTheme.warningAmber, numeralSystem)),
                     const SizedBox(width: 8),
-                    Expanded(child: _buildMacroBar(l10n.carbs, '${carbGrams}g', '${carbPct.round()}%', FormaTheme.secondaryMint, numeralSystem)),
+                    Expanded(child: _buildMacroBar(l10n.carbs, '${snapshot.carbsGrams}g', '${(snapshot.carbsPct ?? 0).round()}%', FormaTheme.secondaryMint, numeralSystem)),
                   ],
-                );
-              }),
+                ),
+              ],
             ] else ...[
               Container(
                 padding: const EdgeInsets.all(12),
@@ -1100,26 +1202,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final latestWeightKg = snapshot?.latestWeightKg;
     final defaultVal = latestWeightKg != null ? latestWeightKg.toStringAsFixed(1) : '';
     final valueController = TextEditingController(text: defaultVal);
-    final unitController = TextEditingController(text: 'kg');
-    String selectedType = 'weight';
+    final unitController = TextEditingController();
+    String? selectedType;
 
-    final catalogTypes = const [
-      {'code': 'weight', 'label': 'Weight (الوزن)', 'unit': 'kg'},
-      {'code': 'body_fat_percentage', 'label': 'Body Fat % (نسبة الدهون)', 'unit': '%'},
-      {'code': 'muscle_mass', 'label': 'Muscle Mass (الكتلة العضلية)', 'unit': 'kg'},
-      {'code': 'bone_mass', 'label': 'Bone Mass (كتلة العظام)', 'unit': 'kg'},
-      {'code': 'body_water_percentage', 'label': 'Body Water % (الماء في الجسم)', 'unit': '%'},
-      {'code': 'visceral_fat', 'label': 'Visceral Fat (الدهون الحشوية)', 'unit': 'score'},
-      {'code': 'waist_circumference', 'label': 'Waist (محيط الخصر)', 'unit': 'cm'},
-      {'code': 'hip_circumference', 'label': 'Hips (محيط الورك)', 'unit': 'cm'},
-      {'code': 'chest_circumference', 'label': 'Chest (محيط الصدر)', 'unit': 'cm'},
-      {'code': 'shoulder_circumference', 'label': 'Shoulders (محيط الكتفين)', 'unit': 'cm'},
-      {'code': 'neck_circumference', 'label': 'Neck (محيط الرقبة)', 'unit': 'cm'},
-      {'code': 'bicep_circumference', 'label': 'Arms / Bicep (محيط الذراع)', 'unit': 'cm'},
-      {'code': 'forearm_circumference', 'label': 'Forearms (محيط الساعد)', 'unit': 'cm'},
-      {'code': 'thigh_circumference', 'label': 'Thighs (محيط الفخذ)', 'unit': 'cm'},
-      {'code': 'calf_circumference', 'label': 'Calves (محيط بطة الساق)', 'unit': 'cm'},
-    ];
+    String humanize(String code) =>
+        code.split('_').map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+
 
     showDialog(
       context: context,
@@ -1131,27 +1219,69 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                DropdownButtonFormField<String>(
-                  key: const Key('measurement_type_dropdown'),
-                  initialValue: selectedType,
-                  isExpanded: true,
-                  dropdownColor: FormaTheme.surfaceElevated,
-                  borderRadius: BorderRadius.circular(10),
-                  decoration: const InputDecoration(labelText: 'Type'),
-                  items: catalogTypes.map((t) {
-                    return DropdownMenuItem(
-                      value: t['code']!,
-                      child: Text(t['label']!, overflow: TextOverflow.ellipsis),
+                // Catalog-driven picker — only user-enterable types from
+                // GET /api/v1/measurements/types (never a hardcoded list).
+                Consumer(
+                  builder: (ctx, ref, _) {
+                    final typesAsync = ref.watch(measurementTypesProvider);
+                    return typesAsync.when(
+                      loading: () => const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                      ),
+                      error: (err, _) => Column(
+                        children: [
+                          Text(l10n.errorOccurred, style: const TextStyle(color: FormaTheme.criticalCrimson, fontSize: 12)),
+                          TextButton(
+                            onPressed: () => ref.invalidate(measurementTypesProvider),
+                            child: Text(l10n.retry),
+                          ),
+                        ],
+                      ),
+                      data: (types) {
+                        final enterable = types.where((t) => t.isUserEnterable).toList();
+                        if (enterable.isEmpty) {
+                          return Text(l10n.noMeasurementTypesAvailable, style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12));
+                        }
+                        final selected = enterable.where((t) => t.code == selectedType).firstOrNull;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            DropdownButtonFormField<String>(
+                              key: const Key('measurement_type_dropdown'),
+                              initialValue: selected?.code,
+                              isExpanded: true,
+                              dropdownColor: FormaTheme.surfaceElevated,
+                              borderRadius: BorderRadius.circular(10),
+                              decoration: const InputDecoration(labelText: 'Type'),
+                              items: enterable.map((t) {
+                                return DropdownMenuItem(
+                                  value: t.code,
+                                  child: Text(humanize(t.code), overflow: TextOverflow.ellipsis),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setDialogState(() {
+                                    selectedType = val;
+                                    final matched = enterable.firstWhere((t) => t.code == val);
+                                    unitController.text = matched.canonicalUnit;
+                                  });
+                                }
+                              },
+                            ),
+                            if (selected != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  'Range: ${selected.minPlausible}–${selected.maxPlausible} ${selected.canonicalUnit}',
+                                  style: const TextStyle(fontSize: 11, color: FormaTheme.textSecondary),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() {
-                        selectedType = val;
-                        final matched = catalogTypes.firstWhere((t) => t['code'] == val);
-                        unitController.text = matched['unit']!;
-                      });
-                    }
                   },
                 ),
                 const SizedBox(height: 12),
@@ -1183,12 +1313,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               key: const Key('save_measurement_button'),
               onPressed: () async {
                 final val = double.tryParse(valueController.text);
-                if (val == null) return;
+                final type = selectedType;
+                if (val == null || type == null) return;
 
                 Navigator.of(ctx).pop();
                 try {
                   await ref.read(measurementsRepositoryProvider).recordObservation(
-                        typeCode: selectedType,
+                        typeCode: type,
                         value: val,
                         unit: unitController.text.trim(),
                       );
@@ -1240,7 +1371,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(height: 6),
               Text('Canonical Value: ${formatNumeralString(m.canonicalValue.toStringAsFixed(2), numeralSystem)} ${m.canonicalUnit}'),
               const SizedBox(height: 6),
-              Text('Epistemic Class: ${m.epistemicClass.toUpperCase()}', style: const TextStyle(color: FormaTheme.primaryTeal)),
+              Text('Epistemic Class: ${(m.epistemicClass ?? 'unknown').toUpperCase()}', style: const TextStyle(color: FormaTheme.primaryTeal)),
               const SizedBox(height: 6),
               Text('Observed At: ${m.observedAt}'),
               const SizedBox(height: 16),
@@ -1449,51 +1580,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         if (ctx.mounted) Navigator.of(ctx).pop();
 
                         final draftMap = res['draft'] as Map<String, dynamic>;
-                        final rawFields = (draftMap['extractedFields'] as List<dynamic>?) ?? [];
-
-                        final fieldItems = rawFields.map((f) {
-                          final fMap = f as Map<String, dynamic>;
-                          return ExtractedFieldItem(
-                            typeCode: fMap['typeCode'] as String? ?? 'weight',
-                            rawLabel: fMap['rawLabel'] as String? ?? 'Weight',
-                            extractedValue: (fMap['extractedValue'] as num?)?.toDouble() ?? 0.0,
-                            userEditedValue: (fMap['userEditedValue'] as num?)?.toDouble(),
-                            unit: fMap['unit'] as String? ?? 'kg',
-                            canonicalValue: (fMap['canonicalValue'] as num?)?.toDouble() ?? 0.0,
-                            canonicalUnit: fMap['canonicalUnit'] as String? ?? 'kg',
-                            confidenceScore: (fMap['confidenceScore'] as num?)?.toDouble() ?? 0.9,
-                            qualityFlags: (fMap['qualityFlags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-                            epistemicClass: fMap['epistemicClass'] as String? ?? 'measured',
-                            isApproved: fMap['isApproved'] as bool? ?? true,
-                          );
-                        }).toList();
-
-                        final initialDraft = DraftReviewState(
-                          draftId: draftMap['id'] as String? ?? 'draft_1',
-                          imageKind: selectedKind,
-                          status: draftMap['status'] as String? ?? 'draft',
-                          overallConfidence: (draftMap['overallConfidence'] as num?)?.toDouble() ?? 0.9,
-                          fields: fieldItems,
-                        );
-
-                        if (context.mounted) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MultimodalReviewScreen(
-                                initialDraft: initialDraft,
-                                onCommit: (state) async {
-                                  final commitRes = await ref.read(multimodalRepositoryProvider).commitDraft(
-                                        draftId: state.draftId,
-                                        deleteSourceImage: state.deleteSourceImage,
-                                      );
-                                  ref.invalidate(dashboardSnapshotProvider);
-                                  return (commitRes['receipt']?['receiptId'] as String?) ?? 'rec_${DateTime.now().millisecondsSinceEpoch}';
-                                },
-                              ),
-                            ),
-                          );
-                        }
+                        _openDraftReview(draftMap);
                       } catch (err) {
                         setDialogState(() => isExtracting = false);
                         if (ctx.mounted) {
@@ -1514,12 +1601,329 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  /// Data-quality strip: real anomaly flags + measured-share/staleness
+  /// metrics from the snapshot — rendered only when the backend emits them.
+  Widget _buildDataQualityCard(SnapshotModel snapshot, AppLocalizations l10n) {
+    final dq = snapshot.dataQuality;
+    Color severityColor(String? severity) {
+      switch (severity) {
+        case 'critical':
+          return FormaTheme.criticalCrimson;
+        case 'warning':
+          return FormaTheme.warningAmber;
+        default:
+          return FormaTheme.primaryTeal;
+      }
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.verified_outlined, color: FormaTheme.primaryTeal, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.dataQuality,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (dq != null) ...[
+              Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                children: [
+                  if (dq.totalActiveObservations != null)
+                    _buildMetricCol(l10n.observationsLabel, '${dq.totalActiveObservations}'),
+                  if (dq.measuredSharePct != null)
+                    _buildMetricCol(l10n.measuredShare, '${dq.measuredSharePct!.toStringAsFixed(0)}%'),
+                  if (dq.stalenessDays != null)
+                    _buildMetricCol(l10n.staleness, '${dq.stalenessDays}d'),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (snapshot.anomalies.isEmpty)
+              Text(l10n.noAnomaliesDetected, style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12))
+            else
+              ...snapshot.anomalies.map((a) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.flag_outlined, size: 16, color: severityColor(a.severity)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${a.flagType ?? 'unknown'} • ${(a.severity ?? 'info').toUpperCase()}',
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: severityColor(a.severity)),
+                              ),
+                              if ((a.details['reason'] ?? a.details['description']) != null)
+                                Text(
+                                  (a.details['reason'] ?? a.details['description']).toString(),
+                                  style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Pending extraction drafts — resume review of a previously uploaded report.
+  Widget _buildPendingDraftsCard(AppLocalizations l10n) {
+    final draftsAsync = ref.watch(pendingDraftsProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.pending_actions_outlined, color: FormaTheme.primaryTeal, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.pendingReviews,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            draftsAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+              error: (err, _) => Row(
+                children: [
+                  Expanded(
+                    child: Text(l10n.errorOccurred, style: const TextStyle(color: FormaTheme.criticalCrimson, fontSize: 12)),
+                  ),
+                  TextButton(
+                    onPressed: () => ref.invalidate(pendingDraftsProvider),
+                    child: Text(l10n.retry),
+                  ),
+                ],
+              ),
+              data: (drafts) => drafts.isEmpty
+                  ? Text(l10n.noPendingDrafts, style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 12))
+                  : Column(
+                      children: drafts.map((d) {
+                        final id = d['id']?.toString() ?? '';
+                        final kind = d['imageKind']?.toString() ?? d['image_kind']?.toString() ?? '—';
+                        final created = d['createdAt']?.toString() ?? '';
+                        final fieldCount = (d['extractedFields'] as List<dynamic>?)?.length;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.document_scanner_outlined, color: FormaTheme.textSecondary, size: 20),
+                          title: Text(kind, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          subtitle: Text(
+                            '${created.isNotEmpty ? created.substring(0, 10) : '—'}${fieldCount != null ? ' • $fieldCount fields' : ''}',
+                            style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 11),
+                          ),
+                          trailing: TextButton(
+                            onPressed: id.isEmpty
+                                ? null
+                                : () async {
+                                    try {
+                                      final full = await ref.read(multimodalRepositoryProvider).getDraft(id);
+                                      _openDraftReview(full);
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('$e'), backgroundColor: FormaTheme.criticalCrimson),
+                                        );
+                                      }
+                                    }
+                                  },
+                            child: Text(l10n.reviewAction),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Maps a draft response map → DraftReviewState and opens the review screen.
+  /// Skips malformed extraction rows rather than rendering invented values.
+  void _openDraftReview(Map<String, dynamic> draftMap) {
+    final rawFields = (draftMap['extractedFields'] as List<dynamic>?) ?? [];
+    final fieldItems = <ExtractedFieldItem>[];
+    for (final f in rawFields) {
+      final fMap = f as Map<String, dynamic>;
+      final typeCode = fMap['typeCode'] as String?;
+      final value = (fMap['extractedValue'] as num?)?.toDouble();
+      if (typeCode == null || value == null) continue;
+      fieldItems.add(ExtractedFieldItem(
+        typeCode: typeCode,
+        rawLabel: fMap['rawLabel'] as String? ?? '',
+        extractedValue: value,
+        userEditedValue: (fMap['userEditedValue'] as num?)?.toDouble(),
+        unit: fMap['unit'] as String? ?? '',
+        canonicalValue: (fMap['canonicalValue'] as num?)?.toDouble() ?? value,
+        canonicalUnit: fMap['canonicalUnit'] as String? ?? '',
+        confidenceScore: (fMap['confidenceScore'] as num?)?.toDouble() ?? 0.0,
+        qualityFlags: (fMap['qualityFlags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+        epistemicClass: fMap['epistemicClass'] as String? ?? 'asserted',
+        isApproved: fMap['isApproved'] as bool? ?? false,
+      ));
+    }
+
+    final draftId = draftMap['id'] as String?;
+    if (draftId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10nForContext.errorOccurred), backgroundColor: FormaTheme.criticalCrimson),
+        );
+      }
+      return;
+    }
+
+    final initialDraft = DraftReviewState(
+      draftId: draftId,
+      imageKind: draftMap['imageKind'] as String? ?? draftMap['image_kind'] as String? ?? '',
+      status: draftMap['status'] as String? ?? 'draft',
+      overallConfidence: (draftMap['overallConfidence'] as num?)?.toDouble() ?? 0.0,
+      fields: fieldItems,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MultimodalReviewScreen(
+          initialDraft: initialDraft,
+          onCommit: (state) async {
+            final commitRes = await ref.read(multimodalRepositoryProvider).commitDraft(
+                  draftId: state.draftId,
+                  deleteSourceImage: state.deleteSourceImage,
+                );
+            ref.invalidate(dashboardSnapshotProvider);
+            ref.invalidate(pendingDraftsProvider);
+            return commitRes['receipt']?['receiptId'] as String?;
+          },
+        ),
+      ),
+    );
+  }
+
+  AppLocalizations get l10nForContext => AppLocalizations.of(context)!;
+
+  /// Immutable goal-version history (GET /api/v1/goals/:id/versions).
+  void _showGoalVersionsSheet(String goalId, AppLocalizations l10n) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        padding: const EdgeInsets.all(16.0),
+        decoration: const BoxDecoration(
+          color: FormaTheme.surfaceCard,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.history, color: FormaTheme.primaryTeal),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(l10n.goalHistory,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
+              ],
+            ),
+            const Divider(),
+            Expanded(
+              child: FutureBuilder<List<GoalVersionModel>>(
+                future: ref.read(goalsRepositoryProvider).listGoalVersions(goalId),
+                builder: (ctx, snap) {
+                  if (snap.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator(color: FormaTheme.primaryTeal));
+                  }
+                  if (snap.hasError) {
+                    return Center(
+                      child: Text('${l10n.errorOccurred}\n${snap.error}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: FormaTheme.criticalCrimson)),
+                    );
+                  }
+                  final versions = snap.data ?? const [];
+                  if (versions.isEmpty) {
+                    return Center(
+                      child: Text(l10n.noGoalVersions,
+                          style: const TextStyle(color: FormaTheme.textSecondary)),
+                    );
+                  }
+                  return ListView.separated(
+                    itemCount: versions.length,
+                    separatorBuilder: (_, _) => const Divider(color: FormaTheme.borderSubtle, height: 1),
+                    itemBuilder: (ctx, idx) {
+                      final v = versions[idx];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: 14,
+                          backgroundColor: FormaTheme.surfaceElevated,
+                          child: Text('v${v.version}',
+                              style: const TextStyle(fontSize: 11, color: FormaTheme.primaryTeal)),
+                        ),
+                        title: Text(
+                          '${v.startingValue.toStringAsFixed(1)} → ${v.targetValue.toStringAsFixed(1)}${v.weeklyRate != null ? ' • ${v.weeklyRate! >= 0 ? '+' : ''}${v.weeklyRate}/wk' : ''}',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          '${v.startDate}${v.targetDate != null ? ' → ${v.targetDate}' : ''}${v.rationale != null ? '\n${v.rationale}' : ''}',
+                          style: const TextStyle(color: FormaTheme.textSecondary, fontSize: 11),
+                        ),
+                        isThreeLine: v.rationale != null,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showSetGoalDialog(BuildContext context, AppLocalizations l10n, [SnapshotModel? snapshot]) {
-    final currentWeight = snapshot?.latestWeightKg ?? 80.0;
-    final defaultBaseline = currentWeight.toStringAsFixed(1);
-    final defaultTarget = (currentWeight > 10 ? currentWeight - 5.0 : 70.0).toStringAsFixed(1);
-    final targetController = TextEditingController(text: defaultTarget);
-    final baselineController = TextEditingController(text: defaultBaseline);
+    // Prefill the baseline only from a real measured weight — never invent one.
+    final currentWeight = snapshot?.latestWeightKg;
+    final baselineController = TextEditingController(
+      text: currentWeight != null ? currentWeight.toStringAsFixed(1) : '',
+    );
+    final targetController = TextEditingController();
     String goalType = 'weight_loss';
 
     showDialog(
@@ -1540,7 +1944,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   decoration: const InputDecoration(labelText: 'Goal Type'),
                   items: [
                     DropdownMenuItem(value: 'weight_loss', child: Text(l10n.goalWeightLoss, overflow: TextOverflow.ellipsis)),
-                    DropdownMenuItem(value: 'weight_gain', child: Text(l10n.goalMuscleGain, overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'muscle_gain', child: Text(l10n.goalMuscleGain, overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'maintenance', child: Text(l10n.goalMaintenance, overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: 'general_fitness', child: Text(l10n.goalGeneralFitness, overflow: TextOverflow.ellipsis)),
                   ],
                   onChanged: (val) {
                     if (val != null) setDialogState(() => goalType = val);
@@ -1623,10 +2029,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return;
     }
 
-    final currentTarget = snapshot.targetValue?.toStringAsFixed(1) ?? '75.0';
+    final currentTarget = snapshot.targetValue?.toStringAsFixed(1) ?? '';
     final targetController = TextEditingController(text: currentTarget);
-    final rateController = TextEditingController(text: '0.5');
-    final rationaleController = TextEditingController(text: 'Progressive target adjustment');
+    final rateController = TextEditingController();
+    final rationaleController = TextEditingController();
     String selectedAction = 'new_version';
 
     showDialog(
@@ -1696,19 +2102,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   final goalsRepo = ref.read(goalsRepositoryProvider);
                   if (selectedAction == 'new_version') {
                     final target = double.tryParse(targetController.text);
-                    final rate = double.tryParse(rateController.text) ?? 0.5;
+                    final rate = double.tryParse(rateController.text);
                     if (target == null) return;
                     await goalsRepo.addGoalVersion(
                       goalId: goalId,
                       targetValue: target,
                       startingValue: snapshot.currentValue ?? snapshot.latestWeightKg,
                       weeklyRate: rate,
-                      rationale: rationale.isNotEmpty ? rationale : 'Target adjustment',
+                      rationale: rationale.isNotEmpty ? rationale : null,
                     );
                   } else if (selectedAction == 'status_complete') {
-                    await goalsRepo.updateGoalStatus(goalId, 'completed');
+                    await goalsRepo.updateGoalStatus(goalId, 'achieved');
                   } else if (selectedAction == 'status_archive') {
-                    await goalsRepo.updateGoalStatus(goalId, 'archived');
+                    await goalsRepo.updateGoalStatus(goalId, 'abandoned');
                   }
                   ref.invalidate(dashboardSnapshotProvider);
                   if (context.mounted) {

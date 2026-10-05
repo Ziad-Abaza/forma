@@ -28,7 +28,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get password => 'Password';
 
   @override
-  String get dateOfBirth => 'Date of Birth';
+  String get dateOfBirth => 'Date of Birth (YYYY-MM-DD)';
 
   @override
   String get height => 'Height';
@@ -320,81 +320,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get extractedMetricsTitle => 'Extracted Metrics';
 
   @override
-  String get syncScreenTitle => 'Connected Devices & Sync';
-
-  @override
-  String get healthConnect => 'Health Connect';
-
-  @override
-  String get appleHealth => 'Apple Health';
-
-  @override
-  String get garmin => 'Garmin Connect';
-
-  @override
-  String get withings => 'Withings Health Mate';
-
-  @override
-  String get oura => 'Oura Ring';
-
-  @override
-  String get fitbit => 'Fitbit';
-
-  @override
-  String lastSynced(String time) {
-    return 'Last synced: $time';
-  }
-
-  @override
-  String get syncNow => 'Sync Now';
-
-  @override
-  String get syncing => 'Syncing...';
-
-  @override
-  String get connectedStatus => 'Connected';
-
-  @override
-  String get disconnectedStatus => 'Disconnected';
-
-  @override
-  String get connect => 'Connect';
-
-  @override
-  String get disconnect => 'Disconnect';
-
-  @override
-  String get syncFailed => 'Sync failed. Please try again.';
-
-  @override
-  String get connectionUpdateFailed =>
-      'Couldn\'t update the connection. Please try again.';
-
-  @override
-  String get integrationsLoadError => 'Couldn\'t load your device connections.';
-
-  @override
-  String get noIntegrationsAvailable =>
-      'No device integrations are available right now.';
-
-  @override
-  String get epistemicResolutionHeader => 'Conflict Resolution & Provenance';
-
-  @override
-  String get epistemicResolutionDesc =>
-      'Direct device readings supersede manual assertions deterministically without loss of history.';
-
-  @override
-  String get privacyDataSection => 'Data Privacy & Management';
-
-  @override
   String get exportUserData => 'Export Health Data (GDPR)';
 
   @override
   String get purgeAccount => 'Delete Account & Purge Data';
-
-  @override
-  String get exportSuccess => 'Data export generated successfully.';
 
   @override
   String get purgeConfirmation =>
@@ -441,7 +370,83 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorOccurred => 'An error occurred';
 
   @override
+  String get noMeasurementTypesAvailable =>
+      'No measurement types are available right now.';
+
+  @override
+  String get dataQuality => 'Data Quality';
+
+  @override
+  String get observationsLabel => 'Observations';
+
+  @override
+  String get measuredShare => 'Measured Share';
+
+  @override
+  String get staleness => 'Data Age';
+
+  @override
+  String get noAnomaliesDetected => 'No anomalies detected in your records.';
+
+  @override
+  String get pendingReviews => 'Pending Reviews';
+
+  @override
+  String get noPendingDrafts => 'No report extractions awaiting review.';
+
+  @override
+  String get reviewAction => 'Review';
+
+  @override
+  String get goalHistory => 'Goal History';
+
+  @override
+  String get noGoalVersions => 'No goal versions recorded yet.';
+
+  @override
+  String get profileHistory => 'Profile History';
+
+  @override
+  String get noProfileChanges => 'No changes recorded yet.';
+
+  @override
+  String get invalidDobFormat => 'Use YYYY-MM-DD format';
+
+  @override
+  String get invalidDobAge => 'Must be a valid adult birthdate';
+
+  @override
+  String get trainingExperience => 'Training Experience';
+
+  @override
+  String get experienceBeginner => 'Beginner';
+
+  @override
+  String get experienceIntermediate => 'Intermediate';
+
+  @override
+  String get experienceAdvanced => 'Advanced';
+
+  @override
+  String get addConstraintHint => 'Add constraint (e.g. knee injury)';
+
+  @override
   String get sexForCalculation => 'Sex (for calculations)';
+
+  @override
+  String get physicalActivityLevel => 'Physical Activity Level';
+
+  @override
+  String get calculationParams => 'Calculation-Relevant Parameters';
+
+  @override
+  String get profileUpdated => 'Profile updated successfully';
+
+  @override
+  String get heightCmLabel => 'Height (cm)';
+
+  @override
+  String get heightValidation => 'Enter a valid height between 80 and 250 cm';
 
   @override
   String get exportData => 'Export Data';
@@ -729,4 +734,218 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tdeeLabel => 'Total Daily Energy Expenditure';
+
+  @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get securitySectionTitle => 'Security & Sessions';
+
+  @override
+  String get securitySectionSubtitle =>
+      'Manage your password and signed-in devices';
+
+  @override
+  String get sessionsListTitle => 'Signed-In Sessions';
+
+  @override
+  String get sessionUnknownDevice => 'Unknown device';
+
+  @override
+  String sessionCreatedLabel(Object date) {
+    return 'Created $date';
+  }
+
+  @override
+  String get sessionRevokedBadge => 'Revoked';
+
+  @override
+  String get revokeSession => 'Revoke';
+
+  @override
+  String get sessionRevokedSuccess => 'Session revoked';
+
+  @override
+  String sessionActionFailed(Object error) {
+    return 'Session action failed: $error';
+  }
+
+  @override
+  String get signOutAllDevices => 'Sign Out All Devices';
+
+  @override
+  String get signOutAllConfirmTitle => 'Sign out everywhere?';
+
+  @override
+  String get signOutAllConfirmBody =>
+      'All sessions on every device — including this one — will be signed out.';
+
+  @override
+  String get signOutAllSuccess => 'Signed out of all devices';
+
+  @override
+  String get sessionsEmpty => 'No sessions found';
+
+  @override
+  String sessionsLoadError(Object error) {
+    return 'Unable to load sessions: $error';
+  }
+
+  @override
+  String get changePassword => 'Change Password';
+
+  @override
+  String get changePasswordSubtitle =>
+      'Update your password — you will be signed out on all devices';
+
+  @override
+  String get currentPasswordLabel => 'Current Password';
+
+  @override
+  String get newPasswordLabel => 'New Password';
+
+  @override
+  String changePasswordFailed(Object error) {
+    return 'Password change failed: $error';
+  }
+
+  @override
+  String get changePasswordSuccessFallback =>
+      'Password updated. Please sign in again.';
+
+  @override
+  String get consentsTitle => 'Consent & Privacy';
+
+  @override
+  String get consentsSubtitle =>
+      'Review and manage the consents tied to your account';
+
+  @override
+  String get consentPolicyTermsOfService => 'Terms of Service';
+
+  @override
+  String get consentPolicyHealthData => 'Health Data Processing';
+
+  @override
+  String get consentPolicyAiThirdParty => 'Third-Party AI Processing';
+
+  @override
+  String consentGrantedOn(Object date) {
+    return 'Granted $date';
+  }
+
+  @override
+  String consentWithdrawnOn(Object date) {
+    return 'Withdrawn $date';
+  }
+
+  @override
+  String consentVersionLabel(Object version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get consentWithdrawButton => 'Withdraw';
+
+  @override
+  String get consentWithdrawConfirm =>
+      'Withdraw consent for third-party AI processing? AI-powered features will stop working.';
+
+  @override
+  String get consentWithdrawnSuccess => 'Consent withdrawn';
+
+  @override
+  String consentWithdrawFailed(Object error) {
+    return 'Failed to withdraw consent: $error';
+  }
+
+  @override
+  String get consentRequiresDeletion =>
+      'This consent can only be withdrawn by deleting your account.';
+
+  @override
+  String get consentsEmpty => 'No consent records found';
+
+  @override
+  String consentsLoadError(Object error) {
+    return 'Unable to load consents: $error';
+  }
+
+  @override
+  String get aiModelLabel => 'Preferred AI Model';
+
+  @override
+  String get aiModelUpdated => 'AI model preference saved';
+
+  @override
+  String aiModelUpdateFailed(Object error) {
+    return 'Failed to save model preference: $error';
+  }
+
+  @override
+  String get conversationsTitle => 'Conversations';
+
+  @override
+  String get conversationsEmpty => 'No past conversations yet.';
+
+  @override
+  String get untitledConversation => 'Untitled conversation';
+
+  @override
+  String get conversationLoadFailed => 'Couldn\'t load this conversation.';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get deleteConversationConfirm =>
+      'Delete this conversation? This cannot be undone.';
+
+  @override
+  String get deleteFailed => 'Delete failed. Please try again.';
+
+  @override
+  String get memoriesTitle => 'Assistant Memory';
+
+  @override
+  String get memoriesEmpty =>
+      'No memories yet. Forma stores durable preferences, facts, routines, and constraints here.';
+
+  @override
+  String get addMemory => 'Add Memory';
+
+  @override
+  String get memoryCategory => 'Category';
+
+  @override
+  String get memoryKey => 'Key';
+
+  @override
+  String get memoryKeyHint => 'e.g. preferred_units';
+
+  @override
+  String get memoryValueHint => 'e.g. kilograms';
+
+  @override
+  String get memoryCategoryPreference => 'Preference';
+
+  @override
+  String get memoryCategoryFact => 'Fact';
+
+  @override
+  String get memoryCategoryRoutine => 'Routine';
+
+  @override
+  String get memoryCategoryConstraint => 'Constraint';
+
+  @override
+  String get deleteMemoryConfirm => 'Delete this memory?';
+
+  @override
+  String get memorySaved => 'Memory saved';
+
+  @override
+  String memorySaveFailed(String error) {
+    return 'Couldn\'t save memory: $error';
+  }
 }

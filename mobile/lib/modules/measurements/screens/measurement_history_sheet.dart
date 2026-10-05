@@ -41,6 +41,9 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
     try {
       final list = await ref.read(measurementsRepositoryProvider).getObservations(
             typeCode: _selectedType,
+            // 'all' so voided/superseded rows actually render (the list
+            // already styles them); backend default is 'active' only.
+            status: 'all',
             limit: 100,
           );
       if (mounted) {
@@ -148,7 +151,7 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
   }
 
   void _showVoidDialog(ObservationModel obs, AppLocalizations l10n) {
-    final reasonController = TextEditingController(text: 'Mistaken or duplicate entry');
+    final reasonController = TextEditingController();
 
     showDialog(
       context: context,
@@ -178,6 +181,7 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: FormaTheme.criticalCrimson),
             onPressed: () async {
+              if (reasonController.text.trim().isEmpty) return;
               Navigator.of(ctx).pop();
               try {
                 await ref.read(measurementsRepositoryProvider).voidObservation(
@@ -220,7 +224,17 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
       ),
     );
 
-    final prov = await ref.read(measurementsRepositoryProvider).getProvenance(obs.id);
+    // The provenance endpoint expects the provenance record id, NOT the
+    // observation id.
+    Map<String, dynamic>? prov;
+    try {
+      final provenanceId = obs.provenanceId;
+      if (provenanceId != null) {
+        prov = await ref.read(measurementsRepositoryProvider).getProvenance(provenanceId);
+      }
+    } catch (_) {
+      prov = null;
+    }
     if (!mounted) return;
     Navigator.of(context).pop(); // dismiss loading
 
@@ -235,11 +249,11 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
           children: [
             Text('Observation ID: ${obs.id.substring(0, 8)}...'),
             const SizedBox(height: 6),
-            Text('Epistemic Class: ${obs.epistemicClass.toUpperCase()}'),
+            Text('Epistemic Class: ${(prov?['epistemic_class'] as String? ?? obs.epistemicClass ?? 'unknown').toUpperCase()}'),
             const SizedBox(height: 6),
-            Text('Origin Type: ${prov?['origin_type'] ?? 'manual_entry'}'),
+            Text('Origin Type: ${prov?['origin_type'] ?? 'unknown'}'),
             const SizedBox(height: 6),
-            Text('Actor: ${prov?['actor'] ?? 'user'}'),
+            Text('Actor: ${prov?['actor'] ?? 'unknown'}'),
             const SizedBox(height: 6),
             Text('Recorded At: ${obs.recordedAt.toLocal().toString().substring(0, 16)}'),
             if (obs.isVoided) ...[
@@ -286,37 +300,40 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
                     const Icon(Icons.history, color: FormaTheme.primaryTeal),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: DropdownButton<String>(
-                        value: _selectedType,
-                        isExpanded: true,
-                        underline: const SizedBox(),
-                        dropdownColor: FormaTheme.surfaceElevated,
-                        style: const TextStyle(
-                          color: FormaTheme.textPrimary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'weight', child: Text('Weight (الوزن)')),
-                          DropdownMenuItem(value: 'body_fat_percentage', child: Text('Body Fat % (نسبة الدهون)')),
-                          DropdownMenuItem(value: 'muscle_mass', child: Text('Muscle Mass (الكتلة العضلية)')),
-                          DropdownMenuItem(value: 'bone_mass', child: Text('Bone Mass (كتلة العظام)')),
-                          DropdownMenuItem(value: 'body_water_percentage', child: Text('Body Water % (الماء)')),
-                          DropdownMenuItem(value: 'visceral_fat', child: Text('Visceral Fat (الدهون الحشوية)')),
-                          DropdownMenuItem(value: 'waist_circumference', child: Text('Waist (محيط الخصر)')),
-                          DropdownMenuItem(value: 'hip_circumference', child: Text('Hips (محيط الورك)')),
-                          DropdownMenuItem(value: 'chest_circumference', child: Text('Chest (محيط الصدر)')),
-                          DropdownMenuItem(value: 'shoulder_circumference', child: Text('Shoulders (الكتفين)')),
-                          DropdownMenuItem(value: 'neck_circumference', child: Text('Neck (الرقبة)')),
-                          DropdownMenuItem(value: 'bicep_circumference', child: Text('Arms (الذراع)')),
-                          DropdownMenuItem(value: 'thigh_circumference', child: Text('Thighs (الفخذ)')),
-                          DropdownMenuItem(value: 'calf_circumference', child: Text('Calves (بطة الساق)')),
-                        ],
-                        onChanged: (val) {
-                          if (val != null && val != _selectedType) {
-                            setState(() => _selectedType = val);
-                            _loadObservations();
-                          }
+                      child: Consumer(
+                        builder: (context, ref, _) {
+                          final typesAsync = ref.watch(measurementTypesProvider);
+                          // Always include the currently selected type so the
+                          // dropdown stays valid even if the catalog fails.
+                          final catalog = typesAsync.valueOrNull ?? const [];
+                          final codes = {
+                            _selectedType,
+                            ...catalog.map((t) => t.code),
+                          }.toList();
+                          String humanize(String code) => code
+                              .split('_')
+                              .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+                              .join(' ');
+                          return DropdownButton<String>(
+                            value: _selectedType,
+                            isExpanded: true,
+                            underline: const SizedBox(),
+                            dropdownColor: FormaTheme.surfaceElevated,
+                            style: const TextStyle(
+                              color: FormaTheme.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            items: codes
+                                .map((c) => DropdownMenuItem(value: c, child: Text(humanize(c))))
+                                .toList(),
+                            onChanged: (val) {
+                              if (val != null && val != _selectedType) {
+                                setState(() => _selectedType = val);
+                                _loadObservations();
+                              }
+                            },
+                          );
                         },
                       ),
                     ),
@@ -393,7 +410,9 @@ class _MeasurementHistorySheetState extends ConsumerState<MeasurementHistoryShee
                           icon: const Icon(Icons.info_outline, size: 18, color: FormaTheme.textSecondary),
                           onPressed: () => _showProvenanceDetails(obs, l10n),
                         ),
-                        if (!obs.isVoided) ...[
+                        // Backend rejects supersede/void on non-'active'
+                        // observations.
+                        if (obs.isActive) ...[
                           IconButton(
                             tooltip: l10n.supersede,
                             icon: const Icon(Icons.edit_outlined, size: 18, color: FormaTheme.primaryTeal),

@@ -12,6 +12,25 @@ import 'package:forma/modules/auth/repositories/auth_repository.dart';
 
 import 'package:forma/modules/analytics/models/snapshot_model.dart';
 import 'package:forma/modules/analytics/repositories/analytics_repository.dart';
+import 'package:forma/modules/multimodal/repositories/multimodal_repository.dart';
+
+const _testUser = UserModel(
+  id: 'test-user',
+  email: 'test@forma.local',
+  role: 'user',
+  locale: 'en',
+  numeralSystem: 'western',
+  emailVerified: true,
+);
+
+/// Returns the seeded test user so AuthNotifier.restoreSession keeps the
+/// authenticated state instead of racing to unauthenticated.
+class _FakeAuthRepository extends AuthRepository {
+  _FakeAuthRepository({required super.apiClient, required super.tokenStorage});
+
+  @override
+  Future<UserModel?> getCurrentUser() async => _testUser;
+}
 
 void main() {
   FlutterSecureStorage.setMockInitialValues({});
@@ -20,18 +39,17 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          authStateProvider.overrideWith((ref) => AuthNotifier(ref, ref.watch(authRepositoryProvider))
-            ..state = const AuthState(
-              status: AuthStatus.authenticated,
-              user: UserModel(
-                id: 'test-user',
-                email: 'test@forma.local',
-                role: 'user',
-                locale: 'en',
-                numeralSystem: 'western',
-                emailVerified: true,
-              ),
-            )),
+          authRepositoryProvider.overrideWith(
+            (ref) => _FakeAuthRepository(
+              apiClient: ref.watch(apiClientProvider),
+              tokenStorage: ref.watch(tokenStorageProvider),
+            ),
+          ),
+          authStateProvider.overrideWith(
+            (ref) => AuthNotifier(ref, ref.watch(authRepositoryProvider)),
+          ),
+          // The dashboard watches this now — stub it so it never hits the network.
+          pendingDraftsProvider.overrideWith((ref) async => <Map<String, dynamic>>[]),
           dashboardSnapshotProvider.overrideWith((ref) => Future.value(
                 const SnapshotModel(
                   latestWeightKg: 84.5,
