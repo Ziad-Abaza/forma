@@ -91,5 +91,22 @@
     "placeholders": {
       "id": { "type": "String" }
     }
-  }
+  },
+  "multimodalReviewTitle": "مراجعة البيانات المستخرجة",
+  "adaptiveAttentionWarning": "بعض الحقول تتطلب انتباهك بسبب انخفاض دقة القراءة أو القيم.",
+  "deleteSourceImage": "حذف الصورة الأصلية بعد الحفظ (موصى به للخصوصية)",
+  "commitToHealthRecord": "حفظ في السجل الصحي",
+  "unrecognizedFields": "تم استبعاد الحقول غير المعروفة",
+  "fieldRequiresAttention": "يتطلب الانتباه",
+  "fieldConfidence": "مستوى الدقة: {score}٪",
+  "@fieldConfidence": {
+    "placeholders": {
+      "score": { "type": "int" }
+    }
+  },
+  "discardDraft": "تجاهل المسودة",
+  "editField": "تعديل القيمة",
+  "saveChanges": "حفظ التغييرات",
+  "noFieldsToCommit": "لم يتم تحديد أي حقول للحفظ",
+  "extractedMetricsTitle": "المؤشرات المستخرجة"
 }

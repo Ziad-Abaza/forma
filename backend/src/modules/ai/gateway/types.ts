@@ -55,6 +55,7 @@ export interface GenerateTextOptions {
     parameters: Record<string, unknown>;
   }> | undefined;
   toolResponses?: ToolCallResponse[] | undefined;
+  inlineData?: Array<{ mimeType: string; data: string }> | undefined;
 }
 
 export interface TokenUsage {

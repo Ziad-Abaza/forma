@@ -278,4 +278,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String actionReceiptId(String id) {
     return 'Receipt ID: $id';
   }
+
+  @override
+  String get multimodalReviewTitle => 'Review Extracted Data';
+
+  @override
+  String get adaptiveAttentionWarning =>
+      'Some fields need your attention due to low confidence or values.';
+
+  @override
+  String get deleteSourceImage =>
+      'Delete source image after saving (Privacy Recommended)';
+
+  @override
+  String get commitToHealthRecord => 'Commit to Health Record';
+
+  @override
+  String get unrecognizedFields => 'Unrecognized fields omitted';
+
+  @override
+  String get fieldRequiresAttention => 'Needs Attention';
+
+  @override
+  String fieldConfidence(int score) {
+    return 'Confidence: $score%';
+  }
+
+  @override
+  String get discardDraft => 'Discard Draft';
+
+  @override
+  String get editField => 'Edit Value';
+
+  @override
+  String get saveChanges => 'Save Changes';
+
+  @override
+  String get noFieldsToCommit => 'No fields selected for commit';
+
+  @override
+  String get extractedMetricsTitle => 'Extracted Metrics';
 }

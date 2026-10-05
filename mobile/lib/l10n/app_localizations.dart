@@ -619,6 +619,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Receipt ID: {id}'**
   String actionReceiptId(String id);
+
+  /// No description provided for @multimodalReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review Extracted Data'**
+  String get multimodalReviewTitle;
+
+  /// No description provided for @adaptiveAttentionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Some fields need your attention due to low confidence or values.'**
+  String get adaptiveAttentionWarning;
+
+  /// No description provided for @deleteSourceImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete source image after saving (Privacy Recommended)'**
+  String get deleteSourceImage;
+
+  /// No description provided for @commitToHealthRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Commit to Health Record'**
+  String get commitToHealthRecord;
+
+  /// No description provided for @unrecognizedFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognized fields omitted'**
+  String get unrecognizedFields;
+
+  /// No description provided for @fieldRequiresAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs Attention'**
+  String get fieldRequiresAttention;
+
+  /// No description provided for @fieldConfidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Confidence: {score}%'**
+  String fieldConfidence(int score);
+
+  /// No description provided for @discardDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard Draft'**
+  String get discardDraft;
+
+  /// No description provided for @editField.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Value'**
+  String get editField;
+
+  /// No description provided for @saveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Changes'**
+  String get saveChanges;
+
+  /// No description provided for @noFieldsToCommit.
+  ///
+  /// In en, this message translates to:
+  /// **'No fields selected for commit'**
+  String get noFieldsToCommit;
+
+  /// No description provided for @extractedMetricsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracted Metrics'**
+  String get extractedMetricsTitle;
 }
 
 class _AppLocalizationsDelegate

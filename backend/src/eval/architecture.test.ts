@@ -62,7 +62,8 @@ describe('Architectural Invariant Tests', () => {
       'observations', 'provenance_records', 'audit_logs',
       'goals', 'goal_versions', 'health_snapshots', 'metric_rollups', 'anomaly_flags',
       'ai_traces', 'user_ai_credentials',
-      'conversations', 'conversation_messages', 'action_proposals', 'assistant_memories'
+      'conversations', 'conversation_messages', 'action_proposals', 'assistant_memories',
+      'media_artifacts', 'extraction_drafts'
     ];
 
     for (const table of expectedRlsTables) {

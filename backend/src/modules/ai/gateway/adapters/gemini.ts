@@ -28,7 +28,21 @@ export class GeminiAdapter implements AIProviderAdapter {
     const contents: Array<Record<string, unknown>> = [];
 
     // Add user turn
-    const parts: Array<Record<string, unknown>> = [{ text: options.prompt }];
+    const parts: Array<Record<string, unknown>> = [];
+
+    // If inline image/multimodal data exists, attach inlineData parts
+    if (options.inlineData && options.inlineData.length > 0) {
+      for (const item of options.inlineData) {
+        parts.push({
+          inlineData: {
+            mimeType: item.mimeType,
+            data: item.data
+          }
+        });
+      }
+    }
+
+    parts.push({ text: options.prompt });
 
     // If tool responses exist, supply them
     if (options.toolResponses && options.toolResponses.length > 0) {

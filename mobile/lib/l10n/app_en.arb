@@ -92,5 +92,22 @@
     "placeholders": {
       "id": { "type": "String" }
     }
-  }
+  },
+  "multimodalReviewTitle": "Review Extracted Data",
+  "adaptiveAttentionWarning": "Some fields need your attention due to low confidence or values.",
+  "deleteSourceImage": "Delete source image after saving (Privacy Recommended)",
+  "commitToHealthRecord": "Commit to Health Record",
+  "unrecognizedFields": "Unrecognized fields omitted",
+  "fieldRequiresAttention": "Needs Attention",
+  "fieldConfidence": "Confidence: {score}%",
+  "@fieldConfidence": {
+    "placeholders": {
+      "score": { "type": "int" }
+    }
+  },
+  "discardDraft": "Discard Draft",
+  "editField": "Edit Value",
+  "saveChanges": "Save Changes",
+  "noFieldsToCommit": "No fields selected for commit",
+  "extractedMetricsTitle": "Extracted Metrics"
 }

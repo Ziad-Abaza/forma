@@ -278,4 +278,44 @@ class AppLocalizationsAr extends AppLocalizations {
   String actionReceiptId(String id) {
     return 'معرف الإيصال: $id';
   }
+
+  @override
+  String get multimodalReviewTitle => 'مراجعة البيانات المستخرجة';
+
+  @override
+  String get adaptiveAttentionWarning =>
+      'بعض الحقول تتطلب انتباهك بسبب انخفاض دقة القراءة أو القيم.';
+
+  @override
+  String get deleteSourceImage =>
+      'حذف الصورة الأصلية بعد الحفظ (موصى به للخصوصية)';
+
+  @override
+  String get commitToHealthRecord => 'حفظ في السجل الصحي';
+
+  @override
+  String get unrecognizedFields => 'تم استبعاد الحقول غير المعروفة';
+
+  @override
+  String get fieldRequiresAttention => 'يتطلب الانتباه';
+
+  @override
+  String fieldConfidence(int score) {
+    return 'مستوى الدقة: $score٪';
+  }
+
+  @override
+  String get discardDraft => 'تجاهل المسودة';
+
+  @override
+  String get editField => 'تعديل القيمة';
+
+  @override
+  String get saveChanges => 'حفظ التغييرات';
+
+  @override
+  String get noFieldsToCommit => 'لم يتم تحديد أي حقول للحفظ';
+
+  @override
+  String get extractedMetricsTitle => 'المؤشرات المستخرجة';
 }

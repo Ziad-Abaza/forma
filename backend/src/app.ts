@@ -28,6 +28,15 @@ import {
   ConfirmProposalSchema,
   SaveMemorySchema
 } from './modules/assistant/index.js';
+import {
+  MediaPipeline,
+  VisionExtractor,
+  DraftReviewService,
+  MultimodalPrivacyContract,
+  UploadAndExtractRequestSchema,
+  UpdateDraftFieldSchema,
+  CommitDraftRequestSchema
+} from './modules/multimodal/index.js';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -392,6 +401,60 @@ export function buildApp(): FastifyInstance {
     const { id } = req.params as { id: string };
     const deleted = await AssistantMemoryService.deleteMemory(req.user!.userId, id);
     return reply.send({ success: deleted });
+  });
+
+  // --- Multimodal & Vision Extraction Routes (Blueprint §13, §14) ---
+  PrivacyOrchestrator.registerModule(new MultimodalPrivacyContract());
+
+  app.post('/api/v1/multimodal/upload-and-extract', { preHandler: [requireAuth] }, async (req, reply) => {
+    const parsed = UploadAndExtractRequestSchema.parse(req.body);
+    const userId = req.user!.userId;
+
+    const media = await MediaPipeline.ingestImage(
+      userId,
+      parsed.imageBase64,
+      parsed.mimeType,
+      parsed.imageKindHint
+    );
+
+    const draft = await VisionExtractor.extractFromImage({
+      userId,
+      mediaArtifact: media.artifact,
+      base64Image: media.base64,
+      kindHint: parsed.imageKindHint,
+      correlationId: req.correlationId
+    });
+
+    return reply.status(201).send({ draft, artifact: media.artifact });
+  });
+
+  app.get('/api/v1/multimodal/drafts/:id', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const draft = await DraftReviewService.getDraft(req.user!.userId, id);
+    if (!draft) {
+      return reply.status(404).send({ error: 'Extraction draft not found' });
+    }
+    return reply.send({ draft });
+  });
+
+  app.put('/api/v1/multimodal/drafts/:id/fields', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const parsed = UpdateDraftFieldSchema.parse(req.body);
+    const updated = await DraftReviewService.updateDraftField(req.user!.userId, id, parsed);
+    return reply.send({ draft: updated });
+  });
+
+  app.post('/api/v1/multimodal/drafts/:id/commit', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const parsed = CommitDraftRequestSchema.parse(req.body || {});
+    const result = await DraftReviewService.commitDraft(req.user!.userId, id, parsed, req.correlationId);
+    return reply.send(result);
+  });
+
+  app.delete('/api/v1/multimodal/drafts/:id', { preHandler: [requireAuth] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const discarded = await DraftReviewService.discardDraft(req.user!.userId, id, req.correlationId);
+    return reply.send({ draft: discarded });
   });
 
   return app;
