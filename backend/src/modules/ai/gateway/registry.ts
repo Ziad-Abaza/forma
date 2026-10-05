@@ -93,21 +93,6 @@ export class ModelRegistry {
       },
     ],
     [
-      'claude-3-5-sonnet',
-      {
-        id: 'claude-3-5-sonnet',
-        provider: 'anthropic',
-        displayName: 'Claude 3.5 Sonnet',
-        capabilities: ['text', 'vision', 'structured_output', 'tool_calling'],
-        contextWindow: 200000,
-        maxOutputTokens: 8192,
-        inputCostPerMillionUsd: 3.0,
-        outputCostPerMillionUsd: 15.0,
-        supportedLanguages: ['en', 'ar'],
-        evalStatus: 'approved',
-      },
-    ],
-    [
       'gemini-3.5-flash-lite',
       {
         id: 'gemini-3.5-flash-lite',
@@ -160,14 +145,17 @@ export class ModelRegistry {
   }
 
   public static getDefaultModelForTask(task: TaskClass): string {
-    return this.taskDefaultModels[task] || 'gemini-1.5-flash';
+    const modelId = this.taskDefaultModels[task];
+    if (!modelId) {
+      throw new Error(`No default model registered for task class '${task}'`);
+    }
+    return modelId;
   }
 
   public static getDefaultModelForProvider(provider: string, task: TaskClass): string {
     if (task === 'calculation') return 'deterministic';
     const norm = provider.toLowerCase();
     if (norm === 'openai') return 'gpt-4o-mini';
-    if (norm === 'anthropic') return 'claude-3-5-sonnet';
     if (norm === 'secondary') return 'forma-secondary-text-v1';
     return this.getDefaultModelForTask(task);
   }

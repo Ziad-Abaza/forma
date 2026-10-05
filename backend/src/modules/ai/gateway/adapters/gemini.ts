@@ -1,4 +1,5 @@
 import { AIProviderAdapter, GenerateTextOptions, GenerateTextResult, ToolCallRequest } from '../types.js';
+import { config } from '../../../../config/index.js';
 
 export class GeminiAdapter implements AIProviderAdapter {
   public readonly providerName = 'google';
@@ -6,7 +7,7 @@ export class GeminiAdapter implements AIProviderAdapter {
   private readonly baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
 
   constructor(apiKey?: string) {
-    this.defaultApiKey = apiKey || process.env.GEMINI_API_KEY || '';
+    this.defaultApiKey = apiKey || config.GEMINI_API_KEY || '';
   }
 
   public async isAvailable(): Promise<boolean> {
@@ -23,9 +24,12 @@ export class GeminiAdapter implements AIProviderAdapter {
       throw new Error('GEMINI_API_KEY is not configured and no custom key provided');
     }
 
-    const resolvedModel = (!modelId || modelId === 'gemini-1.5-flash')
-      ? (process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite')
-      : modelId;
+    // The gateway resolves the concrete model; the adapter never substitutes
+    // a different model silently.
+    if (!modelId || modelId.trim().length === 0) {
+      throw new Error('A concrete modelId is required for Gemini generation');
+    }
+    const resolvedModel = modelId;
 
     const isBearer = apiKey.startsWith('ya29.');
     const endpoint = `${this.baseUrl}/models/${resolvedModel}:generateContent`;

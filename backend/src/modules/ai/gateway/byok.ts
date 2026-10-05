@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { withUserContext } from '../../../core/database/index.js';
 import { config } from '../../../config/index.js';
+import { BUILTIN_PROVIDER_NAMES } from './adapters/index.js';
 
 export interface UserAICredential {
   id: string;
@@ -14,13 +15,24 @@ export interface UserAICredential {
 export class BYOKService {
   private readonly algorithm = 'aes-256-gcm';
   private readonly masterKey: Buffer;
-  private readonly allowedProviders = new Set(['google', 'openai', 'anthropic', 'secondary']);
+  /**
+   * Providers that can actually serve a request — derived from registered
+   * gateway adapters, never a literal list. The app passes the live gateway
+   * set; standalone uses fall back to the builtin adapter set.
+   */
+  private readonly allowedProviders: ReadonlySet<string>;
 
-  constructor(masterKeyHex: string = config.ENCRYPTION_MASTER_KEY) {
+  constructor(
+    masterKeyHex: string = config.ENCRYPTION_MASTER_KEY,
+    allowedProviders?: Iterable<string>
+  ) {
     if (!/^[0-9a-fA-F]{64}$/.test(masterKeyHex)) {
       throw new Error('BYOK master key must be a 64-character hex string (32 bytes for AES-256-GCM)');
     }
     this.masterKey = Buffer.from(masterKeyHex, 'hex');
+    this.allowedProviders = new Set(
+      Array.from(allowedProviders ?? BUILTIN_PROVIDER_NAMES, (p) => p.toLowerCase())
+    );
   }
 
   public isProviderAllowed(provider: string): boolean {
@@ -113,7 +125,11 @@ export class BYOKService {
     });
   }
 
-  public async getActiveProvider(userId: string): Promise<string> {
+  /**
+   * Returns the user's active provider, or null when none is configured.
+   * No fabricated 'google' default — callers must handle the unconfigured state.
+   */
+  public async getActiveProvider(userId: string): Promise<string | null> {
     return withUserContext(userId, async (client) => {
       const res = await client.query(
         `SELECT provider FROM user_ai_credentials
@@ -122,12 +138,12 @@ export class BYOKService {
         [userId]
       );
       if (res.rows.length === 0) {
-        // Fall back to first credential if exists, or default to 'google'
+        // Fall back to most recently stored credential if one exists
         const anyCred = await client.query(
           `SELECT provider FROM user_ai_credentials WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`,
           [userId]
         );
-        return anyCred.rows.length > 0 ? anyCred.rows[0].provider : 'google';
+        return anyCred.rows.length > 0 ? anyCred.rows[0].provider : null;
       }
       return res.rows[0].provider;
     });

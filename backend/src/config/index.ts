@@ -27,7 +27,10 @@ const configSchema = z.object({
     .regex(ENCRYPTION_KEY_HEX_PATTERN, 'ENCRYPTION_MASTER_KEY must be a 64-character hex string (32 bytes)')
     .optional(),
   GEMINI_API_KEY: z.string().optional(),
-  AI_PRIMARY_MODEL: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_BASE_URL: z.string().url().optional(),
+  SECONDARY_AI_BASE_URL: z.string().url().optional(),
+  SECONDARY_AI_API_KEY: z.string().optional(),
   CORS_ORIGINS: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info')
 });

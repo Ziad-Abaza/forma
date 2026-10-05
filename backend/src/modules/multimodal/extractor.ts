@@ -141,7 +141,7 @@ CRITICAL RULES:
     let attemptedProvider = 'unknown';
     let attemptedModel = 'unknown';
     try {
-      attemptedProvider = await this.byok.getActiveProvider(userId);
+      attemptedProvider = (await this.byok.getActiveProvider(userId)) ?? 'unknown';
       attemptedModel = ModelRegistry.getDefaultModelForProvider(attemptedProvider, 'vision_extraction');
     } catch {
       // provider resolution itself failed; trace will record 'unknown'

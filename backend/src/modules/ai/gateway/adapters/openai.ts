@@ -1,4 +1,5 @@
 import { AIProviderAdapter, GenerateTextOptions, GenerateTextResult, ToolCallRequest } from '../types.js';
+import { config } from '../../../../config/index.js';
 
 export class OpenAIAdapter implements AIProviderAdapter {
   public readonly providerName = 'openai';
@@ -6,8 +7,9 @@ export class OpenAIAdapter implements AIProviderAdapter {
   private readonly baseUrl: string;
 
   constructor(apiKey?: string, baseUrl?: string) {
-    this.defaultApiKey = apiKey || process.env.OPENAI_API_KEY || '';
-    this.baseUrl = baseUrl || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+    this.defaultApiKey = apiKey || config.OPENAI_API_KEY || '';
+    // The public OpenAI API endpoint is a fixed upstream constant, not a secret.
+    this.baseUrl = baseUrl || config.OPENAI_BASE_URL || 'https://api.openai.com/v1';
   }
 
   public async isAvailable(): Promise<boolean> {
@@ -27,8 +29,12 @@ export class OpenAIAdapter implements AIProviderAdapter {
     const cleanBase = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
     const endpoint = `${cleanBase}/chat/completions`;
 
-    // Map any generic model alias to a concrete OpenAI model
-    const resolvedModel = modelId.startsWith('gpt-') ? modelId : 'gpt-4o-mini';
+    // No silent model substitution — the caller selects the model via the
+    // registry; an unrecognized id must fail at the provider, not be swapped.
+    if (!modelId || modelId.trim().length === 0) {
+      throw new Error('A concrete modelId is required for OpenAI generation');
+    }
+    const resolvedModel = modelId;
 
     const messages: Array<{ role: string; content: any }> = [];
     if (options.systemInstruction) {

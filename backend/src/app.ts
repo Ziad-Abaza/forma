@@ -751,7 +751,10 @@ export function buildApp(deps: AppDependencies = {}): FastifyInstance {
 
   app.post('/api/v1/ai/test-connection', { preHandler: [requireAuth] }, async (req, reply) => {
     const body = req.body as { provider?: string; apiKey?: string };
-    const provider = (body.provider || 'google').toLowerCase();
+    if (!body.provider || body.provider.trim().length === 0) {
+      return reply.status(400).send({ error: "'provider' is required" });
+    }
+    const provider = body.provider.toLowerCase();
 
     if (!byokService.isProviderAllowed(provider)) {
       return reply.status(400).send({ error: `Provider '${provider}' is not supported` });

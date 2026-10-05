@@ -1,18 +1,23 @@
 import { AIProviderAdapter, GenerateTextOptions, GenerateTextResult, ToolCallRequest } from '../types.js';
+import { config } from '../../../../config/index.js';
 
 export class SecondaryProviderAdapter implements AIProviderAdapter {
   public readonly providerName = 'secondary';
-  public readonly baseUrl: string;
+  public readonly baseUrl: string | undefined;
   public readonly apiKey: string;
   private readonly customFetch?: (typeof fetch) | undefined;
 
+  /**
+   * No implicit localhost default: the secondary provider is only "available"
+   * when explicitly configured via SECONDARY_AI_BASE_URL or constructor args.
+   */
   constructor(
-    baseUrl = 'http://localhost:11434/v1',
-    apiKey = 'secondary-key',
+    baseUrl?: string | undefined,
+    apiKey?: string | undefined,
     customFetch?: (typeof fetch) | undefined
   ) {
-    this.baseUrl = process.env.SECONDARY_AI_BASE_URL || baseUrl;
-    this.apiKey = process.env.SECONDARY_AI_API_KEY || apiKey;
+    this.baseUrl = baseUrl ?? config.SECONDARY_AI_BASE_URL;
+    this.apiKey = apiKey ?? config.SECONDARY_AI_API_KEY ?? '';
     this.customFetch = customFetch;
   }
 
@@ -25,6 +30,9 @@ export class SecondaryProviderAdapter implements AIProviderAdapter {
     options: GenerateTextOptions,
     customApiKey?: string | undefined
   ): Promise<GenerateTextResult> {
+    if (!this.baseUrl) {
+      throw new Error('Secondary AI provider is not configured (set SECONDARY_AI_BASE_URL)');
+    }
     const key = customApiKey || this.apiKey;
     const cleanBase = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
     const endpoint = `${cleanBase}/chat/completions`;

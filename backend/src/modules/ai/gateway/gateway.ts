@@ -1,8 +1,6 @@
 import { AIProviderAdapter, GenerateTextOptions, GenerateTextResult, TaskClass } from './types.js';
 import { ModelRegistry } from './registry.js';
-import { GeminiAdapter } from './adapters/gemini.js';
-import { OpenAIAdapter } from './adapters/openai.js';
-import { SecondaryProviderAdapter } from './adapters/secondary.js';
+import { createBuiltinAdapters } from './adapters/index.js';
 import { BYOKService } from './byok.js';
 
 export interface GatewayExecutionResult {
@@ -20,10 +18,9 @@ export class AIGateway {
   private readonly adapters: Map<string, AIProviderAdapter> = new Map();
 
   constructor(private readonly byokService?: BYOKService) {
-    // Register primary Google, OpenAI, and secondary text adapters
-    this.registerAdapter(new GeminiAdapter());
-    this.registerAdapter(new OpenAIAdapter());
-    this.registerAdapter(new SecondaryProviderAdapter());
+    for (const adapter of createBuiltinAdapters()) {
+      this.registerAdapter(adapter);
+    }
   }
 
   public registerAdapter(adapter: AIProviderAdapter): void {
@@ -54,10 +51,17 @@ export class AIGateway {
       throw new Error(`TaskClass '${taskClass}' is deterministic and must not be routed to an LLM`);
     }
 
-    // Determine target provider: respect user's active configured BYOK provider
+    // Determine target provider: respect user's active configured BYOK provider.
+    // A missing provider is an honest error, never a silently assumed 'google'.
     let activeProvider = 'google';
     if (userId && this.byokService) {
-      activeProvider = await this.byokService.getActiveProvider(userId);
+      const configured = await this.byokService.getActiveProvider(userId);
+      if (!configured) {
+        throw new Error(
+          'No AI provider credential configured. Please add a provider API key in Settings -> AI Provider.'
+        );
+      }
+      activeProvider = configured;
     }
 
     let targetModelId = ModelRegistry.getDefaultModelForProvider(activeProvider, taskClass);

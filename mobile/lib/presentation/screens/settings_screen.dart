@@ -23,7 +23,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _apiKeyController = TextEditingController();
-  String _selectedProvider = 'google';
+  String? _selectedProvider;
   bool _obscureKey = true;
   bool _isTestingKey = false;
   bool _isSavingKey = false;
@@ -38,6 +38,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _testConnection() async {
     final l10n = AppLocalizations.of(context)!;
+    final provider = _selectedProvider;
+    if (provider == null) return;
     final key = _apiKeyController.text.trim();
     setState(() {
       _isTestingKey = true;
@@ -46,13 +48,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     try {
       final success = await ref.read(aiConfigRepositoryProvider).testConnection(
-            provider: _selectedProvider,
+            provider: provider,
             apiKey: key.isNotEmpty ? key : null,
           );
       setState(() {
         _testSuccess = success;
         _testStatusMessage = success
-            ? l10n.connectionVerified(_selectedProvider)
+            ? l10n.connectionVerified(provider)
             : l10n.connectionFailed;
       });
     } catch (e) {
@@ -78,10 +80,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return;
     }
 
+    final provider = _selectedProvider;
+    if (provider == null) return;
+
     setState(() => _isSavingKey = true);
     try {
       await ref.read(aiConfigRepositoryProvider).storeCredential(
-            provider: _selectedProvider,
+            provider: provider,
             apiKey: key,
           );
       _apiKeyController.clear();
@@ -90,7 +95,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.apiKeySaved(_selectedProvider)),
+            content: Text(l10n.apiKeySaved(provider)),
             backgroundColor: FormaTheme.successGreen,
           ),
         );
@@ -693,7 +698,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 isExpanded: true,
                                 initialValue: config.availableProviders.contains(_selectedProvider)
                                     ? _selectedProvider
-                                    : config.availableProviders.firstOrNull ?? 'google',
+                                    : config.availableProviders.firstOrNull,
                                 decoration: InputDecoration(labelText: l10n.activeAiProvider),
                                 items: config.availableProviders.map((p) {
                                   final hasKey = config.hasCredentialFor(p);
@@ -786,7 +791,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 controller: _apiKeyController,
                                 obscureText: _obscureKey,
                                 decoration: InputDecoration(
-                                  labelText: l10n.enterCustomApiKey(_selectedProvider.toUpperCase()),
+                                  labelText: l10n.enterCustomApiKey((_selectedProvider ?? '').toUpperCase()),
                                   prefixIcon: const Icon(Icons.vpn_key_outlined, color: FormaTheme.primaryTeal),
                                   suffixIcon: IconButton(
                                     icon: Icon(_obscureKey ? Icons.visibility_off : Icons.visibility),
